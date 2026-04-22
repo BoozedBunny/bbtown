@@ -1,11 +1,17 @@
 "use client";
 
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, ContactShadows, Environment, OrthographicCamera } from "@react-three/drei";
+import {
+  OrbitControls,
+  ContactShadows,
+  Environment,
+  OrthographicCamera,
+} from "@react-three/drei";
 import { useEffect, useState, use } from "react";
 import { io, Socket } from "socket.io-client";
 import Link from "next/link";
 import { Building } from "@/components/Building";
+import { ModelBuilding } from "@/components/ModelBuilding";
 import {
   Dialog,
   DialogContent,
@@ -18,22 +24,56 @@ import { Button } from "@/components/ui/button";
 interface BuildingData {
   id: string;
   position: [number, number, number];
+  rotationY: number;
+  glb: string;
   type: string;
   owner: string;
   color: string;
 }
 
 const HARDCODED_BUILDINGS: BuildingData[] = [
-  { id: "1", position: [0, 0.5, 0], type: "Town Hall", owner: "Mayor", color: "gold" },
-  { id: "2", position: [2, 0.5, 5], type: "Residential", owner: "Alice", color: "skyblue" },
-  { id: "3", position: [-3, 0.5, 2], type: "Industrial", owner: "Bob", color: "gray" },
-  { id: "4", position: [5, 0.5, -2], type: "Commercial", owner: "Charlie", color: "lightgreen" },
+  {
+    id: "1",
+    position: [-1, 1.1, 0],
+    rotationY: 30,
+    glb: "/models/rustic_house.glb",
+    type: "Town Hall",
+    owner: "Mayor",
+    color: "gold",
+  },
+  {
+    id: "2",
+    position: [1, 1.1, -5],
+    rotationY: -5,
+    glb: "/models/barbie_house.glb",
+    type: "Residential",
+    owner: "Alice",
+    color: "skyblue",
+  },
+  {
+    id: "3",
+    position: [-3, 1.1, 2],
+    rotationY: 30,
+    glb: "/models/bunny_house_small.glb",
+    type: "Industrial",
+    owner: "Bob",
+    color: "gray",
+  },
+  {
+    id: "4",
+    position: [5, 1.1, -2],
+    rotationY: 200,
+    glb: "/models/bunny_house_small.glb",
+    type: "Commercial",
+    owner: "Charlie",
+    color: "lightgreen",
+  },
 ];
 
 function Scene({
   buildings,
   isXRay,
-  onBuildingClick
+  onBuildingClick,
 }: {
   buildings: BuildingData[];
   isXRay: boolean;
@@ -56,18 +96,23 @@ function Scene({
       </mesh>
 
       {buildings.map((b) => (
-        <Building
+        <ModelBuilding
           key={b.id}
+          url={b.glb}
           position={b.position}
-          color={b.color}
-          type={b.type}
-          owner={b.owner}
-          opacity={isXRay ? 0.5 : 1}
+          opacity={!isXRay ? 1 : 0.5}
+          rotationY={b.rotationY || 0}
           onClick={() => onBuildingClick(b)}
         />
       ))}
 
-      <ContactShadows position={[0, 0, 0]} opacity={0.25} scale={20} blur={1.5} far={0.8} />
+      <ContactShadows
+        position={[0, 0, 0]}
+        opacity={0.25}
+        scale={20}
+        blur={1.5}
+        far={0.8}
+      />
       <Environment preset="city" />
       <OrbitControls
         enablePan={true}
@@ -80,11 +125,17 @@ function Scene({
   );
 }
 
-export default function TownPage({ params }: { params: Promise<{ townId: string }> }) {
+export default function TownPage({
+  params,
+}: {
+  params: Promise<{ townId: string }>;
+}) {
   const { townId } = use(params);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
-  const [selectedBuilding, setSelectedBuilding] = useState<BuildingData | null>(null);
+  const [selectedBuilding, setSelectedBuilding] = useState<BuildingData | null>(
+    null,
+  );
   const [isXRay, setIsXRay] = useState(false);
 
   useEffect(() => {
@@ -112,7 +163,9 @@ export default function TownPage({ params }: { params: Promise<{ townId: string 
       <div className="z-10 w-full max-w-5xl flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold">Town View: {townId}</h1>
-          <p className="text-gray-400 text-sm">Coordinate your isometric empire</p>
+          <p className="text-gray-400 text-sm">
+            Coordinate your isometric empire
+          </p>
         </div>
         <div className="flex items-center gap-4">
           <Button
@@ -122,7 +175,9 @@ export default function TownPage({ params }: { params: Promise<{ townId: string 
           >
             {isXRay ? "Disable X-Ray" : "Enable X-Ray"}
           </Button>
-          <div className={`px-3 py-1 rounded-full text-xs font-mono ${connected ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+          <div
+            className={`px-3 py-1 rounded-full text-xs font-mono ${connected ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}
+          >
             {connected ? "Connected" : "Disconnected"}
           </div>
           <Link href="/lobby" className="text-sm hover:underline text-gray-400">
@@ -148,7 +203,10 @@ export default function TownPage({ params }: { params: Promise<{ townId: string 
         </Canvas>
       </div>
 
-      <Dialog open={!!selectedBuilding} onOpenChange={(open) => !open && setSelectedBuilding(null)}>
+      <Dialog
+        open={!!selectedBuilding}
+        onOpenChange={(open) => !open && setSelectedBuilding(null)}
+      >
         <DialogContent className="sm:max-w-[425px] bg-gray-800 text-white border-gray-700">
           <DialogHeader>
             <DialogTitle>{selectedBuilding?.type}</DialogTitle>
@@ -167,7 +225,8 @@ export default function TownPage({ params }: { params: Promise<{ townId: string 
             </div>
             <div className="mt-4 p-4 bg-gray-900/50 rounded-lg border border-gray-700">
               <p className="text-sm text-gray-400">
-                This {selectedBuilding?.type.toLowerCase()} is currently functioning at 100% capacity.
+                This {selectedBuilding?.type.toLowerCase()} is currently
+                functioning at 100% capacity.
               </p>
             </div>
           </div>
