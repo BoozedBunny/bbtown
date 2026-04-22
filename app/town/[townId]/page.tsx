@@ -12,6 +12,7 @@ import { io, Socket } from "socket.io-client";
 import Link from "next/link";
 import { Building } from "@/components/Building";
 import { ModelBuilding } from "@/components/ModelBuilding";
+import { RoadTile } from "@/components/RoadTile";
 import {
   Dialog,
   DialogContent,
@@ -25,16 +26,16 @@ interface BuildingData {
   id: string;
   position: [number, number, number];
   rotationY: number;
-  glb: string;
+  glb?: string;
   type: string;
-  owner: string;
-  color: string;
+  owner?: string;
+  color?: string;
 }
 
 const HARDCODED_BUILDINGS: BuildingData[] = [
   {
     id: "1",
-    position: [-1, 1.1, 0],
+    position: [-1, 0, 0],
     rotationY: 30,
     glb: "/models/rustic_house.glb",
     type: "Town Hall",
@@ -43,7 +44,7 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "2",
-    position: [1, 1.1, -5],
+    position: [1, 0, -5],
     rotationY: -5,
     glb: "/models/barbie_house.glb",
     type: "Residential",
@@ -52,7 +53,7 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "3",
-    position: [-3, 1.1, 2],
+    position: [-3, 0, 2],
     rotationY: 30,
     glb: "/models/bunny_house_small.glb",
     type: "Industrial",
@@ -61,13 +62,15 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "4",
-    position: [5, 1.1, -2],
+    position: [5, 0, -2],
     rotationY: 200,
     glb: "/models/bunny_house_small.glb",
     type: "Commercial",
     owner: "Charlie",
     color: "lightgreen",
   },
+  { id: "r1", type: "road", position: [0, 0, 0], rotationY: 0 },
+  { id: "r2", type: "road", position: [1, 0, 0], rotationY: 0 },
 ];
 
 function Scene({
@@ -90,21 +93,28 @@ function Scene({
       />
 
       <gridHelper args={[20, 20, 0x444444, 0x222222]} />
-      <mesh rotation-x={-Math.PI / 2} position={[0, -0.001, 0]} receiveShadow>
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0, 0]} receiveShadow>
         <planeGeometry args={[20, 20]} />
-        <shadowMaterial transparent opacity={0.4} />
+        <meshStandardMaterial color="#2d4c1e" />
       </mesh>
 
-      {buildings.map((b) => (
-        <ModelBuilding
-          key={b.id}
-          url={b.glb}
-          position={b.position}
-          opacity={!isXRay ? 1 : 0.5}
-          rotationY={b.rotationY || 0}
-          onClick={() => onBuildingClick(b)}
-        />
-      ))}
+      {buildings.map((b) => {
+        if (b.type === "road") {
+          return (
+            <RoadTile key={b.id} position={b.position} rotationY={b.rotationY} />
+          );
+        }
+        return (
+          <ModelBuilding
+            key={b.id}
+            url={b.glb!}
+            position={b.position}
+            opacity={!isXRay ? 1 : 0.5}
+            rotationY={b.rotationY || 0}
+            onClick={() => onBuildingClick(b)}
+          />
+        );
+      })}
 
       <ContactShadows
         position={[0, 0, 0]}
