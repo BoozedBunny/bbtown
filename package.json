@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon --watch server.ts --exec \"node --loader ts-node/esm server.ts\"",
+    "dev": "PORT=3004 nodemon --watch server.ts --exec \"node --loader ts-node/esm server.ts\"",
     "build": "next build",
-    "start": "NODE_ENV=production node --loader ts-node/esm server.ts",
+    "start": "PORT=3004 NODE_ENV=production node --loader ts-node/esm server.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
