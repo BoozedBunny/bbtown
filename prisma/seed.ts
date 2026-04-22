@@ -4,14 +4,36 @@ const prisma = new PrismaClient()
 
 async function main() {
   console.log('Seeding database...')
-  const user = await prisma.user.upsert({
-    where: { username: 'admin' },
+
+  // Create dummy users
+  const player1 = await prisma.user.upsert({
+    where: { username: 'Player1' },
     update: {},
     create: {
-      username: 'admin',
+      username: 'Player1',
     },
   })
-  console.log('User created/updated:', user.username)
+  console.log('User created/updated:', player1.username)
+
+  const player2 = await prisma.user.upsert({
+    where: { username: 'Player2' },
+    update: {},
+    create: {
+      username: 'Player2',
+    },
+  })
+  console.log('User created/updated:', player2.username)
+
+  // Create default town
+  const town = await prisma.town.upsert({
+    where: { id: 1 },
+    update: {},
+    create: {
+      id: 1,
+      name: 'Capital City',
+    },
+  })
+  console.log('Town created/updated:', town.name)
 
   const gameState = await prisma.gameState.create({
     data: {
