@@ -18,7 +18,8 @@ export function RoadTile({
       receiveShadow
     >
       <planeGeometry args={[1, 1]} />
-      <meshStandardMaterial color="#444444" />
+      {/* Deep navy color for the road to match brand-neutral #0F021A but slightly lighter for visibility */}
+      <meshStandardMaterial color="#1A0A2E" />
     </mesh>
   );
 }

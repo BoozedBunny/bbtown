@@ -50,11 +50,21 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        brand: {
+          primary: "#BD00FF",
+          secondary: "#FFB800",
+          tertiary: "#FF4D00",
+          neutral: "#0F021A",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      fontFamily: {
+        sans: ["var(--font-be-vietnam-pro)"],
+        heading: ["var(--font-space-grotesk)"],
       },
     },
   },

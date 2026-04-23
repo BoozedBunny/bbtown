@@ -1,11 +1,20 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Space_Grotesk, Be_Vietnam_Pro } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
+});
+
+const beVietnamPro = Be_Vietnam_Pro({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-be-vietnam-pro",
+});
 
 export const metadata: Metadata = {
-  title: "3D Multiplayer Game",
+  title: "Venice AI Town",
   description: "A browser-based 3D multiplayer game",
 };
 
@@ -15,8 +24,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="en" className="dark">
+      <body className={`${beVietnamPro.className} ${spaceGrotesk.variable} ${beVietnamPro.variable} antialiased`}>
+        {children}
+      </body>
     </html>
   );
 }

@@ -10,7 +10,6 @@ import {
 import { useEffect, useState, use } from "react";
 import { io, Socket } from "socket.io-client";
 import Link from "next/link";
-import { Building } from "@/components/Building";
 import { ModelBuilding } from "@/components/ModelBuilding";
 import { ModelX } from "@/components/ModelX";
 import { RoadTile } from "@/components/RoadTile";
@@ -62,7 +61,7 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
     glb: "/models/rustic_house.glb",
     type: "Town Hall",
     owner: "Mayor",
-    color: "gold",
+    color: "#BD00FF",
   },
   {
     id: "2",
@@ -71,25 +70,25 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
     glb: "/models/barbie_house.glb",
     type: "Residential",
     owner: "Alice",
-    color: "skyblue",
+    color: "#FFB800",
   },
   {
     id: "3",
-position: [-3, 0.9, 1],
+    position: [-3, 0.9, 1],
     rotationY: 30,
     glb: "/models/bunny_house_small.glb",
     type: "Industrial",
     owner: "Bob",
-    color: "gray",
+    color: "#FF4D00",
   },
   {
     id: "4",
-position: [2.8, 0.9, -3],
+    position: [2.8, 0.9, -3],
     rotationY: 200,
     glb: "/models/bunny_house_small.glb",
     type: "Commercial",
     owner: "Charlie",
-    color: "lightgreen",
+    color: "#BD00FF",
   },
   ...createRoads(),
 ];
@@ -105,18 +104,21 @@ function Scene({
 }) {
   return (
     <>
-      <ambientLight intensity={0.5} />
+      <ambientLight intensity={0.6} />
       <directionalLight
-        position={[10, 10, 5]}
-        intensity={1}
+        position={[10, 15, 5]}
+        intensity={1.2}
         castShadow
-        shadow-mapSize={[1024, 1024]}
+        shadow-mapSize={[2048, 2048]}
       />
 
-      <gridHelper args={[20, 20, 0x444444, 0x222222]} />
+      <gridHelper args={[30, 30, "#BD00FF", "#2A0A4E"]} position={[0, 0.02, 0]}>
+         <meshBasicMaterial transparent opacity={0.2} />
+      </gridHelper>
+
       <mesh rotation-x={-Math.PI / 2} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[30, 30]} />
-        <meshStandardMaterial color="#2d4c1e" />
+        <planeGeometry args={[50, 50]} />
+        <meshStandardMaterial color="#0F021A" />
       </mesh>
 
       {buildings.map((b) => {
@@ -130,7 +132,7 @@ function Scene({
             key={b.id}
             url={b.glb!}
             position={b.position}
-            opacity={!isXRay ? 1 : 0.5}
+            opacity={!isXRay ? 1 : 0.4}
             rotationY={b.rotationY || 0}
             onClick={() => onBuildingClick(b)}
           />
@@ -142,17 +144,16 @@ function Scene({
             position={[2, 0.9, 5]}
             opacity={!isXRay ? 1 : 0.5}
             rotationY={20}
-            /* onClick={() => onBuildingClick(b)} */
       />
 
       <ContactShadows
         position={[0, 0, 0]}
-        opacity={0.25}
-        scale={20}
-        blur={1.5}
-        far={0.8}
+        opacity={0.4}
+        scale={30}
+        blur={2}
+        far={1}
       />
-      <Environment preset="city" />
+      <Environment preset="night" />
       <OrbitControls
         enablePan={true}
         enableRotate={true}
@@ -181,12 +182,10 @@ export default function TownPage({
     const socketInstance = io();
 
     socketInstance.on("connect", () => {
-      console.log("Connected to server");
       setConnected(true);
     });
 
     socketInstance.on("disconnect", () => {
-      console.log("Disconnected from server");
       setConnected(false);
     });
 
@@ -198,39 +197,49 @@ export default function TownPage({
   }, []);
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-8 bg-gray-900 text-white font-sans">
-      <div className="z-10 w-full max-w-5xl flex justify-between items-center mb-8">
+    <main className="flex min-h-screen flex-col items-center p-8 bg-brand-neutral text-white font-sans overflow-hidden relative">
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-primary opacity-10 blur-[120px] rounded-full" />
+
+      <div className="z-10 w-full max-w-6xl flex justify-between items-center mb-8 bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 shadow-xl">
         <div>
-          <h1 className="text-2xl font-bold">Town View: {townId}</h1>
-          <p className="text-gray-400 text-sm">
+          <h1 className="text-3xl font-heading font-bold tracking-tight text-white flex items-center gap-3">
+             <div className="w-8 h-8 bg-brand-primary rounded-lg rotate-12" />
+             VENICE TOWN <span className="text-brand-secondary">#{townId}</span>
+          </h1>
+          <p className="text-gray-400 text-sm mt-1">
             Coordinate your isometric empire
           </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           <Button
-            variant={isXRay ? "default" : "outline"}
+            variant="ghost"
             onClick={() => setIsXRay(!isXRay)}
-            className="text-xs"
+            className={`text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full transition-all border ${isXRay ? "bg-brand-primary/20 border-brand-primary text-brand-primary" : "border-white/10 text-gray-400 hover:text-white hover:bg-white/5"}`}
           >
-            {isXRay ? "Disable X-Ray" : "Enable X-Ray"}
+            {isXRay ? "X-Ray Active" : "X-Ray View"}
           </Button>
-          <div
-            className={`px-3 py-1 rounded-full text-xs font-mono ${connected ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}
-          >
-            {connected ? "Connected" : "Disconnected"}
+          <div className="flex flex-col items-end">
+            <div
+              className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] ${connected ? "text-green-400" : "text-red-400"}`}
+            >
+              <div className={`w-2 h-2 rounded-full ${connected ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
+              {connected ? "Live System" : "Offline"}
+            </div>
           </div>
-          <Link href="/lobby" className="text-sm hover:underline text-gray-400">
-            Back to Lobby
+          <Link href="/lobby">
+            <Button variant="ghost" className="text-xs hover:text-brand-secondary transition-colors text-gray-400 uppercase tracking-widest font-bold">
+              Back to Lobby
+            </Button>
           </Link>
         </div>
       </div>
 
-      <div className="relative w-full h-[70vh] border border-gray-700 rounded-xl overflow-hidden bg-black shadow-2xl">
+      <div className="relative w-full h-[75vh] border border-white/10 rounded-3xl overflow-hidden bg-[#05010a] shadow-[0_0_50px_rgba(0,0,0,0.5)]">
         <Canvas shadows>
           <OrthographicCamera
             makeDefault
             position={[10, 10, 10]}
-            zoom={40}
+            zoom={45}
             near={0.1}
             far={1000}
           />
@@ -240,43 +249,50 @@ export default function TownPage({
             onBuildingClick={setSelectedBuilding}
           />
         </Canvas>
+
+        {/* Overlay HUD elements */}
+        <div className="absolute bottom-6 left-6 p-4 bg-black/40 backdrop-blur-md border border-white/10 rounded-xl pointer-events-none">
+            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1">Navigation Info</p>
+            <p className="text-xs text-white/80">Right-click to rotate • Scroll to zoom</p>
+        </div>
       </div>
 
       <Dialog
         open={!!selectedBuilding}
         onOpenChange={(open) => !open && setSelectedBuilding(null)}
       >
-        <DialogContent className="sm:max-w-[425px] bg-gray-800 text-white border-gray-700">
+        <DialogContent className="sm:max-w-[425px] bg-[#11041d] text-white border-white/10 rounded-2xl shadow-2xl">
           <DialogHeader>
-            <DialogTitle>{selectedBuilding?.type}</DialogTitle>
+            <DialogTitle className="text-2xl font-heading font-bold text-brand-secondary">{selectedBuilding?.type}</DialogTitle>
             <DialogDescription className="text-gray-400">
-              Building Details
+              Infrastructure Analysis
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="flex items-center gap-4">
-              <span className="font-bold text-gray-300">Owner:</span>
-              <span>{selectedBuilding?.owner}</span>
+          <div className="grid gap-6 py-6">
+            <div className="space-y-1">
+              <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Ownership</span>
+              <div className="flex items-center gap-3">
+                 <div className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-xs font-bold">
+                    {selectedBuilding?.owner?.charAt(0)}
+                 </div>
+                 <span className="text-lg font-medium">{selectedBuilding?.owner}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="font-bold text-gray-300">Location:</span>
-              <span>[{selectedBuilding?.position?.join(", ")}]</span>
+            <div className="space-y-1">
+              <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Geo-Position</span>
+              <p className="font-mono text-brand-primary">{selectedBuilding?.position?.map(v => v.toFixed(1)).join(", ")}</p>
             </div>
-            <div className="mt-4 p-4 bg-gray-900/50 rounded-lg border border-gray-700">
-              <p className="text-sm text-gray-400">
-                This {selectedBuilding?.type.toLowerCase()} is currently
-                functioning at 100% capacity.
+            <div className="mt-2 p-4 bg-brand-primary/5 rounded-xl border border-brand-primary/10">
+              <p className="text-sm text-gray-400 italic leading-relaxed">
+                "The {selectedBuilding?.type.toLowerCase()} module is operating at peak efficiency within the Venice AI network."
               </p>
             </div>
+            <Button onClick={() => setSelectedBuilding(null)} className="w-full bg-white/5 hover:bg-white/10 border border-white/10">
+                Close Report
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
-
-      <div className="mt-8 text-center text-gray-400">
-        <p className="text-sm">
-          Tip: Use right-click to rotate and scroll to zoom.
-        </p>
-      </div>
     </main>
   );
 }
