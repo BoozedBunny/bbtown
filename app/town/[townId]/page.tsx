@@ -12,6 +12,7 @@ import { io, Socket } from "socket.io-client";
 import Link from "next/link";
 import { Building } from "@/components/Building";
 import { ModelBuilding } from "@/components/ModelBuilding";
+import { ModelX } from "@/components/ModelX";
 import { RoadTile } from "@/components/RoadTile";
 import {
   Dialog,
@@ -32,11 +33,32 @@ interface BuildingData {
   color?: string;
 }
 
+const createRoads = () => {
+  const roads: BuildingData[] = [];
+  
+  // Horizontale Hauptstraße (X von -10 bis 10)
+  for (let x = -10; x <= 10; x++) {
+    roads.push({ id: `r-h-${x}`, type: "road", position: [x, 0, 0], rotationY: 0 });
+  }
+  
+  // Vertikale Seitenstraße 1 (Z von -10 bis 10 bei X = -4)
+  for (let z = -10; z <= 10; z++) {
+    roads.push({ id: `r-v1-${z}`, type: "road", position: [-4, 0, z], rotationY: 90 });
+  }
+
+  // Vertikale Seitenstraße 2 (Z von -10 bis 10 bei X = 4)
+  for (let z = -10; z <= 10; z++) {
+    roads.push({ id: `r-v2-${z}`, type: "road", position: [4, 0, z], rotationY: 90 });
+  }
+
+  return roads;
+};
+
 const HARDCODED_BUILDINGS: BuildingData[] = [
   {
     id: "1",
-    position: [-1, 0, 0],
-    rotationY: 30,
+    position: [0.9, 0.9, -1],
+    rotationY: 10,
     glb: "/models/rustic_house.glb",
     type: "Town Hall",
     owner: "Mayor",
@@ -44,7 +66,7 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "2",
-    position: [1, 0, -5],
+    position: [3, 0.9, -1],
     rotationY: -5,
     glb: "/models/barbie_house.glb",
     type: "Residential",
@@ -53,7 +75,7 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "3",
-    position: [-3, 0, 2],
+position: [-3, 0.9, 1],
     rotationY: 30,
     glb: "/models/bunny_house_small.glb",
     type: "Industrial",
@@ -62,15 +84,14 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "4",
-    position: [5, 0, -2],
+position: [2.8, 0.9, -3],
     rotationY: 200,
     glb: "/models/bunny_house_small.glb",
     type: "Commercial",
     owner: "Charlie",
     color: "lightgreen",
   },
-  { id: "r1", type: "road", position: [0, 0, 0], rotationY: 0 },
-  { id: "r2", type: "road", position: [1, 0, 0], rotationY: 0 },
+  ...createRoads(),
 ];
 
 function Scene({
@@ -94,7 +115,7 @@ function Scene({
 
       <gridHelper args={[20, 20, 0x444444, 0x222222]} />
       <mesh rotation-x={-Math.PI / 2} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[20, 20]} />
+        <planeGeometry args={[30, 30]} />
         <meshStandardMaterial color="#2d4c1e" />
       </mesh>
 
@@ -115,6 +136,14 @@ function Scene({
           />
         );
       })}
+
+      <ModelX
+            url="/models/bbt_logo.glb"
+            position={[2, 0.9, 5]}
+            opacity={!isXRay ? 1 : 0.5}
+            rotationY={20}
+            /* onClick={() => onBuildingClick(b)} */
+      />
 
       <ContactShadows
         position={[0, 0, 0]}
