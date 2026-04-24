@@ -12,6 +12,7 @@ import { io, Socket } from "socket.io-client";
 import Link from "next/link";
 import { ModelBuilding } from "@/components/ModelBuilding";
 import { ModelX } from "@/components/ModelX";
+import { TexturedGround } from "@/components/TexturedGround";
 import { RoadTile } from "@/components/RoadTile";
 import {
   Dialog,
@@ -34,20 +35,35 @@ interface BuildingData {
 
 const createRoads = () => {
   const roads: BuildingData[] = [];
-  
+
   // Horizontale Hauptstraße (X von -10 bis 10)
   for (let x = -10; x <= 10; x++) {
-    roads.push({ id: `r-h-${x}`, type: "road", position: [x, 0, 0], rotationY: 0 });
+    roads.push({
+      id: `r-h-${x}`,
+      type: "road",
+      position: [x, 0, 0],
+      rotationY: 0,
+    });
   }
-  
+
   // Vertikale Seitenstraße 1 (Z von -10 bis 10 bei X = -4)
   for (let z = -10; z <= 10; z++) {
-    roads.push({ id: `r-v1-${z}`, type: "road", position: [-4, 0, z], rotationY: 90 });
+    roads.push({
+      id: `r-v1-${z}`,
+      type: "road",
+      position: [-4, 0, z],
+      rotationY: 90,
+    });
   }
 
   // Vertikale Seitenstraße 2 (Z von -10 bis 10 bei X = 4)
   for (let z = -10; z <= 10; z++) {
-    roads.push({ id: `r-v2-${z}`, type: "road", position: [4, 0, z], rotationY: 90 });
+    roads.push({
+      id: `r-v2-${z}`,
+      type: "road",
+      position: [4, 0, z],
+      rotationY: 90,
+    });
   }
 
   return roads;
@@ -56,18 +72,18 @@ const createRoads = () => {
 const HARDCODED_BUILDINGS: BuildingData[] = [
   {
     id: "1",
-    position: [0.9, 0.9, -1],
-    rotationY: 10,
-    glb: "/models/rustic_house.glb",
+    position: [-0.6, 0.9, -2],
+    rotationY: 80,
+    glb: "/models/rustic_stein.glb",
     type: "Town Hall",
     owner: "Mayor",
     color: "#BD00FF",
   },
   {
     id: "2",
-    position: [3, 0.9, -1],
-    rotationY: -5,
-    glb: "/models/barbie_house.glb",
+    position: [3, 0.9, 0.8],
+    rotationY: 50,
+    glb: "/models/barbys_house.glb",
     type: "Residential",
     owner: "Alice",
     color: "#FFB800",
@@ -76,21 +92,38 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
     id: "3",
     position: [-3, 0.9, 1],
     rotationY: 30,
-    glb: "/models/bunny_house_small.glb",
+    glb: "/models/bb_house_fin.glb",
     type: "Industrial",
     owner: "Bob",
     color: "#FF4D00",
   },
   {
     id: "4",
-    position: [2.8, 0.9, -3],
-    rotationY: 200,
-    glb: "/models/bunny_house_small.glb",
+    position: [1.5, 0.9, -5],
+    rotationY: 10,
+    glb: "/models/clocktower_fin.glb",
     type: "Commercial",
     owner: "Charlie",
     color: "#BD00FF",
   },
-  ...createRoads(),
+  {
+    id: "5",
+    position: [5.5, 0.9, -3.2],
+    rotationY: -20,
+    glb: "/models/massage_saloon.glb",
+    type: "Commercial",
+    owner: "Woop",
+    color: "#BD00FF",
+  },
+  {
+    id: "6",
+    position: [-2, 0.9, -4.3],
+    rotationY: 80,
+    glb: "/models/tower.glb",
+    type: "Commercial",
+    owner: "Woop",
+    color: "#BD00FF",
+  },
 ];
 
 function Scene({
@@ -106,25 +139,27 @@ function Scene({
     <>
       <ambientLight intensity={0.6} />
       <directionalLight
-        position={[10, 15, 5]}
-        intensity={1.2}
+        position={[10, 10, 5]}
+        intensity={3}
         castShadow
-        shadow-mapSize={[2048, 2048]}
+        shadow-mapSize={[1024, 1024]}
       />
 
-      <gridHelper args={[30, 30, "#BD00FF", "#2A0A4E"]} position={[0, 0.02, 0]}>
-         <meshBasicMaterial transparent opacity={0.2} />
-      </gridHelper>
+      {/* Dein neues Bild als Boden */}
+      <TexturedGround url="/textures/ground.png" />
 
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[50, 50]} />
-        <meshStandardMaterial color="#0F021A" />
-      </mesh>
+      {/* <gridHelper args={[30, 30, "#BD00FF", "#2A0A4E"]} position={[0, 0.02, 0]}>
+         <meshBasicMaterial transparent opacity={0.2} />
+      </gridHelper> */}
 
       {buildings.map((b) => {
         if (b.type === "road") {
           return (
-            <RoadTile key={b.id} position={b.position} rotationY={b.rotationY} />
+            <RoadTile
+              key={b.id}
+              position={b.position}
+              rotationY={b.rotationY}
+            />
           );
         }
         return (
@@ -140,10 +175,10 @@ function Scene({
       })}
 
       <ModelX
-            url="/models/bbt_logo.glb"
-            position={[2, 0.9, 5]}
-            opacity={!isXRay ? 1 : 0.5}
-            rotationY={20}
+        url="/models/bbtown_logo_optimized.glb"
+        position={[2, 0.9, 5]}
+        opacity={!isXRay ? 1 : 0.5}
+        rotationY={20}
       />
 
       <ContactShadows
@@ -203,8 +238,9 @@ export default function TownPage({
       <div className="z-10 w-full max-w-6xl flex justify-between items-center mb-8 bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 shadow-xl">
         <div>
           <h1 className="text-3xl font-heading font-bold tracking-tight text-white flex items-center gap-3">
-             <div className="w-8 h-8 bg-brand-primary rounded-lg rotate-12" />
-             VENICE TOWN <span className="text-brand-secondary">#{townId}</span>
+            <div className="w-8 h-8 bg-brand-primary rounded-lg rotate-12" />
+            BoozedBunnyTown{" "}
+            <span className="text-brand-secondary">#{townId}</span>
           </h1>
           <p className="text-gray-400 text-sm mt-1">
             Coordinate your isometric empire
@@ -222,12 +258,17 @@ export default function TownPage({
             <div
               className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] ${connected ? "text-green-400" : "text-red-400"}`}
             >
-              <div className={`w-2 h-2 rounded-full ${connected ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
+              <div
+                className={`w-2 h-2 rounded-full ${connected ? "bg-green-400 animate-pulse" : "bg-red-400"}`}
+              />
               {connected ? "Live System" : "Offline"}
             </div>
           </div>
           <Link href="/lobby">
-            <Button variant="ghost" className="text-xs hover:text-brand-secondary transition-colors text-gray-400 uppercase tracking-widest font-bold">
+            <Button
+              variant="ghost"
+              className="text-xs hover:text-brand-secondary transition-colors text-gray-400 uppercase tracking-widest font-bold"
+            >
               Back to Lobby
             </Button>
           </Link>
@@ -252,8 +293,12 @@ export default function TownPage({
 
         {/* Overlay HUD elements */}
         <div className="absolute bottom-6 left-6 p-4 bg-black/40 backdrop-blur-md border border-white/10 rounded-xl pointer-events-none">
-            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1">Navigation Info</p>
-            <p className="text-xs text-white/80">Right-click to rotate • Scroll to zoom</p>
+          <p className="text-[10px] text-gray-500 uppercase font-bold mb-1">
+            Navigation Info
+          </p>
+          <p className="text-xs text-white/80">
+            Right-click to rotate • Scroll to zoom
+          </p>
         </div>
       </div>
 
@@ -263,32 +308,48 @@ export default function TownPage({
       >
         <DialogContent className="sm:max-w-[425px] bg-[#11041d] text-white border-white/10 rounded-2xl shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-heading font-bold text-brand-secondary">{selectedBuilding?.type}</DialogTitle>
+            <DialogTitle className="text-2xl font-heading font-bold text-brand-secondary">
+              {selectedBuilding?.type}
+            </DialogTitle>
             <DialogDescription className="text-gray-400">
               Infrastructure Analysis
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-6 py-6">
             <div className="space-y-1">
-              <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Ownership</span>
+              <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
+                Ownership
+              </span>
               <div className="flex items-center gap-3">
-                 <div className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-xs font-bold">
-                    {selectedBuilding?.owner?.charAt(0)}
-                 </div>
-                 <span className="text-lg font-medium">{selectedBuilding?.owner}</span>
+                <div className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-xs font-bold">
+                  {selectedBuilding?.owner?.charAt(0)}
+                </div>
+                <span className="text-lg font-medium">
+                  {selectedBuilding?.owner}
+                </span>
               </div>
             </div>
             <div className="space-y-1">
-              <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Geo-Position</span>
-              <p className="font-mono text-brand-primary">{selectedBuilding?.position?.map(v => v.toFixed(1)).join(", ")}</p>
+              <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
+                Geo-Position
+              </span>
+              <p className="font-mono text-brand-primary">
+                {selectedBuilding?.position
+                  ?.map((v) => v.toFixed(1))
+                  .join(", ")}
+              </p>
             </div>
             <div className="mt-2 p-4 bg-brand-primary/5 rounded-xl border border-brand-primary/10">
               <p className="text-sm text-gray-400 italic leading-relaxed">
-                "The {selectedBuilding?.type.toLowerCase()} module is operating at peak efficiency within the Venice AI network."
+                "The {selectedBuilding?.type.toLowerCase()} module is operating
+                at peak efficiency within the BoozedBunnyTown network."
               </p>
             </div>
-            <Button onClick={() => setSelectedBuilding(null)} className="w-full bg-white/5 hover:bg-white/10 border border-white/10">
-                Close Report
+            <Button
+              onClick={() => setSelectedBuilding(null)}
+              className="w-full bg-white/5 hover:bg-white/10 border border-white/10"
+            >
+              Close Report
             </Button>
           </div>
         </DialogContent>

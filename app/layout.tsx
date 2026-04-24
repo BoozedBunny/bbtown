@@ -14,7 +14,7 @@ const beVietnamPro = Be_Vietnam_Pro({
 });
 
 export const metadata: Metadata = {
-  title: "Venice AI Town",
+  title: "BoozedBunny AI Town",
   description: "A browser-based 3D multiplayer game",
 };
 

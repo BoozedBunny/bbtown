@@ -21,7 +21,7 @@ export default function LoginPage() {
       <div className="z-10 p-10 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl w-full max-w-md">
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-heading font-bold tracking-tight mb-2 bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
-            VENICE TOWN
+            BoozedBunnyTown
           </h1>
           <p className="text-gray-400 font-sans">Enter the next generation of building</p>
         </div>
@@ -44,7 +44,7 @@ export default function LoginPage() {
 
         <div className="mt-10 pt-6 border-t border-white/10 text-center">
           <p className="text-xs text-gray-500 uppercase tracking-widest">
-            Powered by Venice AI
+            Powered by BoozedBunny
           </p>
         </div>
       </div>
