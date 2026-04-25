@@ -7,13 +7,17 @@ import * as THREE from "three";
 export function ModelX({ 
   url, 
   position, 
-  rotationY = 0, // Neuer Parameter für die Rotation (in Grad)
+  rotationY = 0, 
+  tiltX = 0, // Neuer Parameter für das "Nach-Hinten-Kippen" (in Grad)
+  tiltZ = 0, // Neuer Parameter für das "Nach-Hinten-Kippen" (in Grad)
   opacity = 1, 
   onClick 
 }: { 
   url: string, 
   position: [number, number, number], 
-  rotationY?: number, // Rotation um die Hochachse
+  rotationY?: number,
+  tiltX?: number, // Gradzahl, z.B. 45 oder 90 für flach liegend
+  tiltZ?: number, // Gradzahl, z.B. 45 oder 90 für flach liegend
   opacity?: number,
   onClick?: () => void 
 }) {
@@ -37,15 +41,17 @@ export function ModelX({
     return clone;
   }, [scene, opacity]);
 
-  // Umrechnung von Grad in Bogenmaß (Radians), da Three.js Radians erwartet
-  const rotationInRadians = useMemo(() => (rotationY * Math.PI) / 180, [rotationY]);
+  // Umrechnungen
+  const radY = useMemo(() => (rotationY * Math.PI) / 180, [rotationY]);
+  const radX = useMemo(() => (tiltX * Math.PI) / 180, [tiltX]);
+  const radZ = useMemo(() => (tiltZ * Math.PI) / 180, [tiltZ]);
 
   return (
     <primitive 
       object={clonedScene} 
       position={position} 
-      // [X, Y, Z] Rotation – wir drehen nur um Y
-      rotation={[0, rotationInRadians, 0]} 
+      // Rotation: X = Kippen, Y = Drehen, Z = 0
+      rotation={[radX, radY, radZ]} 
       onClick={(e: any) => {
         e.stopPropagation();
         if (onClick) onClick();

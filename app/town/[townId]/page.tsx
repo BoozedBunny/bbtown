@@ -6,6 +6,7 @@ import {
   ContactShadows,
   Environment,
   OrthographicCamera,
+  PerspectiveCamera,
 } from "@react-three/drei";
 import { useEffect, useState, use } from "react";
 import { io, Socket } from "socket.io-client";
@@ -130,10 +131,12 @@ function Scene({
   buildings,
   isXRay,
   onBuildingClick,
+  cameraMode,
 }: {
   buildings: BuildingData[];
   isXRay: boolean;
   onBuildingClick: (b: BuildingData) => void;
+  cameraMode: "game" | "dev";
 }) {
   return (
     <>
@@ -153,15 +156,6 @@ function Scene({
       </gridHelper> */}
 
       {buildings.map((b) => {
-        if (b.type === "road") {
-          return (
-            <RoadTile
-              key={b.id}
-              position={b.position}
-              rotationY={b.rotationY}
-            />
-          );
-        }
         return (
           <ModelBuilding
             key={b.id}
@@ -176,9 +170,11 @@ function Scene({
 
       <ModelX
         url="/models/bbtown_logo_optimized.glb"
-        position={[2, 0.9, 5]}
+        position={[5.9, 0.69, 5.5]}
         opacity={!isXRay ? 1 : 0.5}
-        rotationY={20}
+        rotationY={50}
+        tiltX={-76}
+        tiltZ={70}
       />
 
       <ContactShadows
@@ -190,11 +186,13 @@ function Scene({
       />
       <Environment preset="night" />
       <OrbitControls
-        enablePan={true}
+        enablePan={cameraMode === "dev"}
         enableRotate={true}
         zoomSpeed={0.5}
-        minZoom={10}
-        maxZoom={100}
+        minZoom={cameraMode === "game" ? 80 : 0.1}
+        maxZoom={cameraMode === "game" ? 120 : 1000}
+        minPolarAngle={cameraMode === "game" ? Math.PI / 3.5 : 0}
+        maxPolarAngle={cameraMode === "game" ? Math.PI / 2.9 : Math.PI}
       />
     </>
   );
@@ -212,6 +210,7 @@ export default function TownPage({
     null,
   );
   const [isXRay, setIsXRay] = useState(false);
+  const [cameraMode, setCameraMode] = useState<"game" | "dev">("game");
 
   useEffect(() => {
     const socketInstance = io();
@@ -254,6 +253,15 @@ export default function TownPage({
           >
             {isXRay ? "X-Ray Active" : "X-Ray View"}
           </Button>
+          <Button
+            variant={cameraMode === "dev" ? "default" : "outline"}
+            onClick={() =>
+              setCameraMode(cameraMode === "game" ? "dev" : "game")
+            }
+            className="text-xs"
+          >
+            {cameraMode === "game" ? "Dev Mode" : "Game Mode"}
+          </Button>
           <div className="flex flex-col items-end">
             <div
               className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] ${connected ? "text-green-400" : "text-red-400"}`}
@@ -277,17 +285,28 @@ export default function TownPage({
 
       <div className="relative w-full h-[75vh] border border-white/10 rounded-3xl overflow-hidden bg-[#05010a] shadow-[0_0_50px_rgba(0,0,0,0.5)]">
         <Canvas shadows>
-          <OrthographicCamera
-            makeDefault
-            position={[10, 10, 10]}
-            zoom={45}
-            near={0.1}
-            far={1000}
-          />
+          {cameraMode === "game" ? (
+            <OrthographicCamera
+              makeDefault
+              position={[10, 10, 10]}
+              zoom={80}
+              near={0.1}
+              far={1000}
+            />
+          ) : (
+            <PerspectiveCamera
+              makeDefault
+              position={[10, 10, 10]}
+              fov={50}
+              near={0.1}
+              far={1000}
+            />
+          )}
           <Scene
             buildings={HARDCODED_BUILDINGS}
             isXRay={isXRay}
             onBuildingClick={setSelectedBuilding}
+            cameraMode={cameraMode}
           />
         </Canvas>
 
