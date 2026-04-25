@@ -5,13 +5,21 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('Seeding database...')
 
-  // Create dummy users
+  // Create dummy users with characters
   const player1 = await prisma.user.upsert({
     where: { username: 'Player1' },
     update: {},
     create: {
       username: 'Player1',
+      character: {
+        create: {
+          name: 'Player1Char',
+          appearanceColor: '#BD00FF',
+          wallet: 1500,
+        }
+      }
     },
+    include: { character: true }
   })
   console.log('User created/updated:', player1.username)
 
@@ -20,7 +28,15 @@ async function main() {
     update: {},
     create: {
       username: 'Player2',
+      character: {
+        create: {
+          name: 'Player2Char',
+          appearanceColor: '#FFB800',
+          wallet: 1000,
+        }
+      }
     },
+    include: { character: true }
   })
   console.log('User created/updated:', player2.username)
 
@@ -41,6 +57,24 @@ async function main() {
     },
   })
   console.log('Game state created:', gameState.id)
+
+  // Create BuildingStates for IDs "1" through "6"
+  console.log('Creating BuildingStates...')
+  for (let i = 1; i <= 6; i++) {
+    const buildingId = i.toString()
+    await prisma.buildingState.upsert({
+      where: { id: buildingId },
+      update: {},
+      create: {
+        id: buildingId,
+        townId: town.id.toString(),
+        price: 5000,
+        employees: 0,
+        ownerId: i === 1 ? player1.character?.id : null,
+      }
+    })
+  }
+  console.log('BuildingStates created.')
 }
 
 main()
