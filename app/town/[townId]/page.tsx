@@ -6,6 +6,7 @@ import {
   ContactShadows,
   Environment,
   OrthographicCamera,
+  PerspectiveCamera,
 } from "@react-three/drei";
 import { useEffect, useState, use } from "react";
 import { io, Socket } from "socket.io-client";
@@ -98,10 +99,12 @@ function Scene({
   buildings,
   isXRay,
   onBuildingClick,
+  cameraMode,
 }: {
   buildings: BuildingData[];
   isXRay: boolean;
   onBuildingClick: (b: BuildingData) => void;
+  cameraMode: "game" | "dev";
 }) {
   return (
     <>
@@ -154,11 +157,13 @@ function Scene({
       />
       <Environment preset="city" />
       <OrbitControls
-        enablePan={true}
+        enablePan={cameraMode === "dev"}
         enableRotate={true}
         zoomSpeed={0.5}
-        minZoom={10}
-        maxZoom={100}
+        minZoom={cameraMode === "game" ? 20 : 0.1}
+        maxZoom={cameraMode === "game" ? 80 : 1000}
+        minPolarAngle={cameraMode === "game" ? Math.PI / 3.5 : 0}
+        maxPolarAngle={cameraMode === "game" ? Math.PI / 2.1 : Math.PI}
       />
     </>
   );
@@ -176,6 +181,7 @@ export default function TownPage({
     null,
   );
   const [isXRay, setIsXRay] = useState(false);
+  const [cameraMode, setCameraMode] = useState<"game" | "dev">("game");
 
   useEffect(() => {
     const socketInstance = io();
@@ -208,6 +214,13 @@ export default function TownPage({
         </div>
         <div className="flex items-center gap-4">
           <Button
+            variant={cameraMode === "dev" ? "default" : "outline"}
+            onClick={() => setCameraMode(cameraMode === "game" ? "dev" : "game")}
+            className="text-xs"
+          >
+            {cameraMode === "game" ? "Dev Mode" : "Game Mode"}
+          </Button>
+          <Button
             variant={isXRay ? "default" : "outline"}
             onClick={() => setIsXRay(!isXRay)}
             className="text-xs"
@@ -227,17 +240,28 @@ export default function TownPage({
 
       <div className="relative w-full h-[70vh] border border-gray-700 rounded-xl overflow-hidden bg-black shadow-2xl">
         <Canvas shadows>
-          <OrthographicCamera
-            makeDefault
-            position={[10, 10, 10]}
-            zoom={40}
-            near={0.1}
-            far={1000}
-          />
+          {cameraMode === "game" ? (
+            <OrthographicCamera
+              makeDefault
+              position={[10, 10, 10]}
+              zoom={40}
+              near={0.1}
+              far={1000}
+            />
+          ) : (
+            <PerspectiveCamera
+              makeDefault
+              position={[10, 10, 10]}
+              fov={50}
+              near={0.1}
+              far={1000}
+            />
+          )}
           <Scene
             buildings={HARDCODED_BUILDINGS}
             isXRay={isXRay}
             onBuildingClick={setSelectedBuilding}
+            cameraMode={cameraMode}
           />
         </Canvas>
       </div>
