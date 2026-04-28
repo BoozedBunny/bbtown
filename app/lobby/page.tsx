@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createCharacter } from "../actions/character";
 import { Button } from "@/components/ui/button";
+import { doWork } from "../actions/work";
 
 export default async function LobbyPage() {
   const user = await getSessionUser();
@@ -74,6 +75,14 @@ export default async function LobbyPage() {
                 style={{ backgroundColor: user.character.appearanceColor }}
               >
                  <div className="w-full h-full bg-gradient-to-br from-white/20 to-transparent" />
+              </div>
+              <div className="mt-6 flex flex-col items-center gap-2">
+                <span className="text-xl text-brand-secondary font-bold">💰 ${user.character.wallet.toLocaleString()}</span>
+                <form action={doWork}>
+                  <Button type="submit" variant="outline" className="text-sm border-white/20 text-white hover:bg-white/10">
+                    ⚒️ Work (+ $500)
+                  </Button>
+                </form>
               </div>
             </div>
 

@@ -26,6 +26,11 @@ app.prepare().then(() => {
     socket.on("ping", () => {
       socket.emit("pong");
     });
+
+    socket.on("buy_building", (data) => {
+      // Broadcast to all clients in the town
+      io.emit("building_updated", data);
+    });
   });
 
   server.get("/api/health", (req, res) => {

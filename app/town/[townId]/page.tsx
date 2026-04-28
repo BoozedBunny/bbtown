@@ -23,6 +23,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { getCurrentUser } from "../../actions/user";
+import { buyBuilding } from "../../actions/town";
 
 interface BuildingData {
   id: string;
@@ -31,6 +33,7 @@ interface BuildingData {
   glb?: string;
   type: string;
   owner?: string;
+  ownerId?: string;
   color?: string;
   price?: number;
   employees?: number;
@@ -214,9 +217,20 @@ export default function TownPage({
   const [isXRay, setIsXRay] = useState(false);
   const [cameraMode, setCameraMode] = useState<"game" | "dev">("game");
   const [dbBuildingStates, setDbBuildingStates] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
     // Fetch dynamic building state
+    const fetchUser = async () => {
+      try {
+        const u = await getCurrentUser();
+        setCurrentUser(u);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchUser();
+
     const fetchState = async () => {
       try {
         const res = await fetch(`/api/town/${townId}/state`);
@@ -240,6 +254,11 @@ export default function TownPage({
       setConnected(false);
     });
 
+    socketInstance.on("building_updated", () => {
+      // Re-fetch building states when another user buys a building
+      fetchState();
+    });
+
     setSocket(socketInstance);
 
     return () => {
@@ -254,6 +273,7 @@ export default function TownPage({
         return {
           ...b,
           owner: dbState.owner?.name || "Unowned",
+          ownerId: dbState.ownerId,
           price: dbState.price,
           employees: dbState.employees,
         };
@@ -273,9 +293,16 @@ export default function TownPage({
             BoozedBunnyTown{" "}
             <span className="text-brand-secondary">#{townId}</span>
           </h1>
-          <p className="text-gray-400 text-sm mt-1">
-            Coordinate your isometric empire
-          </p>
+          <div className="flex gap-4">
+            <p className="text-gray-400 text-sm mt-1">
+              Coordinate your isometric empire
+            </p>
+            {currentUser && currentUser.character && (
+              <div className="bg-brand-primary/20 px-3 py-1 rounded-full border border-brand-primary/50 flex items-center gap-2">
+                <span className="text-brand-secondary font-bold text-sm">💰 ${currentUser.character.wallet.toLocaleString()}</span>
+              </div>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-6">
           <Button
@@ -415,18 +442,43 @@ export default function TownPage({
                 </div>
               )}
             </div>
+
             <div className="mt-2 p-4 bg-brand-primary/5 rounded-xl border border-brand-primary/10">
               <p className="text-sm text-gray-400 italic leading-relaxed">
                 "The {selectedBuilding?.type.toLowerCase()} module is operating
                 at peak efficiency within the BoozedBunnyTown network."
               </p>
             </div>
+            
+            {selectedBuilding?.owner === "Unowned" && currentUser && selectedBuilding.price && currentUser.character.wallet >= selectedBuilding.price && (
+              <Button
+                onClick={async () => {
+                  try {
+                    await buyBuilding(selectedBuilding.id);
+                    // Refresh user and building state
+                    const u = await getCurrentUser();
+                    setCurrentUser(u);
+                    const res = await fetch(`/api/town/${townId}/state`);
+                    if (res.ok) setDbBuildingStates(await res.json());
+                    if (socket) socket.emit("buy_building", { townId, buildingId: selectedBuilding.id });
+                    setSelectedBuilding(null);
+                  } catch (e) {
+                    alert(e);
+                  }
+                }}
+                className="w-full bg-brand-primary hover:bg-brand-primary/80 font-bold"
+              >
+                Buy for ${selectedBuilding.price.toLocaleString()}
+              </Button>
+            )}
+
             <Button
               onClick={() => setSelectedBuilding(null)}
               className="w-full bg-white/5 hover:bg-white/10 border border-white/10"
             >
               Close Report
             </Button>
+
           </div>
         </DialogContent>
       </Dialog>
