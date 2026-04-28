@@ -483,93 +483,160 @@ export default function TownPage({
         <DialogContent className="sm:max-w-[425px] bg-[#11041d] text-white border-white/10 rounded-2xl shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-2xl font-heading font-bold text-brand-secondary">
-              {selectedBuilding?.type}
+              {(selectedBuilding as any)?.title || selectedBuilding?.type}
             </DialogTitle>
             <DialogDescription className="text-gray-400">
-              Infrastructure Analysis
+              {selectedBuilding?.id === "4" ? "Town Infrastructure" : "Real Estate Information"}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-6 py-6">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
-                  Ownership
-                </span>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-xs font-bold">
-                    {selectedBuilding?.owner?.charAt(0)}
-                  </div>
-                  <span className="text-lg font-medium">
-                    {selectedBuilding?.owner}
-                  </span>
-                </div>
-              </div>
-              {selectedBuilding?.price && (
-                <div className="text-right">
-                  <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
-                    Value
-                  </span>
-                  <p className="text-lg font-bold text-brand-secondary">
-                    ${selectedBuilding.price.toLocaleString()}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
-                  Geo-Position
-                </span>
-                <p className="font-mono text-xs text-brand-primary">
-                  {selectedBuilding?.position
-                    ?.map((v) => v.toFixed(1))
-                    .join(", ")}
-                </p>
-              </div>
-              {selectedBuilding?.employees !== undefined && (
-                <div className="space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
-                    Staffing
-                  </span>
-                  <p className="text-xs font-medium">
-                    {selectedBuilding.employees} Employees
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-2 p-4 bg-brand-primary/5 rounded-xl border border-brand-primary/10">
-              <p className="text-sm text-gray-400 italic leading-relaxed">
-                "The {selectedBuilding?.type.toLowerCase()} module is operating
-                at peak efficiency within the BoozedBunnyTown network."
-              </p>
-            </div>
+          <div className="grid gap-6 py-4">
             
-            {selectedBuilding?.owner === "Unowned" && currentUser && selectedBuilding.price && currentUser.character.wallet >= selectedBuilding.price && (
-              <Button
-                onClick={async () => {
-                  try {
-                    await buyBuilding(selectedBuilding.id);
-                    // Refresh user and building state
-                    const u = await getCurrentUser();
-                    setCurrentUser(u);
-                    const res = await fetch(`/api/town/${townId}/state`);
-                    if (res.ok) {
-                      const data = await res.json();
-                      setDbBuildingStates(data.buildings || []);
-                      setTownData(data.town || null);
-                    }
-                    if (socket) socket.emit("buy_building", { townId, buildingId: selectedBuilding.id });
-                    setSelectedBuilding(null);
-                  } catch (e) {
-                    alert(e);
-                  }
-                }}
-                className="w-full bg-brand-primary hover:bg-brand-primary/80 font-bold"
-              >
-                Buy for ${selectedBuilding.price.toLocaleString()}
-              </Button>
+            {/* BANK VIEW */}
+            {selectedBuilding?.id === "4" && (
+              <div className="p-6 bg-brand-primary/10 rounded-2xl border border-brand-primary/20 text-center space-y-4">
+                <h3 className="text-xl font-bold text-white">Bank of BoozedBunnyTown</h3>
+                <p className="text-sm text-gray-400">Securing the financial future of our citizens.</p>
+                <div className="p-4 bg-black/40 rounded-xl">
+                  <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest block mb-1">Town Treasury</span>
+                  <span className="text-3xl font-bold text-brand-secondary">${townData?.bankBalance?.toLocaleString() || 0}</span>
+                </div>
+              </div>
+            )}
+
+            {/* OWNER MANAGEMENT VIEW */}
+            {selectedBuilding?.id !== "4" && currentUser && selectedBuilding?.ownerId === currentUser.character.id && (
+              <div className="space-y-4 p-4 bg-white/5 rounded-xl border border-white/10">
+                <h3 className="text-sm uppercase font-bold text-gray-400 tracking-widest mb-4">Manage Property</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-gray-400 block mb-1">Property Title</label>
+                    <input 
+                      type="text" 
+                      value={editForm.title}
+                      onChange={(e) => setEditForm({...editForm, title: e.target.value})}
+                      className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-primary"
+                      placeholder="e.g. My Awesome Shop"
+                    />
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label className="text-xs text-gray-400 block mb-1">Sale Price ($)</label>
+                      <input 
+                        type="number" 
+                        value={editForm.price}
+                        onChange={(e) => setEditForm({...editForm, price: parseInt(e.target.value) || 0})}
+                        className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-primary"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <label className="flex items-center gap-2 cursor-pointer mb-2">
+                        <input 
+                          type="checkbox" 
+                          checked={editForm.forSale}
+                          onChange={(e) => setEditForm({...editForm, forSale: e.target.checked})}
+                          className="accent-brand-primary w-4 h-4"
+                        />
+                        <span className="text-sm font-medium">For Sale</span>
+                      </label>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={async () => {
+                      try {
+                        await updateBuildingSettings(selectedBuilding.id, editForm.title, editForm.price, editForm.forSale);
+                        const res = await fetch(`/api/town/${townId}/state`);
+                        if (res.ok) {
+                          const data = await res.json();
+                          setDbBuildingStates(data.buildings || []);
+                          setTownData(data.town || null);
+                        }
+                        if (socket) socket.emit("buy_building", { townId }); // Piggyback on this event to refresh
+                        alert("Property updated!");
+                      } catch(e: any) { alert(e.message); }
+                    }}
+                    className="w-full bg-brand-primary hover:bg-brand-primary/80"
+                  >
+                    Save Changes
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* NORMAL VIEW (NOT BANK, NOT OWNER) */}
+            {selectedBuilding?.id !== "4" && (!currentUser || selectedBuilding?.ownerId !== currentUser.character?.id) && (
+              <>
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
+                      Ownership
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-xs font-bold">
+                        {selectedBuilding?.owner?.charAt(0) || "U"}
+                      </div>
+                      <span className="text-lg font-medium">
+                        {selectedBuilding?.owner}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
+                      Status
+                    </span>
+                    <p className={`text-sm font-bold mt-1 px-2 py-1 rounded-md ${(selectedBuilding as any)?.forSale ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                      {(selectedBuilding as any)?.forSale ? `FOR SALE ($${selectedBuilding.price?.toLocaleString()})` : 'NOT FOR SALE'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
+                      Geo-Position
+                    </span>
+                    <p className="font-mono text-xs text-brand-primary">
+                      {selectedBuilding?.position
+                        ?.map((v) => v.toFixed(1))
+                        .join(", ")}
+                    </p>
+                  </div>
+                  {selectedBuilding?.employees !== undefined && (
+                    <div className="space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
+                        Staffing
+                      </span>
+                      <p className="text-xs font-medium">
+                        {selectedBuilding.employees} Employees
+                      </p>
+                    </div>
+                  )}
+                </div>
+                
+                {(selectedBuilding as any)?.forSale && currentUser && selectedBuilding.price && currentUser.character.wallet >= selectedBuilding.price && (
+                  <Button
+                    onClick={async () => {
+                      try {
+                        await buyBuilding(selectedBuilding.id);
+                        const u = await getCurrentUser();
+                        setCurrentUser(u);
+                        const res = await fetch(`/api/town/${townId}/state`);
+                        if (res.ok) {
+                          const data = await res.json();
+                          setDbBuildingStates(data.buildings || []);
+                          setTownData(data.town || null);
+                        }
+                        if (socket) socket.emit("buy_building", { townId, buildingId: selectedBuilding.id });
+                        setSelectedBuilding(null);
+                      } catch (e: any) {
+                        alert(e.message);
+                      }
+                    }}
+                    className="w-full bg-brand-primary hover:bg-brand-primary/80 font-bold"
+                  >
+                    Buy Property for ${selectedBuilding.price.toLocaleString()}
+                  </Button>
+                )}
+              </>
             )}
 
             {cameraMode === "dev" && (
@@ -578,7 +645,7 @@ export default function TownPage({
                   setMovingBuilding(selectedBuilding);
                   setSelectedBuilding(null);
                 }}
-                className="w-full bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 font-bold"
+                className="w-full mt-4 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 font-bold"
               >
                 🏗️ Move House (Dev Only)
               </Button>
@@ -588,9 +655,8 @@ export default function TownPage({
               onClick={() => setSelectedBuilding(null)}
               className="w-full bg-white/5 hover:bg-white/10 border border-white/10"
             >
-              Close Report
+              Close
             </Button>
-
           </div>
         </DialogContent>
       </Dialog>
