@@ -8,7 +8,7 @@ import {
   OrthographicCamera,
   PerspectiveCamera,
 } from "@react-three/drei";
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useMemo } from "react";
 import { io, Socket } from "socket.io-client";
 import Link from "next/link";
 import { ModelBuilding } from "@/components/ModelBuilding";
@@ -32,6 +32,8 @@ interface BuildingData {
   type: string;
   owner?: string;
   color?: string;
+  price?: number;
+  employees?: number;
 }
 
 const createRoads = () => {
@@ -211,8 +213,23 @@ export default function TownPage({
   );
   const [isXRay, setIsXRay] = useState(false);
   const [cameraMode, setCameraMode] = useState<"game" | "dev">("game");
+  const [dbBuildingStates, setDbBuildingStates] = useState<any[]>([]);
 
   useEffect(() => {
+    // Fetch dynamic building state
+    const fetchState = async () => {
+      try {
+        const res = await fetch(`/api/town/${townId}/state`);
+        if (res.ok) {
+          const data = await res.json();
+          setDbBuildingStates(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch building states", error);
+      }
+    };
+    fetchState();
+
     const socketInstance = io();
 
     socketInstance.on("connect", () => {
@@ -228,7 +245,22 @@ export default function TownPage({
     return () => {
       socketInstance.disconnect();
     };
-  }, []);
+  }, [townId]);
+
+  const mergedBuildings = useMemo(() => {
+    return HARDCODED_BUILDINGS.map((b) => {
+      const dbState = dbBuildingStates.find((ds) => ds.id === b.id);
+      if (dbState) {
+        return {
+          ...b,
+          owner: dbState.owner?.name || "Unowned",
+          price: dbState.price,
+          employees: dbState.employees,
+        };
+      }
+      return b;
+    });
+  }, [dbBuildingStates]);
 
   return (
     <main className="flex min-h-screen flex-col items-center p-8 bg-brand-neutral text-white font-sans overflow-hidden relative">
@@ -303,7 +335,7 @@ export default function TownPage({
             />
           )}
           <Scene
-            buildings={HARDCODED_BUILDINGS}
+            buildings={mergedBuildings}
             isXRay={isXRay}
             onBuildingClick={setSelectedBuilding}
             cameraMode={cameraMode}
@@ -335,28 +367,53 @@ export default function TownPage({
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-6 py-6">
-            <div className="space-y-1">
-              <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
-                Ownership
-              </span>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-xs font-bold">
-                  {selectedBuilding?.owner?.charAt(0)}
-                </div>
-                <span className="text-lg font-medium">
-                  {selectedBuilding?.owner}
+            <div className="flex justify-between items-start">
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
+                  Ownership
                 </span>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-xs font-bold">
+                    {selectedBuilding?.owner?.charAt(0)}
+                  </div>
+                  <span className="text-lg font-medium">
+                    {selectedBuilding?.owner}
+                  </span>
+                </div>
               </div>
+              {selectedBuilding?.price && (
+                <div className="text-right">
+                  <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
+                    Value
+                  </span>
+                  <p className="text-lg font-bold text-brand-secondary">
+                    ${selectedBuilding.price.toLocaleString()}
+                  </p>
+                </div>
+              )}
             </div>
-            <div className="space-y-1">
-              <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
-                Geo-Position
-              </span>
-              <p className="font-mono text-brand-primary">
-                {selectedBuilding?.position
-                  ?.map((v) => v.toFixed(1))
-                  .join(", ")}
-              </p>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
+                  Geo-Position
+                </span>
+                <p className="font-mono text-xs text-brand-primary">
+                  {selectedBuilding?.position
+                    ?.map((v) => v.toFixed(1))
+                    .join(", ")}
+                </p>
+              </div>
+              {selectedBuilding?.employees !== undefined && (
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
+                    Staffing
+                  </span>
+                  <p className="text-xs font-medium">
+                    {selectedBuilding.employees} Employees
+                  </p>
+                </div>
+              )}
             </div>
             <div className="mt-2 p-4 bg-brand-primary/5 rounded-xl border border-brand-primary/10">
               <p className="text-sm text-gray-400 italic leading-relaxed">
