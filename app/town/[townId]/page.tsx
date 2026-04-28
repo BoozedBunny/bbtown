@@ -87,39 +87,39 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "2",
-    position: [3, 0.9, 0.8],
-    rotationY: 50,
+    position: [1.10, 0.90, -5.50],
+    rotationY: -43,
     glb: "/models/barbys_house.glb",
     type: "Residential",
     color: "#FFB800",
   },
   {
     id: "3",
-    position: [-3, 0.9, 1],
-    rotationY: 30,
+    position: [-2.00, 0.90, 1.00],
+    rotationY: 98,
     glb: "/models/bb_house_fin.glb",
     type: "Industrial",
     color: "#FF4D00",
   },
   {
     id: "4",
-    position: [1.5, 0.9, -5],
-    rotationY: 10,
+    position: [-2.10, 0.90, -4.30],
+    rotationY: 47,
     glb: "/models/clocktower_fin.glb",
     type: "Commercial",
     color: "#BD00FF",
   },
   {
     id: "5",
-    position: [5.5, 0.9, -3.2],
-    rotationY: -20,
+    position: [5.50, 0.90, -3.20],
+    rotationY: -40,
     glb: "/models/massage_saloon.glb",
     type: "Commercial",
     color: "#BD00FF",
   },
   {
     id: "6",
-    position: [-2.8, 0.9, -4],
+    position: [8.10, 0.90, 2.20],
     rotationY: 80,
     glb: "/models/tower.glb",
     type: "Commercial",
@@ -436,18 +436,18 @@ export default function TownPage({
 
             <div className="flex flex-col gap-2">
                <div className="flex justify-center gap-2">
-                 <Button size="sm" variant="outline" className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20" onClick={() => handleMove('z', -1)}>Z -</Button>
+                 <Button size="sm" variant="outline" className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20" onClick={() => handleMove('z', -1)}>Y -</Button>
                </div>
                <div className="flex justify-between gap-2">
                  <Button size="sm" variant="outline" className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20" onClick={() => handleMove('x', -1)}>X -</Button>
                  <div className="flex flex-col gap-1 items-center">
-                    <Button size="sm" variant="outline" className="h-6 w-12 text-[10px] border-blue-500/30 hover:bg-blue-500/20" onClick={() => handleMove('y', 1)}>Y +</Button>
-                    <Button size="sm" variant="outline" className="h-6 w-12 text-[10px] border-blue-500/30 hover:bg-blue-500/20" onClick={() => handleMove('y', -1)}>Y -</Button>
+                    <Button size="sm" variant="outline" className="h-6 w-12 text-[10px] border-blue-500/30 hover:bg-blue-500/20" onClick={() => handleMove('y', 1)}>Z +</Button>
+                    <Button size="sm" variant="outline" className="h-6 w-12 text-[10px] border-blue-500/30 hover:bg-blue-500/20" onClick={() => handleMove('y', -1)}>Z -</Button>
                  </div>
                  <Button size="sm" variant="outline" className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20" onClick={() => handleMove('x', 1)}>X +</Button>
                </div>
                <div className="flex justify-center gap-2">
-                 <Button size="sm" variant="outline" className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20" onClick={() => handleMove('z', 1)}>Z +</Button>
+                 <Button size="sm" variant="outline" className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20" onClick={() => handleMove('z', 1)}>Y +</Button>
                </div>
                <div className="flex justify-between gap-2 mt-2 pt-2 border-t border-yellow-500/30">
                  <Button size="sm" variant="outline" className="flex-1 text-xs border-yellow-500/30 hover:bg-yellow-500/20" onClick={() => handleMove('rot', -1)}>↺ Rot L</Button>
