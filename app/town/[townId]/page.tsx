@@ -25,6 +25,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "../../actions/user";
 import { buyBuilding } from "../../actions/town";
+import { updateBuildingPosition } from "../../actions/dev";
 
 interface BuildingData {
   id: string;
@@ -82,7 +83,6 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
     rotationY: 80,
     glb: "/models/rustic_stein.glb",
     type: "Town Hall",
-    owner: "Mayor",
     color: "#BD00FF",
   },
   {
@@ -91,7 +91,6 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
     rotationY: 50,
     glb: "/models/barbys_house.glb",
     type: "Residential",
-    owner: "Alice",
     color: "#FFB800",
   },
   {
@@ -100,7 +99,6 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
     rotationY: 30,
     glb: "/models/bb_house_fin.glb",
     type: "Industrial",
-    owner: "Bob",
     color: "#FF4D00",
   },
   {
@@ -109,7 +107,6 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
     rotationY: 10,
     glb: "/models/clocktower_fin.glb",
     type: "Commercial",
-    owner: "Charlie",
     color: "#BD00FF",
   },
   {
@@ -118,19 +115,26 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
     rotationY: -20,
     glb: "/models/massage_saloon.glb",
     type: "Commercial",
-    owner: "Woop",
     color: "#BD00FF",
   },
   {
     id: "6",
-    position: [-2, 0.9, -4.3],
+    position: [-2.8, 0.9, -4],
     rotationY: 80,
     glb: "/models/tower.glb",
     type: "Commercial",
-    owner: "Woop",
+    color: "#BD00FF",
+  },
+  {
+    id: "7",
+    position: [-3, 0.97, -2.6],
+    rotationY: 50,
+    glb: "/models/bb_gogo_bar.glb",
+    type: "Commercial",
     color: "#BD00FF",
   },
 ];
+
 
 function Scene({
   buildings,
@@ -216,8 +220,26 @@ export default function TownPage({
   );
   const [isXRay, setIsXRay] = useState(false);
   const [cameraMode, setCameraMode] = useState<"game" | "dev">("game");
+  const [movingBuilding, setMovingBuilding] = useState<BuildingData | null>(null);
+  const [stepSize, setStepSize] = useState<number>(0.5);
+  const [positionOverrides, setPositionOverrides] = useState<Record<string, [number, number, number]>>({});
   const [dbBuildingStates, setDbBuildingStates] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
+
+  const handleMove = async (axis: 'x' | 'y' | 'z', dir: 1 | -1) => {
+    if (!movingBuilding) return;
+    const currentPos = positionOverrides[movingBuilding.id] || movingBuilding.position;
+    const newPos: [number, number, number] = [...currentPos];
+    if (axis === 'x') newPos[0] += dir * stepSize;
+    if (axis === 'y') newPos[1] += dir * stepSize;
+    if (axis === 'z') newPos[2] += dir * stepSize;
+    
+    setPositionOverrides(prev => ({ ...prev, [movingBuilding.id]: newPos }));
+    setMovingBuilding({ ...movingBuilding, position: newPos });
+    
+    // Update the hardcoded file
+    await updateBuildingPosition(movingBuilding.id, newPos);
+  };
 
   useEffect(() => {
     // Fetch dynamic building state
@@ -268,9 +290,12 @@ export default function TownPage({
 
   const mergedBuildings = useMemo(() => {
     return HARDCODED_BUILDINGS.map((b) => {
+      const pos = positionOverrides[b.id] || b.position;
+
       const dbState = dbBuildingStates.find((ds) => ds.id === b.id);
       if (dbState) {
         return {
+          position: pos,
           ...b,
           owner: dbState.owner?.name || "Unowned",
           ownerId: dbState.ownerId,
@@ -278,7 +303,7 @@ export default function TownPage({
           employees: dbState.employees,
         };
       }
-      return b;
+      return { ...b, position: pos };
     });
   }, [dbBuildingStates]);
 
@@ -370,14 +395,51 @@ export default function TownPage({
         </Canvas>
 
         {/* Overlay HUD elements */}
-        <div className="absolute bottom-6 left-6 p-4 bg-black/40 backdrop-blur-md border border-white/10 rounded-xl pointer-events-none">
-          <p className="text-[10px] text-gray-500 uppercase font-bold mb-1">
-            Navigation Info
-          </p>
-          <p className="text-xs text-white/80">
-            Right-click to rotate • Scroll to zoom
-          </p>
-        </div>
+        {movingBuilding && cameraMode === "dev" ? (
+          <div className="absolute bottom-6 left-6 p-4 bg-black/80 backdrop-blur-xl border border-yellow-500/50 rounded-xl pointer-events-auto flex flex-col gap-4 min-w-[200px]">
+            <div className="flex justify-between items-center">
+              <p className="text-xs text-yellow-500 uppercase font-bold">
+                Moving: {movingBuilding.type}
+              </p>
+              <Button variant="ghost" size="sm" className="h-6 text-[10px] text-red-400 hover:text-red-300 uppercase tracking-wider" onClick={() => setMovingBuilding(null)}>
+                Deselect
+              </Button>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-[10px] text-gray-400 uppercase tracking-widest flex justify-between">
+                Step Size: <span>{stepSize.toFixed(1)}</span>
+              </label>
+              <input type="range" min="0.1" max="5" step="0.1" value={stepSize} onChange={(e) => setStepSize(parseFloat(e.target.value))} className="w-full accent-yellow-500" />
+            </div>
+
+            <div className="flex flex-col gap-2">
+               <div className="flex justify-center gap-2">
+                 <Button size="sm" variant="outline" className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20" onClick={() => handleMove('z', -1)}>Z -</Button>
+               </div>
+               <div className="flex justify-between gap-2">
+                 <Button size="sm" variant="outline" className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20" onClick={() => handleMove('x', -1)}>X -</Button>
+                 <div className="flex flex-col gap-1 items-center">
+                    <Button size="sm" variant="outline" className="h-6 w-12 text-[10px] border-blue-500/30 hover:bg-blue-500/20" onClick={() => handleMove('y', 1)}>Y +</Button>
+                    <Button size="sm" variant="outline" className="h-6 w-12 text-[10px] border-blue-500/30 hover:bg-blue-500/20" onClick={() => handleMove('y', -1)}>Y -</Button>
+                 </div>
+                 <Button size="sm" variant="outline" className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20" onClick={() => handleMove('x', 1)}>X +</Button>
+               </div>
+               <div className="flex justify-center gap-2">
+                 <Button size="sm" variant="outline" className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20" onClick={() => handleMove('z', 1)}>Z +</Button>
+               </div>
+            </div>
+          </div>
+        ) : (
+          <div className="absolute bottom-6 left-6 p-4 bg-black/40 backdrop-blur-md border border-white/10 rounded-xl pointer-events-none">
+            <p className="text-[10px] text-gray-500 uppercase font-bold mb-1">
+              Navigation Info
+            </p>
+            <p className="text-xs text-white/80">
+              Right-click to rotate • Scroll to zoom
+            </p>
+          </div>
+        )}
       </div>
 
       <Dialog
@@ -469,6 +531,18 @@ export default function TownPage({
                 className="w-full bg-brand-primary hover:bg-brand-primary/80 font-bold"
               >
                 Buy for ${selectedBuilding.price.toLocaleString()}
+              </Button>
+            )}
+
+            {cameraMode === "dev" && (
+              <Button
+                onClick={() => {
+                  setMovingBuilding(selectedBuilding);
+                  setSelectedBuilding(null);
+                }}
+                className="w-full bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 font-bold"
+              >
+                🏗️ Move House (Dev Only)
               </Button>
             )}
 
