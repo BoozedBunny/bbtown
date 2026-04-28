@@ -267,7 +267,8 @@ export default function TownPage({
         const res = await fetch(`/api/town/${townId}/state`);
         if (res.ok) {
           const data = await res.json();
-          setDbBuildingStates(data);
+          setDbBuildingStates(data.buildings || []);
+          setTownData(data.town || null);
         }
       } catch (error) {
         console.error("Failed to fetch building states", error);
