@@ -83,7 +83,6 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
     rotationY: 80,
     glb: "/models/rustic_stein.glb",
     type: "Town Hall",
-    owner: "Mayor",
     color: "#BD00FF",
   },
   {
@@ -92,7 +91,6 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
     rotationY: 50,
     glb: "/models/barbys_house.glb",
     type: "Residential",
-    owner: "Alice",
     color: "#FFB800",
   },
   {
@@ -101,7 +99,6 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
     rotationY: 30,
     glb: "/models/bb_house_fin.glb",
     type: "Industrial",
-    owner: "Bob",
     color: "#FF4D00",
   },
   {
@@ -110,7 +107,6 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
     rotationY: 10,
     glb: "/models/clocktower_fin.glb",
     type: "Commercial",
-    owner: "Charlie",
     color: "#BD00FF",
   },
   {
@@ -119,19 +115,26 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
     rotationY: -20,
     glb: "/models/massage_saloon.glb",
     type: "Commercial",
-    owner: "Woop",
     color: "#BD00FF",
   },
   {
     id: "6",
-    position: [-2, 0.9, -4.3],
+    position: [-2.8, 0.9, -4],
     rotationY: 80,
     glb: "/models/tower.glb",
     type: "Commercial",
-    owner: "Woop",
+    color: "#BD00FF",
+  },
+  {
+    id: "7",
+    position: [-3, 0.97, -2.6],
+    rotationY: 50,
+    glb: "/models/bb_gogo_bar.glb",
+    type: "Commercial",
     color: "#BD00FF",
   },
 ];
+
 
 function Scene({
   buildings,
