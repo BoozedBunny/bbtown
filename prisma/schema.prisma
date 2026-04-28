@@ -28,6 +28,8 @@ model Character {
 model BuildingState {
   id        String     @id
   townId    String
+  title     String?
+  forSale   Boolean    @default(true)
   price     Int        @default(5000)
   employees Int        @default(0)
   owner     Character? @relation(fields: [ownerId], references: [id])
@@ -35,8 +37,9 @@ model BuildingState {
 }
 
 model Town {
-  id   Int    @id @default(autoincrement())
-  name String
+  id          Int    @id @default(autoincrement())
+  name        String
+  bankBalance Int    @default(0)
 }
 
 model GameState {
