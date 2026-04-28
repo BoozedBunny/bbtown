@@ -24,8 +24,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "../../actions/user";
-import { buyBuilding } from "../../actions/town";
-import { updateBuildingPosition } from "../../actions/dev";
+import { buyBuilding, updateBuildingSettings } from "../../actions/town";
+import { updateBuildingTransform } from "../../actions/dev";
 
 interface BuildingData {
   id: string;
@@ -223,22 +223,31 @@ export default function TownPage({
   const [movingBuilding, setMovingBuilding] = useState<BuildingData | null>(null);
   const [stepSize, setStepSize] = useState<number>(0.5);
   const [positionOverrides, setPositionOverrides] = useState<Record<string, [number, number, number]>>({});
+  const [rotationOverrides, setRotationOverrides] = useState<Record<string, number>>({});
   const [dbBuildingStates, setDbBuildingStates] = useState<any[]>([]);
+  const [townData, setTownData] = useState<any>(null);
+  const [editForm, setEditForm] = useState({ title: "", price: 5000, forSale: false });
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  const handleMove = async (axis: 'x' | 'y' | 'z', dir: 1 | -1) => {
+  const handleMove = async (axis: 'x' | 'y' | 'z' | 'rot', dir: 1 | -1) => {
     if (!movingBuilding) return;
     const currentPos = positionOverrides[movingBuilding.id] || movingBuilding.position;
+    const currentRot = rotationOverrides[movingBuilding.id] ?? movingBuilding.rotationY;
+    
     const newPos: [number, number, number] = [...currentPos];
+    let newRot = currentRot;
+
     if (axis === 'x') newPos[0] += dir * stepSize;
     if (axis === 'y') newPos[1] += dir * stepSize;
     if (axis === 'z') newPos[2] += dir * stepSize;
+    if (axis === 'rot') newRot += dir * (stepSize * 10);
     
     setPositionOverrides(prev => ({ ...prev, [movingBuilding.id]: newPos }));
-    setMovingBuilding({ ...movingBuilding, position: newPos });
+    setRotationOverrides(prev => ({ ...prev, [movingBuilding.id]: newRot }));
+    setMovingBuilding({ ...movingBuilding, position: newPos, rotationY: newRot });
     
     // Update the hardcoded file
-    await updateBuildingPosition(movingBuilding.id, newPos);
+    await updateBuildingTransform(movingBuilding.id, newPos, newRot);
   };
 
   useEffect(() => {
@@ -291,19 +300,23 @@ export default function TownPage({
   const mergedBuildings = useMemo(() => {
     return HARDCODED_BUILDINGS.map((b) => {
       const pos = positionOverrides[b.id] || b.position;
+      const rot = rotationOverrides[b.id] ?? b.rotationY;
 
       const dbState = dbBuildingStates.find((ds) => ds.id === b.id);
       if (dbState) {
         return {
           position: pos,
+          rotationY: rot,
           ...b,
           owner: dbState.owner?.name || "Unowned",
           ownerId: dbState.ownerId,
           price: dbState.price,
+          title: dbState.title,
+          forSale: dbState.forSale,
           employees: dbState.employees,
         };
       }
-      return { ...b, position: pos };
+      return { ...b, position: pos, rotationY: rot };
     });
   }, [dbBuildingStates]);
 
@@ -389,7 +402,14 @@ export default function TownPage({
           <Scene
             buildings={mergedBuildings}
             isXRay={isXRay}
-            onBuildingClick={setSelectedBuilding}
+            onBuildingClick={(b) => {
+              setSelectedBuilding(b);
+              setEditForm({
+                title: (b as any).title || "",
+                price: b.price || 5000,
+                forSale: (b as any).forSale ?? true
+              });
+            }}
             cameraMode={cameraMode}
           />
         </Canvas>
@@ -428,6 +448,10 @@ export default function TownPage({
                <div className="flex justify-center gap-2">
                  <Button size="sm" variant="outline" className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20" onClick={() => handleMove('z', 1)}>Z +</Button>
                </div>
+               <div className="flex justify-between gap-2 mt-2 pt-2 border-t border-yellow-500/30">
+                 <Button size="sm" variant="outline" className="flex-1 text-xs border-yellow-500/30 hover:bg-yellow-500/20" onClick={() => handleMove('rot', -1)}>↺ Rot L</Button>
+                 <Button size="sm" variant="outline" className="flex-1 text-xs border-yellow-500/30 hover:bg-yellow-500/20" onClick={() => handleMove('rot', 1)}>Rot R ↻</Button>
+               </div>
             </div>
           </div>
         ) : (
@@ -444,7 +468,16 @@ export default function TownPage({
 
       <Dialog
         open={!!selectedBuilding}
-        onOpenChange={(open) => !open && setSelectedBuilding(null)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedBuilding(null);
+          else if (selectedBuilding) {
+            setEditForm({
+              title: (selectedBuilding as any).title || "",
+              price: selectedBuilding.price || 5000,
+              forSale: (selectedBuilding as any).forSale ?? true
+            });
+          }
+        }}
       >
         <DialogContent className="sm:max-w-[425px] bg-[#11041d] text-white border-white/10 rounded-2xl shadow-2xl">
           <DialogHeader>
@@ -521,7 +554,11 @@ export default function TownPage({
                     const u = await getCurrentUser();
                     setCurrentUser(u);
                     const res = await fetch(`/api/town/${townId}/state`);
-                    if (res.ok) setDbBuildingStates(await res.json());
+                    if (res.ok) {
+                      const data = await res.json();
+                      setDbBuildingStates(data.buildings || []);
+                      setTownData(data.town || null);
+                    }
                     if (socket) socket.emit("buy_building", { townId, buildingId: selectedBuilding.id });
                     setSelectedBuilding(null);
                   } catch (e) {

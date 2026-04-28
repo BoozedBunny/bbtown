@@ -60,7 +60,7 @@ async function main() {
 
   // Create BuildingStates for IDs "1" through "6"
   console.log('Creating BuildingStates...')
-  for (let i = 1; i <= 6; i++) {
+  for (let i = 1; i <= 7; i++) {
     const buildingId = i.toString()
     await prisma.buildingState.upsert({
       where: { id: buildingId },

@@ -21,7 +21,14 @@ export async function GET(
       },
     });
 
-    return NextResponse.json(buildingStates);
+    const town = await prisma.town.findUnique({
+      where: { id: parseInt(townId) }
+    });
+
+    return NextResponse.json({
+      buildings: buildingStates,
+      town: town
+    });
   } catch (error) {
     console.error('Error fetching town state:', error);
     return NextResponse.json(
