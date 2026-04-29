@@ -4,19 +4,22 @@ import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
 
 export function TexturedGround({ url }: { url: string }) {
-  // Lädt die Textur
   const texture = useTexture(url);
 
-  // Optional: Wenn das Bild gekachelt werden soll (Tiling), 
-  // kannst du das hier einstellen. Bei einer kompletten Map 
-  // lassen wir es meistens auf 1.
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(1, 1); 
 
+  // Die berechneten Maße basierend auf der Pixel-Expansion
+  const newWidth = 36.923;
+  const newHeight = 24.615;
+
   return (
     <mesh rotation-x={-Math.PI / 2} position={[0, 0, 0]} receiveShadow>
-      {/* Die Größe sollte zu deinem Grid passen, z.B. 30x30 */}
-      <planeGeometry args={[30, 30]} />
+      {/* Wichtig: args={[Breite, Höhe]} 
+          Die Höhe der Plane entspricht der Z-Achse in deiner Welt, 
+          da wir sie um -Math.PI / 2 rotieren.
+      */}
+      <planeGeometry args={[newWidth, newHeight]} />
       <meshStandardMaterial map={texture} />
     </mesh>
   );
