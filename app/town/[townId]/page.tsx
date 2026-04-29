@@ -263,7 +263,7 @@ function Scene({
       />
 
       {/* Dein neues Bild als Boden */}
-      <TexturedGround url="/textures/ground.png" />
+      <TexturedGround url="/textures/testground.png" />
 
       {/* <gridHelper args={[30, 30, "#BD00FF", "#2A0A4E"]} position={[0, 0.02, 0]}>
          <meshBasicMaterial transparent opacity={0.2} />
