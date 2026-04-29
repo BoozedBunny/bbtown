@@ -22,6 +22,7 @@ export function ModelBuilding({
   const { scene } = useGLTF(url);
   const [hovered, setHovered] = useState(false);
   const groupRef = useRef<THREE.Group>(null);
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const isBalloon = url.includes("up_up_balloon");
 
@@ -72,6 +73,22 @@ export function ModelBuilding({
     }
   });
 
+  const handlePointerEnter = (e: any) => {
+    e.stopPropagation();
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
+    setHovered(true);
+  };
+
+  const handlePointerLeave = (e: any) => {
+    hideTimeoutRef.current = setTimeout(() => {
+      setHovered(false);
+      document.body.style.cursor = 'auto';
+    }, 150);
+  };
+
   const rotationInRadians = useMemo(() => (rotationY * Math.PI) / 180, [rotationY]);
 
   return (
@@ -82,29 +99,32 @@ export function ModelBuilding({
     >
       <primitive 
         object={clonedScene} 
-        onPointerOver={(e: any) => {
-          e.stopPropagation();
-          setHovered(true);
-          // Only show pointer if we have an onClick, but actually we want pointer anyway?
-          // Let's keep it as default since the icon is what they click.
-          // document.body.style.cursor = 'pointer';
-        }}
-        onPointerOut={(e: any) => {
-          setHovered(false);
-          // document.body.style.cursor = 'auto';
-        }}
+        onPointerOver={handlePointerEnter}
+        onPointerOut={handlePointerLeave}
       />
       
       {hovered && (
-        <Html position={[0, 2.5, 0]} center zIndexRange={[100, 0]}>
+        <Html position={[0, 1.5, 0.5]} center zIndexRange={[100, 0]}>
           <div 
             className="bg-brand-primary p-2 rounded-full cursor-pointer shadow-[0_0_15px_rgba(189,0,255,0.8)] border-2 border-white animate-bounce pointer-events-auto"
             onClick={(e) => {
               e.stopPropagation();
               if (onClick) onClick();
             }}
-            onPointerOver={() => { setHovered(true); document.body.style.cursor = 'pointer'; }}
-            onPointerOut={() => { document.body.style.cursor = 'auto'; }}
+            onPointerOver={() => {
+              if (hideTimeoutRef.current) {
+                clearTimeout(hideTimeoutRef.current);
+                hideTimeoutRef.current = null;
+              }
+              setHovered(true);
+              document.body.style.cursor = 'pointer';
+            }}
+            onPointerOut={(e) => {
+              hideTimeoutRef.current = setTimeout(() => {
+                setHovered(false);
+                document.body.style.cursor = 'auto';
+              }, 150);
+            }}
           >
             <Search className="w-5 h-5 text-white" />
           </div>
