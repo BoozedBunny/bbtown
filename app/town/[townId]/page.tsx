@@ -23,6 +23,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { getCurrentUser } from "../../actions/user";
 import { buyBuilding, updateBuildingSettings } from "../../actions/town";
 import { updateBuildingTransform } from "../../actions/dev";
@@ -655,8 +656,8 @@ export default function TownPage({
                           setTownData(data.town || null);
                         }
                         if (socket) socket.emit("buy_building", { townId }); // Piggyback on this event to refresh
-                        alert("Property updated!");
-                      } catch(e: any) { alert(e.message); }
+                        toast.success("Property updated successfully!");
+                      } catch(e: any) { toast.error(e.message || "An error occurred."); }
                     }}
                     className="w-full bg-brand-primary hover:bg-brand-primary/80"
                   >
@@ -732,7 +733,7 @@ export default function TownPage({
                         if (socket) socket.emit("buy_building", { townId, buildingId: selectedBuilding.id });
                         setSelectedBuilding(null);
                       } catch (e: any) {
-                        alert(e.message);
+                        toast.error(e.message || "An error occurred.");
                       }
                     }}
                     className="w-full bg-brand-primary hover:bg-brand-primary/80 font-bold"
