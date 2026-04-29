@@ -246,11 +246,17 @@ function Scene({
   isXRay,
   onBuildingClick,
   cameraMode,
+  freeMoveBuildingId,
+  onGroundPointerMove,
+  onGroundClick,
 }: {
   buildings: BuildingData[];
   isXRay: boolean;
   onBuildingClick: (b: BuildingData) => void;
   cameraMode: "game" | "dev";
+  freeMoveBuildingId?: string | null;
+  onGroundPointerMove?: (e: any) => void;
+  onGroundClick?: (e: any) => void;
 }) {
   return (
     <>
@@ -263,21 +269,28 @@ function Scene({
       />
 
       {/* Dein neues Bild als Boden */}
-      <TexturedGround url="/textures/testground.png" />
+      <TexturedGround 
+        url="/textures/testground.png" 
+        onPointerMove={onGroundPointerMove}
+        onClick={onGroundClick}
+      />
 
       {/* <gridHelper args={[30, 30, "#BD00FF", "#2A0A4E"]} position={[0, 0.02, 0]}>
          <meshBasicMaterial transparent opacity={0.2} />
       </gridHelper> */}
 
       {buildings.map((b) => {
+        const isXRayActive = isXRay || freeMoveBuildingId === b.id;
         return (
           <ModelBuilding
             key={b.id}
             url={b.glb!}
             position={b.position}
-            opacity={!isXRay ? 1 : 0.4}
+            opacity={!isXRayActive ? 1 : 0.4}
             rotationY={b.rotationY || 0}
-            onClick={() => onBuildingClick(b)}
+            onClick={() => {
+              if (!freeMoveBuildingId) onBuildingClick(b);
+            }}
           />
         );
       })}
@@ -326,6 +339,8 @@ export default function TownPage({
   const [isXRay, setIsXRay] = useState(false);
   const [cameraMode, setCameraMode] = useState<"game" | "dev">("game");
   const [movingBuilding, setMovingBuilding] = useState<BuildingData | null>(null);
+  const [freeMoveBuildingId, setFreeMoveBuildingId] = useState<string | null>(null);
+  const [freeMovePosition, setFreeMovePosition] = useState<[number, number, number] | null>(null);
   const [stepSize, setStepSize] = useState<number>(0.5);
   const [positionOverrides, setPositionOverrides] = useState<Record<string, [number, number, number]>>({});
   const [rotationOverrides, setRotationOverrides] = useState<Record<string, number>>({});
@@ -405,7 +420,8 @@ export default function TownPage({
 
   const mergedBuildings = useMemo(() => {
     return HARDCODED_BUILDINGS.map((b) => {
-      const pos = positionOverrides[b.id] || b.position;
+      const isFreeMoving = freeMoveBuildingId === b.id;
+      const pos = (isFreeMoving && freeMovePosition) ? [freeMovePosition[0], b.position[1], freeMovePosition[2]] as [number, number, number] : (positionOverrides[b.id] || b.position);
       const rot = rotationOverrides[b.id] ?? b.rotationY;
 
       const dbState = dbBuildingStates.find((ds) => ds.id === b.id);
@@ -517,10 +533,48 @@ export default function TownPage({
               });
             }}
             cameraMode={cameraMode}
+            freeMoveBuildingId={freeMoveBuildingId}
+            onGroundPointerMove={(e) => {
+              if (freeMoveBuildingId) {
+                e.stopPropagation();
+                setFreeMovePosition([e.point.x, e.point.y, e.point.z]);
+              }
+            }}
+            onGroundClick={async (e) => {
+              if (freeMoveBuildingId && freeMovePosition) {
+                e.stopPropagation();
+                
+                const targetBuilding = HARDCODED_BUILDINGS.find(b => b.id === freeMoveBuildingId);
+                if (targetBuilding) {
+                  // Keep original Y (height), only update X and Z from the ground plane click
+                  const newPos: [number, number, number] = [freeMovePosition[0], targetBuilding.position[1], freeMovePosition[2]];
+                  const currentRot = rotationOverrides[freeMoveBuildingId] ?? targetBuilding.rotationY;
+                  
+                  setPositionOverrides(prev => ({ ...prev, [freeMoveBuildingId]: newPos }));
+                  await updateBuildingTransform(freeMoveBuildingId, newPos, currentRot);
+                  toast.success("Position saved!");
+                }
+                setFreeMoveBuildingId(null);
+                setFreeMovePosition(null);
+              }
+            }}
           />
         </Canvas>
 
         {/* Overlay HUD elements */}
+        {freeMoveBuildingId && (
+          <div className="absolute top-6 left-1/2 -translate-x-1/2 p-4 bg-yellow-500 text-black font-bold rounded-xl shadow-[0_0_20px_rgba(234,179,8,0.5)] z-50 animate-pulse text-center">
+            Click anywhere on the ground to place the building
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="mt-2 block mx-auto border-black/20 hover:bg-black/10" 
+              onClick={() => { setFreeMoveBuildingId(null); setFreeMovePosition(null); }}
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
         {movingBuilding && cameraMode === "dev" ? (
           <div className="absolute bottom-6 left-6 p-4 bg-black/80 backdrop-blur-xl border border-yellow-500/50 rounded-xl pointer-events-auto flex flex-col gap-4 min-w-[200px]">
             <div className="flex justify-between items-center">
@@ -531,6 +585,17 @@ export default function TownPage({
                 Deselect
               </Button>
             </div>
+            <Button 
+              size="sm" 
+              className="w-full text-xs bg-yellow-500 hover:bg-yellow-400 text-black font-bold" 
+              onClick={() => {
+                setFreeMoveBuildingId(movingBuilding.id);
+                setMovingBuilding(null);
+                toast.info("Click anywhere on the ground to place the building.");
+              }}
+            >
+              Move House Freely
+            </Button>
             
             <div className="space-y-2">
               <label className="text-[10px] text-gray-400 uppercase tracking-widest flex justify-between">
