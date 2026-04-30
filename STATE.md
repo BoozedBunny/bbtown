@@ -20,6 +20,6 @@ A browser-based multiplayer economic simulation. Players live in a 3D city, mana
 - **Development:** Sprint 1 started.
 
 ## Immediate Roadmap
-1. **Loading Bar:** [TODO_CODE] Implementation of a progress simulation before entering the city.
+1. **Loading Bar:** [DONE] Implementation of a progress simulation before entering the city.
 2. **Login Redirect:** [DONE] Add functionality to route people to the startpage, that aren't logged in.
-3. Stock Market: [TODO_CODE] (REJECTED: Use Prisma singleton, fix types, align colors)
+3. Stock Market: [DONE] Implementation of a real-time stock market with random price movements.
