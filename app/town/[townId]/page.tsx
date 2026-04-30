@@ -15,6 +15,7 @@ import { ModelBuilding } from "@/components/ModelBuilding";
 import { ModelX } from "@/components/ModelX";
 import { TexturedGround } from "@/components/TexturedGround";
 import { RoadTile } from "@/components/RoadTile";
+import { StockMarket } from "@/components/StockMarket";
 import {
   Dialog,
   DialogContent,
@@ -519,6 +520,7 @@ export default function TownPage({
               {connected ? "Live System" : "Offline"}
             </div>
           </div>
+          <StockMarket socket={socket} currentUser={currentUser} />
           <Link href="/lobby">
             <Button
               variant="ghost"
