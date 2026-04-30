@@ -23,7 +23,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { getCurrentUser } from "../../actions/user";
 import { buyBuilding, updateBuildingSettings } from "../../actions/town";
 import { updateBuildingTransform } from "../../actions/dev";
@@ -333,6 +332,25 @@ export default function TownPage({
   const [townData, setTownData] = useState<any>(null);
   const [editForm, setEditForm] = useState({ title: "", price: 5000, forSale: false });
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [showLoading, setShowLoading] = useState(true);
+
+  useEffect(() => {
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += Math.floor(Math.random() * 15) + 5;
+      if (progress >= 100) {
+        progress = 100;
+        setLoadingProgress(progress);
+        clearInterval(interval);
+        setTimeout(() => setShowLoading(false), 600);
+      } else {
+        setLoadingProgress(progress);
+      }
+    }, 150);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleMove = async (axis: 'x' | 'y' | 'z' | 'rot', dir: 1 | -1) => {
     if (!movingBuilding) return;
@@ -425,6 +443,32 @@ export default function TownPage({
       return { ...b, position: pos, rotationY: rot };
     });
   }, [dbBuildingStates]);
+
+  if (showLoading) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center bg-brand-neutral text-white font-sans overflow-hidden relative">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-primary opacity-10 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-secondary opacity-10 blur-[120px] rounded-full" />
+        
+        <div className="z-10 flex flex-col items-center max-w-sm w-full bg-white/5 backdrop-blur-xl p-8 rounded-2xl border border-white/10 shadow-2xl">
+          <div className="w-16 h-16 bg-brand-primary rounded-2xl rotate-12 mb-6 animate-pulse" />
+          <h2 className="text-2xl font-heading font-bold mb-2 text-center">Entering City...</h2>
+          <p className="text-gray-400 text-sm mb-8 text-center">Simulating economics and loading assets</p>
+          
+          <div className="w-full bg-white/10 h-3 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-brand-primary to-brand-secondary transition-all duration-300 ease-out"
+              style={{ width: `${loadingProgress}%` }}
+            />
+          </div>
+          <div className="w-full flex justify-between mt-2">
+            <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">Progress</span>
+            <span className="text-xs text-brand-secondary font-bold">{loadingProgress}%</span>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center p-8 bg-brand-neutral text-white font-sans overflow-hidden relative">
@@ -656,8 +700,8 @@ export default function TownPage({
                           setTownData(data.town || null);
                         }
                         if (socket) socket.emit("buy_building", { townId }); // Piggyback on this event to refresh
-                        toast.success("Property updated successfully!");
-                      } catch(e: any) { toast.error(e.message || "An error occurred."); }
+                        alert("Property updated!");
+                      } catch(e: any) { alert(e.message); }
                     }}
                     className="w-full bg-brand-primary hover:bg-brand-primary/80"
                   >
@@ -733,7 +777,7 @@ export default function TownPage({
                         if (socket) socket.emit("buy_building", { townId, buildingId: selectedBuilding.id });
                         setSelectedBuilding(null);
                       } catch (e: any) {
-                        toast.error(e.message || "An error occurred.");
+                        alert(e.message);
                       }
                     }}
                     className="w-full bg-brand-primary hover:bg-brand-primary/80 font-bold"
