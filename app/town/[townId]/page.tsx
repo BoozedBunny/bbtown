@@ -520,7 +520,7 @@ export default function TownPage({
               {connected ? "Live System" : "Offline"}
             </div>
           </div>
-          <StockMarket socket={socket} currentUser={currentUser} />
+          <StockMarket socket={socket} />
           <Link href="/lobby">
             <Button
               variant="ghost"

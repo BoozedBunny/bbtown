@@ -10,9 +10,17 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-export function StockMarket({ socket, currentUser }: { socket: Socket | null, currentUser: any }) {
+interface Stock {
+  id: string;
+  symbol: string;
+  name: string;
+  price: number;
+  previousPrice: number;
+}
+
+export function StockMarket({ socket }: { socket: Socket | null }) {
   const [open, setOpen] = useState(false);
-  const [stocks, setStocks] = useState<any[]>([]);
+  const [stocks, setStocks] = useState<Stock[]>([]);
 
   useEffect(() => {
     if (!socket) return;
@@ -65,7 +73,7 @@ export function StockMarket({ socket, currentUser }: { socket: Socket | null, cu
                       <div className="font-mono text-xl font-bold">
                         ${stock.price.toFixed(2)}
                       </div>
-                      <div className={`text-xs font-bold ${isUp ? 'text-green-400' : 'text-red-400'}`}>
+                      <div className={`text-xs font-bold ${isUp ? 'text-brand-secondary' : 'text-brand-tertiary'}`}>
                         {isUp ? '▲' : '▼'} {Math.abs(diff).toFixed(2)} (
                         {stock.previousPrice > 0 ? ((Math.abs(diff) / stock.previousPrice) * 100).toFixed(2) : 0}%)
                       </div>
