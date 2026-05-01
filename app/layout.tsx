@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, Be_Vietnam_Pro } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -27,6 +28,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${beVietnamPro.className} ${spaceGrotesk.variable} ${beVietnamPro.variable} antialiased`}>
         {children}
+        <Toaster theme="dark" position="bottom-right" richColors />
       </body>
     </html>
   );

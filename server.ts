@@ -49,13 +49,21 @@ app.prepare().then(async () => {
       const changePercent = (Math.random() * 0.1) - 0.05;
       const newPrice = Math.max(0.01, stock.price * (1 + changePercent));
       
-      await prisma.stock.update({
-        where: { id: stock.id },
-        data: {
-          previousPrice: stock.price,
-          price: newPrice
-        }
-      });
+      await prisma.$transaction([
+        prisma.stock.update({
+          where: { id: stock.id },
+          data: {
+            previousPrice: stock.price,
+            price: newPrice
+          }
+        }),
+        prisma.stockHistory.create({
+          data: {
+            stockId: stock.id,
+            price: newPrice
+          }
+        })
+      ]);
     }
     const updatedStocks = await prisma.stock.findMany({
       orderBy: { symbol: 'asc' }
@@ -68,6 +76,108 @@ app.prepare().then(async () => {
 
     socket.on("disconnect", () => {
       console.log("User disconnected:", socket.id);
+    });
+
+    socket.on("buy_stock", async ({ symbol, quantity, username }) => {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { username },
+          include: { character: true }
+        });
+        if (!user || !user.character) return;
+
+        const stock = await prisma.stock.findUnique({ where: { symbol } });
+        if (!stock) return;
+
+        const cost = stock.price * quantity;
+        if (user.character.wallet < cost) return;
+
+        await prisma.$transaction([
+          prisma.character.update({
+            where: { id: user.character.id },
+            data: { wallet: { decrement: Math.floor(cost) } }
+          }),
+          prisma.portfolioItem.upsert({
+            where: {
+              characterId_stockId: {
+                characterId: user.character.id,
+                stockId: stock.id
+              }
+            },
+            create: {
+              characterId: user.character.id,
+              stockId: stock.id,
+              quantity
+            },
+            update: {
+              quantity: { increment: quantity }
+            }
+          })
+        ]);
+
+        io.emit("portfolio_updated", {
+          username,
+          message: `Bought ${quantity} shares of ${symbol} for $${cost.toFixed(2)}`,
+          type: "success"
+        });
+      } catch (error) {
+        console.error("Error buying stock:", error);
+        io.emit("portfolio_updated", {
+          username,
+          message: `Failed to buy stock`,
+          type: "error"
+        });
+      }
+    });
+
+    socket.on("sell_stock", async ({ symbol, quantity, username }) => {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { username },
+          include: { character: true }
+        });
+        if (!user || !user.character) return;
+
+        const stock = await prisma.stock.findUnique({ where: { symbol } });
+        if (!stock) return;
+
+        const portfolioItem = await prisma.portfolioItem.findUnique({
+          where: {
+            characterId_stockId: {
+              characterId: user.character.id,
+              stockId: stock.id
+            }
+          }
+        });
+
+        if (!portfolioItem || portfolioItem.quantity < quantity) return;
+
+        const gain = stock.price * quantity;
+
+        await prisma.$transaction([
+          prisma.character.update({
+            where: { id: user.character.id },
+            data: { wallet: { increment: Math.floor(gain) } }
+          }),
+          prisma.portfolioItem.update({
+            where: { id: portfolioItem.id },
+            data: { quantity: { decrement: quantity } }
+          })
+        ]);
+
+        io.emit("portfolio_updated", {
+          username,
+          message: `Sold ${quantity} shares of ${symbol} for $${gain.toFixed(2)}`,
+          type: "success"
+        });
+      } catch (error) {
+        console.error("Error selling stock:", error);
+        io.emit("portfolio_updated", {
+          username,
+          message: `Failed to sell stock`,
+          type: "error"
+        });
+      }
     });
 
     socket.on("ping", () => {

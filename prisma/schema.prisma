@@ -57,6 +57,15 @@ model Stock {
   previousPrice Float           @default(100.0)
   updatedAt     DateTime        @updatedAt
   portfolio     PortfolioItem[]
+  history       StockHistory[]
+}
+
+model StockHistory {
+  id        String   @id @default(uuid())
+  stockId   String
+  price     Float
+  timestamp DateTime @default(now())
+  stock     Stock    @relation(fields: [stockId], references: [id])
 }
 
 model PortfolioItem {
