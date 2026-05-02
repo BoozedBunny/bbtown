@@ -16,6 +16,7 @@ import { ModelX } from "@/components/ModelX";
 import { TexturedGround } from "@/components/TexturedGround";
 import { RoadTile } from "@/components/RoadTile";
 import { StockMarket } from "@/components/StockMarket";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -702,8 +703,8 @@ export default function TownPage({
                           setTownData(data.town || null);
                         }
                         if (socket) socket.emit("buy_building", { townId }); // Piggyback on this event to refresh
-                        alert("Property updated!");
-                      } catch(e: any) { alert(e.message); }
+                        toast.success("Property updated!");
+                      } catch(e: any) { toast.error(e.message); }
                     }}
                     className="w-full bg-brand-primary hover:bg-brand-primary/80"
                   >
@@ -777,9 +778,10 @@ export default function TownPage({
                           setTownData(data.town || null);
                         }
                         if (socket) socket.emit("buy_building", { townId, buildingId: selectedBuilding.id });
+                        toast.success(`Successfully bought ${selectedBuilding.title || selectedBuilding.type}!`);
                         setSelectedBuilding(null);
                       } catch (e: any) {
-                        alert(e.message);
+                        toast.error(e.message);
                       }
                     }}
                     className="w-full bg-brand-primary hover:bg-brand-primary/80 font-bold"
