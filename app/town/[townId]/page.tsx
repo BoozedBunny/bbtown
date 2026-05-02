@@ -14,6 +14,7 @@ import Link from "next/link";
 import { ModelBuilding } from "@/components/ModelBuilding";
 import { ModelX } from "@/components/ModelX";
 import { TexturedGround } from "@/components/TexturedGround";
+import { DayNightCycle } from "@/components/DayNightCycle";
 import { RoadTile } from "@/components/RoadTile";
 import { CombinedMarketView } from "@/components/CombinedMarketView";
 import { toast } from "sonner";
@@ -40,6 +41,8 @@ interface BuildingData {
   color?: string;
   price?: number;
   employees?: number;
+  title?: string;
+  forSale?: boolean;
 }
 
 const createRoads = () => {
@@ -257,6 +260,7 @@ function Scene({
   freeMoveBuildingId,
   onGroundPointerMove,
   onGroundClick,
+  serverTime,
 }: {
   buildings: BuildingData[];
   isXRay: boolean;
@@ -265,16 +269,11 @@ function Scene({
   freeMoveBuildingId?: string | null;
   onGroundPointerMove?: (e: any) => void;
   onGroundClick?: (e: any) => void;
+  serverTime?: string;
 }) {
   return (
     <>
-      <ambientLight intensity={0.6} />
-      <directionalLight
-        position={[10, 10, 5]}
-        intensity={3}
-        castShadow
-        shadow-mapSize={[1024, 1024]}
-      />
+      <DayNightCycle serverTime={serverTime} />
 
       {/* Dein neues Bild als Boden */}
       <TexturedGround
@@ -320,7 +319,6 @@ function Scene({
         blur={2}
         far={1}
       />
-      <Environment preset="night" />
       <OrbitControls
         enablePan={cameraMode === "dev"}
         enableRotate={true}
@@ -365,6 +363,7 @@ export default function TownPage({
   >({});
   const [dbBuildingStates, setDbBuildingStates] = useState<any[]>([]);
   const [townData, setTownData] = useState<any>(null);
+  const [serverTime, setServerTime] = useState<string | undefined>(undefined);
   const [showCombinedView, setShowCombinedView] = useState(false);
   const [editForm, setEditForm] = useState({
     title: "",
@@ -438,6 +437,7 @@ export default function TownPage({
           const data = await res.json();
           setDbBuildingStates(data.buildings || []);
           setTownData(data.town || null);
+          setServerTime(data.serverTime);
         }
       } catch (error) {
         console.error("Failed to fetch building states", error);
@@ -624,6 +624,7 @@ export default function TownPage({
           <Scene
             buildings={mergedBuildings}
             isXRay={isXRay}
+            serverTime={serverTime}
             onBuildingClick={(b) => {
               setSelectedBuilding(b);
               setEditForm({
