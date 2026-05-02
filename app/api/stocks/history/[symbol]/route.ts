@@ -11,11 +11,15 @@ export async function GET(
       where: { symbol },
       include: {
         history: {
-          orderBy: { timestamp: 'asc' },
+          orderBy: { timestamp: 'desc' },
           take: 50
         }
       }
     });
+
+    if (stock) {
+      stock.history.reverse();
+    }
 
     if (!stock) return NextResponse.json({ error: "Stock not found" }, { status: 404 });
 

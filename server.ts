@@ -74,14 +74,25 @@ app.prepare().then(async () => {
   io.on("connection", (socket) => {
     console.log("A user connected:", socket.id);
 
+    // Identify user via cookies for secure communication
+    const cookieHeader = socket.handshake.headers.cookie;
+    const cookies = cookieHeader ? Object.fromEntries(cookieHeader.split('; ').map(c => c.split('='))) : {};
+    const mockUser = cookies['mock_user'];
+
+    if (mockUser) {
+      socket.join(`user:${mockUser}`);
+      console.log(`Socket ${socket.id} joined room user:${mockUser}`);
+    }
+
     socket.on("disconnect", () => {
       console.log("User disconnected:", socket.id);
     });
 
-    socket.on("buy_stock", async ({ symbol, quantity, username }) => {
+    socket.on("buy_stock", async ({ symbol, quantity }) => {
+      if (!mockUser) return;
       try {
         const user = await prisma.user.findUnique({
-          where: { username },
+          where: { username: mockUser },
           include: { character: true }
         });
         if (!user || !user.character) return;
@@ -90,12 +101,18 @@ app.prepare().then(async () => {
         if (!stock) return;
 
         const cost = stock.price * quantity;
-        if (user.character.wallet < cost) return;
+        if (user.character.wallet < cost) {
+          socket.emit("portfolio_updated", {
+            message: `Insufficient funds to buy ${quantity} shares of ${symbol}`,
+            type: "error"
+          });
+          return;
+        }
 
         await prisma.$transaction([
           prisma.character.update({
             where: { id: user.character.id },
-            data: { wallet: { decrement: Math.floor(cost) } }
+            data: { wallet: { decrement: cost } }
           }),
           prisma.portfolioItem.upsert({
             where: {
@@ -115,25 +132,24 @@ app.prepare().then(async () => {
           })
         ]);
 
-        io.emit("portfolio_updated", {
-          username,
+        io.to(`user:${mockUser}`).emit("portfolio_updated", {
           message: `Bought ${quantity} shares of ${symbol} for $${cost.toFixed(2)}`,
           type: "success"
         });
       } catch (error) {
         console.error("Error buying stock:", error);
-        io.emit("portfolio_updated", {
-          username,
+        socket.emit("portfolio_updated", {
           message: `Failed to buy stock`,
           type: "error"
         });
       }
     });
 
-    socket.on("sell_stock", async ({ symbol, quantity, username }) => {
+    socket.on("sell_stock", async ({ symbol, quantity }) => {
+      if (!mockUser) return;
       try {
         const user = await prisma.user.findUnique({
-          where: { username },
+          where: { username: mockUser },
           include: { character: true }
         });
         if (!user || !user.character) return;
@@ -150,14 +166,20 @@ app.prepare().then(async () => {
           }
         });
 
-        if (!portfolioItem || portfolioItem.quantity < quantity) return;
+        if (!portfolioItem || portfolioItem.quantity < quantity) {
+          socket.emit("portfolio_updated", {
+            message: `Not enough shares to sell`,
+            type: "error"
+          });
+          return;
+        }
 
         const gain = stock.price * quantity;
 
         await prisma.$transaction([
           prisma.character.update({
             where: { id: user.character.id },
-            data: { wallet: { increment: Math.floor(gain) } }
+            data: { wallet: { increment: gain } }
           }),
           prisma.portfolioItem.update({
             where: { id: portfolioItem.id },
@@ -165,15 +187,13 @@ app.prepare().then(async () => {
           })
         ]);
 
-        io.emit("portfolio_updated", {
-          username,
+        io.to(`user:${mockUser}`).emit("portfolio_updated", {
           message: `Sold ${quantity} shares of ${symbol} for $${gain.toFixed(2)}`,
           type: "success"
         });
       } catch (error) {
         console.error("Error selling stock:", error);
-        io.emit("portfolio_updated", {
-          username,
+        socket.emit("portfolio_updated", {
           message: `Failed to sell stock`,
           type: "error"
         });

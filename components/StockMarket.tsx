@@ -72,16 +72,14 @@ export function StockMarket({ socket }: { socket: Socket | null }) {
       }
     });
 
-    socket.on("portfolio_updated", ({ username: updatedUser, message, type }: { username: string, message?: string, type?: string }) => {
-      if (updatedUser === username) {
-        fetch("/api/portfolio").then(res => res.json()).then(setPortfolio);
-        fetch("/api/me").then(res => res.json()).then(data => setWallet(data.wallet));
+    socket.on("portfolio_updated", ({ message, type }: { message?: string, type?: string }) => {
+      fetch("/api/portfolio").then(res => res.json()).then(setPortfolio);
+      fetch("/api/me").then(res => res.json()).then(data => setWallet(data.wallet));
 
-        if (message) {
-          if (type === "success") toast.success(message);
-          else if (type === "error") toast.error(message);
-          else toast(message);
-        }
+      if (message) {
+        if (type === "success") toast.success(message);
+        else if (type === "error") toast.error(message);
+        else toast(message);
       }
     });
 
@@ -89,7 +87,7 @@ export function StockMarket({ socket }: { socket: Socket | null }) {
       socket.off("stocks_updated");
       socket.off("portfolio_updated");
     };
-  }, [socket, selectedStock, username]);
+  }, [socket, selectedStock]);
 
   useEffect(() => {
     if (selectedStock) {
@@ -105,14 +103,14 @@ export function StockMarket({ socket }: { socket: Socket | null }) {
   }, [selectedStock]);
 
   const buy = (symbol: string, quantity: number) => {
-    if (socket && username) {
-      socket.emit("buy_stock", { symbol, quantity, username });
+    if (socket) {
+      socket.emit("buy_stock", { symbol, quantity });
     }
   };
 
   const sell = (symbol: string, quantity: number) => {
-    if (socket && username) {
-      socket.emit("sell_stock", { symbol, quantity, username });
+    if (socket) {
+      socket.emit("sell_stock", { symbol, quantity });
     }
   };
 
