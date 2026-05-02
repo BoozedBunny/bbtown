@@ -1,12 +1,12 @@
 "use client";
 
-import { use, useEffect, useState, useRef, useMemo, Suspense } from "react";
+import { use, useEffect, useState, useRef, Suspense } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, PerspectiveCamera, Stars, KeyboardControls } from "@react-three/drei";
+import { KeyboardControls, Stars } from "@react-three/drei";
 import { io, Socket } from "socket.io-client";
 import { Loader2, Swords, Trophy, Users } from "lucide-react";
 import * as THREE from "three";
-import { Physics, RigidBody, CuboidCollider } from "@react-three/rapier";
+import { Physics, RigidBody } from "@react-three/rapier";
 import Ecctrl from "ecctrl";
 import { useRouter } from "next/navigation";
 
@@ -19,7 +19,7 @@ interface PlayerState {
 
 interface Obstacle {
   id: string;
-  type: 'beam';
+  type: "beam";
   position: [number, number, number];
   speed: number;
   width: number;
@@ -34,35 +34,45 @@ const keyboardMap = [
   { name: "run", keys: ["Shift"] },
 ];
 
-function LocalPlayer({ onMove, onFall }: { onMove: (pos: [number, number, number], rot: number) => void, onFall: () => void }) {
-  const ecctrlRef = useRef<any>(null);
+function LocalPlayer({
+  onMove,
+  onFall,
+}: {
+  onMove: (pos: [number, number, number], rot: number) => void;
+  onFall: () => void;
+}) {
+  // We use a group ref inside Ecctrl to safely track position without Rapier API mismatches
+  const innerRef = useRef<THREE.Group>(null);
   const lastPos = useRef<[number, number, number]>([0, 0, 0]);
   const lastRot = useRef<number>(0);
   const fellRef = useRef(false);
 
   useFrame(() => {
-    if (!ecctrlRef.current) return;
+    if (!innerRef.current) return;
 
-    const worldPos = ecctrlRef.current.translation();
-    const worldRot = ecctrlRef.current.rotation(); // This returns a quaternion
+    // 1. Get world position
+    const worldPos = new THREE.Vector3();
+    innerRef.current.getWorldPosition(worldPos);
 
-    // Simple way to get Y rotation from quaternion for synchronization
-    const euler = new THREE.Euler().setFromQuaternion(new THREE.Quaternion(worldRot.x, worldRot.y, worldRot.z, worldRot.w));
+    // 2. Get world rotation
+    const worldQuat = new THREE.Quaternion();
+    innerRef.current.getWorldQuaternion(worldQuat);
+    const euler = new THREE.Euler().setFromQuaternion(worldQuat);
     const currentYRot = euler.y;
 
     const pos: [number, number, number] = [worldPos.x, worldPos.y, worldPos.z];
 
-    // Check for fall
+    // Check for fall (Threshold is Y < -5)
     if (pos[1] < -5 && !fellRef.current) {
       fellRef.current = true;
       onFall();
     }
 
-    // Only emit if moved or rotated significantly
+    // Only emit if moved or rotated significantly to save bandwidth
     const dist = Math.sqrt(
       Math.pow(pos[0] - lastPos.current[0], 2) +
-      Math.pow(pos[1] - lastPos.current[1], 2) +
-      Math.pow(pos[2] - lastPos.current[2], 2)
+        Math.pow(pos[1] - lastPos.current[1], 2) +
+        Math.pow(pos[2] - lastPos.current[2], 2),
     );
     const rotDist = Math.abs(currentYRot - lastRot.current);
 
@@ -75,33 +85,50 @@ function LocalPlayer({ onMove, onFall }: { onMove: (pos: [number, number, number
 
   return (
     <Ecctrl
-      ref={ecctrlRef}
       animated
       maxVelLimit={5}
+      position={[0, 10, 0]} // Drop in from above to ensure we don't spawn inside the floor
     >
-      <mesh castShadow>
-        <capsuleGeometry args={[0.4, 0.7]} />
-        <meshStandardMaterial color="#BD00FF" />
-      </mesh>
+      <group ref={innerRef}>
+        <mesh castShadow position={[0, -0.35, 0]}>
+          <capsuleGeometry args={[0.4, 0.7]} />
+          <meshStandardMaterial color="#BD00FF" />
+        </mesh>
+      </group>
     </Ecctrl>
   );
 }
 
-function RemotePlayer({ position, rotation, username }: { position: [number, number, number], rotation: number, username: string }) {
+function RemotePlayer({
+  position,
+  rotation,
+  username,
+}: {
+  position: [number, number, number];
+  rotation: number;
+  username: string;
+}) {
   const rbRef = useRef<any>(null);
 
   useEffect(() => {
     if (rbRef.current) {
-      rbRef.current.setTranslation({ x: position[0], y: position[1], z: position[2] }, true);
-      rbRef.current.setRotation(new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rotation, 0)), true);
+      // Safely update the Rapier kinematic body
+      rbRef.current.setTranslation(
+        { x: position[0], y: position[1], z: position[2] },
+        true,
+      );
+      rbRef.current.setRotation(
+        new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rotation, 0)),
+        true,
+      );
     }
   }, [position, rotation]);
 
   return (
     <RigidBody ref={rbRef} type="kinematicPosition" colliders="cuboid">
       <group>
-        <mesh castShadow>
-          <capsuleGeometry args={[0.4, 1, 4, 8]} />
+        <mesh castShadow position={[0, -0.35, 0]}>
+          <capsuleGeometry args={[0.4, 0.7]} />
           <meshStandardMaterial color="#FFB800" />
         </mesh>
       </group>
@@ -109,12 +136,21 @@ function RemotePlayer({ position, rotation, username }: { position: [number, num
   );
 }
 
-function Beam({ position, width }: { position: [number, number, number], width: number }) {
+function Beam({
+  position,
+  width,
+}: {
+  position: [number, number, number];
+  width: number;
+}) {
   const rbRef = useRef<any>(null);
 
   useEffect(() => {
     if (rbRef.current) {
-      rbRef.current.setTranslation({ x: position[0], y: position[1], z: position[2] }, true);
+      rbRef.current.setTranslation(
+        { x: position[0], y: position[1], z: position[2] },
+        true,
+      );
     }
   }, [position]);
 
@@ -122,7 +158,11 @@ function Beam({ position, width }: { position: [number, number, number], width: 
     <RigidBody ref={rbRef} type="kinematicPosition" colliders="cuboid">
       <mesh castShadow receiveShadow>
         <boxGeometry args={[width, 0.5, 0.5]} />
-        <meshStandardMaterial color="#FF4D00" emissive="#FF4D00" emissiveIntensity={2} />
+        <meshStandardMaterial
+          color="#FF4D00"
+          emissive="#FF4D00"
+          emissiveIntensity={2}
+        />
       </mesh>
     </RigidBody>
   );
@@ -134,14 +174,14 @@ function ArenaScene({
   onMove,
   onFall,
   status,
-  socketId
+  socketId,
 }: {
-  players: PlayerState[],
-  obstacles: Obstacle[],
-  onMove: (pos: [number, number, number], rot: number) => void,
-  onFall: () => void,
-  status: string,
-  socketId: string | null
+  players: PlayerState[];
+  obstacles: Obstacle[];
+  onMove: (pos: [number, number, number], rot: number) => void;
+  onFall: () => void;
+  status: string;
+  socketId: string | null;
 }) {
   return (
     <>
@@ -152,33 +192,46 @@ function ArenaScene({
         intensity={1.5}
         shadow-mapSize={[1024, 1024]}
       />
-      <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+      <Stars
+        radius={100}
+        depth={50}
+        count={5000}
+        factor={4}
+        saturation={0}
+        fade
+        speed={1}
+      />
 
       <Physics gravity={[0, -9.81, 0]}>
-        <RigidBody type="fixed" colliders="cuboid">
-          <mesh receiveShadow position={[0, -0.5, 0]}>
+        {/* We place the position on the RigidBody, NOT the mesh, to ensure the collider matches */}
+        <RigidBody type="fixed" colliders="cuboid" position={[0, -0.5, 0]}>
+          <mesh receiveShadow>
             <boxGeometry args={[10, 1, 20]} />
             <meshStandardMaterial color="#1A0A2E" roughness={0.8} />
           </mesh>
         </RigidBody>
 
-        {status === 'playing' && <LocalPlayer onMove={onMove} onFall={onFall} />}
+        {status === "playing" && (
+          <LocalPlayer onMove={onMove} onFall={onFall} />
+        )}
 
-        {players.filter(p => p.id !== socketId).map(p => (
-          <RemotePlayer
-            key={p.id}
-            position={p.position}
-            rotation={p.rotation}
-            username={p.username}
-          />
-        ))}
+        {players
+          .filter((p) => p.id !== socketId)
+          .map((p) => (
+            <RemotePlayer
+              key={p.id}
+              position={p.position}
+              rotation={p.rotation}
+              username={p.username}
+            />
+          ))}
 
-        {obstacles.map(obs => (
+        {obstacles.map((obs) => (
           <Beam key={obs.id} position={obs.position} width={obs.width} />
         ))}
       </Physics>
 
-      <PerspectiveCamera makeDefault position={[0, 10, 15]} fov={50} />
+      {/* Removed the extra PerspectiveCamera so Ecctrl can use its own third-person camera! */}
     </>
   );
 }
@@ -194,11 +247,11 @@ export default function ArenaPage({
   const [gameState, setGameState] = useState<{
     players: PlayerState[];
     obstacles: Obstacle[];
-    status: 'waiting' | 'playing' | 'finished';
+    status: "waiting" | "playing" | "finished";
     winner?: string;
     loser?: string;
     reward?: number;
-  }>({ players: [], obstacles: [], status: 'waiting' });
+  }>({ players: [], obstacles: [], status: "waiting" });
   const [connected, setConnected] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
@@ -208,29 +261,30 @@ export default function ArenaPage({
 
     s.on("connect", () => {
       setConnected(true);
-      // Room joining is enough as server handles cookie-based auth automatically on connection
       s.emit("join_arena_room", { roomId: gameRoomId });
     });
 
     s.on("game_state", (state) => {
-      setGameState(prev => ({ ...prev, ...state }));
+      setGameState((prev) => ({ ...prev, ...state }));
     });
 
     s.on("game_start", ({ players }) => {
-      setGameState(prev => ({ ...prev, status: 'playing', players }));
+      setGameState((prev) => ({ ...prev, status: "playing", players }));
     });
 
     s.on("game_over", (data) => {
-      setGameState(prev => ({ ...prev, status: 'finished', ...data }));
+      setGameState((prev) => ({ ...prev, status: "finished", ...data }));
     });
 
     s.on("opponent_left", () => {
-      setGameState(prev => ({ ...prev, status: 'finished' }));
+      setGameState((prev) => ({ ...prev, status: "finished" }));
     });
 
-    fetch("/api/me").then(res => res.json()).then(data => {
-      setCurrentUser(data);
-    });
+    fetch("/api/me")
+      .then((res) => res.json())
+      .then((data) => {
+        setCurrentUser(data);
+      });
 
     return () => {
       s.disconnect();
@@ -242,7 +296,7 @@ export default function ArenaPage({
   };
 
   const handleFall = () => {
-    if (gameState.status === 'playing') {
+    if (gameState.status === "playing") {
       socket?.emit("player_fell", { roomId: gameRoomId });
     }
   };
@@ -255,36 +309,51 @@ export default function ArenaPage({
             <Swords className="w-6 h-6 text-brand-primary" />
           </div>
           <div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-gray-400">Room</h2>
-            <p className="font-mono text-brand-secondary font-bold">{gameRoomId}</p>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-gray-400">
+              Room
+            </h2>
+            <p className="font-mono text-brand-secondary font-bold">
+              {gameRoomId}
+            </p>
           </div>
         </div>
 
-        {gameState.status === 'playing' && (
+        {gameState.status === "playing" && (
           <div className="bg-black/40 backdrop-blur-xl px-8 py-3 rounded-full border border-green-500/30 flex items-center gap-3">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-xs font-bold uppercase tracking-[0.2em] text-green-400">Match in Progress</span>
+            <span className="text-xs font-bold uppercase tracking-[0.2em] text-green-400">
+              Match in Progress
+            </span>
           </div>
         )}
 
         <div className="bg-black/40 backdrop-blur-xl p-4 rounded-2xl border border-white/10 flex items-center gap-4">
           <Users className="w-5 h-5 text-gray-400" />
           <div>
-            <h2 className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Players</h2>
+            <h2 className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+              Players
+            </h2>
             <p className="text-sm font-bold">{gameState.players.length} / 2</p>
           </div>
         </div>
       </div>
 
-      {gameState.status === 'waiting' && (
-        <div id="waiting-overlay" className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#05010a]/80 backdrop-blur-sm">
+      {gameState.status === "waiting" && (
+        <div
+          id="waiting-overlay"
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#05010a]/80 backdrop-blur-sm"
+        >
           <div className="w-20 h-20 border-4 border-brand-primary/20 border-t-brand-primary rounded-full animate-spin mb-6" />
-          <h2 className="text-2xl font-heading font-bold mb-2">Waiting for Opponent</h2>
-          <p className="text-gray-400 animate-pulse">Match will start automatically...</p>
+          <h2 className="text-2xl font-heading font-bold mb-2">
+            Waiting for Opponent
+          </h2>
+          <p className="text-gray-400 animate-pulse">
+            Match will start automatically...
+          </p>
         </div>
       )}
 
-      {gameState.status === 'finished' && (
+      {gameState.status === "finished" && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#05010a]/90 backdrop-blur-md animate-in fade-in duration-500 text-center">
           {!currentUser ? (
             <Loader2 className="w-12 h-12 text-brand-primary animate-spin" />
@@ -297,12 +366,18 @@ export default function ArenaPage({
                   <Swords className="w-12 h-12 text-red-500" />
                 )}
               </div>
-              <h2 className={`text-5xl font-heading font-bold mb-2 ${gameState.winner === currentUser.username ? 'text-brand-secondary' : 'text-red-500'}`}>
-                {gameState.winner === currentUser.username ? 'VICTORY!' : 'DEFEAT'}
+              <h2
+                className={`text-5xl font-heading font-bold mb-2 ${gameState.winner === currentUser.username ? "text-brand-secondary" : "text-red-500"}`}
+              >
+                {gameState.winner === currentUser.username
+                  ? "VICTORY!"
+                  : "DEFEAT"}
               </h2>
               <div className="space-y-2 mb-8">
                 <p className="text-xl text-gray-400">
-                  {gameState.winner ? `${gameState.winner} won the battle!` : 'The match has ended.'}
+                  {gameState.winner
+                    ? `${gameState.winner} won the battle!`
+                    : "The match has ended."}
                 </p>
                 {gameState.winner === currentUser.username && (
                   <div className="bg-brand-secondary/20 px-4 py-2 rounded-full border border-brand-secondary/30 inline-block">
@@ -313,7 +388,7 @@ export default function ArenaPage({
                 )}
               </div>
               <button
-                onClick={() => router.push('/')}
+                onClick={() => router.push("/")}
                 className="px-12 py-4 bg-brand-primary hover:bg-brand-primary/90 rounded-2xl font-bold text-lg transition-all shadow-[0_0_30px_rgba(189,0,255,0.3)] hover:scale-105 active:scale-95 pointer-events-auto"
               >
                 Back to Simulation
@@ -323,31 +398,38 @@ export default function ArenaPage({
         </div>
       )}
 
-      <Suspense fallback={null}>
-        <KeyboardControls map={keyboardMap}>
-          <Canvas shadows>
-            <ArenaScene
-              players={gameState.players}
-              obstacles={gameState.obstacles}
-              onMove={handleMove}
-              onFall={handleFall}
-              status={gameState.status}
-              socketId={socket?.id || null}
-            />
-          </Canvas>
-        </KeyboardControls>
-      </Suspense>
+      <div className="absolute inset-0 z-0">
+        <Suspense fallback={null}>
+          <KeyboardControls map={keyboardMap}>
+            <Canvas shadows>
+              <ArenaScene
+                players={gameState.players}
+                obstacles={gameState.obstacles}
+                onMove={handleMove}
+                onFall={handleFall}
+                status={gameState.status}
+                socketId={socket?.id || null}
+              />
+            </Canvas>
+          </KeyboardControls>
+        </Suspense>
+      </div>
 
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex gap-4 pointer-events-none">
         <div className="bg-black/40 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 flex items-center gap-3">
           <div className="flex gap-1">
-            {['W', 'A', 'S', 'D'].map(k => (
-              <div key={k} className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-bold">
+            {["W", "A", "S", "D"].map((k) => (
+              <div
+                key={k}
+                className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-bold"
+              >
                 {k}
               </div>
             ))}
           </div>
-          <span className="text-xs text-gray-400 font-medium">to Move • Space to Jump</span>
+          <span className="text-xs text-gray-400 font-medium">
+            to Move • Space to Jump
+          </span>
         </div>
       </div>
     </main>
