@@ -416,6 +416,11 @@ export default function TownPage({
       fetchState();
     });
 
+    socketInstance.on("portfolio_updated", () => {
+      // Re-fetch user data to update wallet in header
+      fetchUser();
+    });
+
     setSocket(socketInstance);
 
     return () => {
