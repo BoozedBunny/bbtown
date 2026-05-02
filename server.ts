@@ -358,16 +358,30 @@ app.prepare().then(async () => {
       }
     });
 
-    socket.on("player_fell", ({ roomId }) => {
+    socket.on("player_fell", async ({ roomId }) => {
       if (games[roomId] && games[roomId].players[socket.id] && games[roomId].status === 'playing') {
         console.log(`Player ${mockUser} fell off in room ${roomId}`);
         games[roomId].status = 'finished';
         const loser = mockUser;
         const winner = Object.values(games[roomId].players).find(p => p.id !== socket.id)?.username;
+        const reward = 1000;
+
+        try {
+          if (winner) {
+            await prisma.character.updateMany({
+              where: { user: { username: winner } },
+              data: { wallet: { increment: reward } }
+            });
+            console.log(`Granted ${reward} reward to winner: ${winner}`);
+          }
+        } catch (error) {
+          console.error("Failed to distribute arena reward:", error);
+        }
 
         io.to(roomId).emit("game_over", {
           winner,
-          loser
+          loser,
+          reward
         });
 
         if (games[roomId].intervalId) {
