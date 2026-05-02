@@ -11,6 +11,7 @@ import {
 import { useEffect, useState, use, useMemo } from "react";
 import { io, Socket } from "socket.io-client";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Swords, Trophy, Loader2, X } from "lucide-react";
 import { ModelBuilding } from "@/components/ModelBuilding";
@@ -519,13 +520,17 @@ export default function TownPage({
 
   if (showLoading) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center bg-brand-neutral text-white font-sans overflow-hidden relative">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-primary opacity-10 blur-[120px] rounded-full" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-secondary opacity-10 blur-[120px] rounded-full" />
-
-        <div className="z-10 flex flex-col items-center max-w-sm w-full bg-white/5 backdrop-blur-xl p-8 rounded-2xl border border-white/10 shadow-2xl">
-          <div className="w-16 h-16 bg-brand-primary rounded-2xl rotate-12 mb-6 animate-pulse" />
-          <h2 className="text-2xl font-heading font-bold mb-2 text-center">
+      <main className="flex min-h-screen flex-col items-center justify-center text-white font-sans overflow-hidden relative brand-bg-overlay">
+        <div className="z-10 flex flex-col items-center max-w-sm w-full glass-card p-8">
+          <div className="relative w-24 h-24 mb-6 animate-pulse">
+            <Image
+              src="/logo.png"
+              alt="BoozedBunny Logo"
+              fill
+              className="object-contain drop-shadow-[0_0_15px_rgba(189,0,255,0.5)]"
+            />
+          </div>
+          <h2 className="text-2xl font-heading font-bold mb-2 text-center brand-gradient-text">
             Entering City...
           </h2>
           <p className="text-gray-400 text-sm mb-8 text-center">
@@ -552,10 +557,8 @@ export default function TownPage({
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-8 bg-brand-neutral text-white font-sans overflow-hidden relative">
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-primary opacity-10 blur-[120px] rounded-full" />
-
-      <div className="z-10 w-full max-w-6xl flex justify-between items-center mb-8 bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 shadow-xl">
+    <main className="flex min-h-screen flex-col items-center p-8 text-white font-sans overflow-hidden relative brand-bg-overlay">
+      <div className="z-10 w-full max-w-6xl flex justify-between items-center mb-8 glass-card p-6 shadow-xl">
         <div>
           <h1 className="text-3xl font-heading font-bold tracking-tight text-white flex items-center gap-3">
             <button
@@ -563,7 +566,14 @@ export default function TownPage({
               onClick={() => setShowCombinedView(true)}
               aria-label="Open Town Central Management"
             >
-              <div className="w-8 h-8 bg-brand-primary rounded-lg rotate-12" />
+              <div className="relative w-8 h-8">
+                <Image
+                  src="/logo.png"
+                  alt="BB"
+                  fill
+                  className="object-contain"
+                />
+              </div>
               <span>
                 BoozedBunnyTown{" "}
                 <span className="text-brand-secondary">#{townId}</span>

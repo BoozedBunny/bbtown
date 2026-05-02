@@ -47,3 +47,28 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .brand-bg-overlay {
+    @apply relative overflow-hidden;
+  }
+
+  .brand-bg-overlay::before {
+    content: "";
+    @apply absolute inset-0 z-[-1] bg-cover bg-center bg-no-repeat transition-transform duration-1000;
+    background-image: url("/arena.png");
+  }
+
+  .brand-bg-overlay::after {
+    content: "";
+    @apply absolute inset-0 z-[-1] bg-[#0F021A]/80 backdrop-blur-sm;
+  }
+
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl;
+  }
+
+  .brand-gradient-text {
+    @apply bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent;
+  }
+}

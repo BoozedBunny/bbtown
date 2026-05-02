@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
@@ -13,14 +14,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-brand-neutral text-white overflow-hidden relative">
-      {/* Decorative background elements */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-primary opacity-20 blur-[120px] rounded-full" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-secondary opacity-10 blur-[120px] rounded-full" />
-
-      <div className="z-10 p-10 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-heading font-bold tracking-tight mb-2 bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">
+    <div className="flex flex-col items-center justify-center min-h-screen text-white overflow-hidden relative brand-bg-overlay">
+      <div className="z-10 p-10 glass-card w-full max-w-md">
+        <div className="mb-8 text-center flex flex-col items-center">
+          <div className="relative w-32 h-32 mb-6 animate-pulse">
+            <Image
+              src="/logo.png"
+              alt="BoozedBunny Logo"
+              fill
+              className="object-contain drop-shadow-[0_0_15px_rgba(189,0,255,0.5)]"
+            />
+          </div>
+          <h1 className="text-4xl font-heading font-bold tracking-tight mb-2 brand-gradient-text">
             BoozedBunnyTown
           </h1>
           <p className="text-gray-400 font-sans">Enter the next generation of building</p>
@@ -42,10 +47,18 @@ export default function LoginPage() {
           </Button>
         </div>
 
-        <div className="mt-10 pt-6 border-t border-white/10 text-center">
-          <p className="text-xs text-gray-500 uppercase tracking-widest">
-            Powered by BoozedBunny
+        <div className="mt-10 pt-6 border-t border-white/10 text-center flex flex-col items-center gap-2">
+          <p className="text-xs text-gray-500 uppercase tracking-widest font-bold">
+            Powered by
           </p>
+          <div className="relative w-24 h-8 opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all">
+             <Image
+              src="/logo.png"
+              alt="BoozedBunny Logo"
+              fill
+              className="object-contain"
+            />
+          </div>
         </div>
       </div>
     </div>
