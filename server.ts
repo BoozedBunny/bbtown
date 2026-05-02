@@ -49,13 +49,21 @@ app.prepare().then(async () => {
       const changePercent = (Math.random() * 0.1) - 0.05;
       const newPrice = Math.max(0.01, stock.price * (1 + changePercent));
       
-      await prisma.stock.update({
-        where: { id: stock.id },
-        data: {
-          previousPrice: stock.price,
-          price: newPrice
-        }
-      });
+      await prisma.$transaction([
+        prisma.stock.update({
+          where: { id: stock.id },
+          data: {
+            previousPrice: stock.price,
+            price: newPrice
+          }
+        }),
+        prisma.stockHistory.create({
+          data: {
+            stockId: stock.id,
+            price: newPrice
+          }
+        })
+      ]);
     }
     const updatedStocks = await prisma.stock.findMany({
       orderBy: { symbol: 'asc' }
@@ -66,8 +74,130 @@ app.prepare().then(async () => {
   io.on("connection", (socket) => {
     console.log("A user connected:", socket.id);
 
+    // Identify user via cookies for secure communication
+    const cookieHeader = socket.handshake.headers.cookie;
+    const cookies = cookieHeader ? Object.fromEntries(cookieHeader.split('; ').map(c => c.split('='))) : {};
+    const mockUser = cookies['mock_user'];
+
+    if (mockUser) {
+      socket.join(`user:${mockUser}`);
+      console.log(`Socket ${socket.id} joined room user:${mockUser}`);
+    }
+
     socket.on("disconnect", () => {
       console.log("User disconnected:", socket.id);
+    });
+
+    socket.on("buy_stock", async ({ symbol, quantity }) => {
+      if (!mockUser) return;
+      try {
+        const user = await prisma.user.findUnique({
+          where: { username: mockUser },
+          include: { character: true }
+        });
+        if (!user || !user.character) return;
+
+        const stock = await prisma.stock.findUnique({ where: { symbol } });
+        if (!stock) return;
+
+        const cost = stock.price * quantity;
+        if (user.character.wallet < cost) {
+          socket.emit("portfolio_updated", {
+            message: `Insufficient funds to buy ${quantity} shares of ${symbol}`,
+            type: "error"
+          });
+          return;
+        }
+
+        await prisma.$transaction([
+          prisma.character.update({
+            where: { id: user.character.id },
+            data: { wallet: { decrement: cost } }
+          }),
+          prisma.portfolioItem.upsert({
+            where: {
+              characterId_stockId: {
+                characterId: user.character.id,
+                stockId: stock.id
+              }
+            },
+            create: {
+              characterId: user.character.id,
+              stockId: stock.id,
+              quantity
+            },
+            update: {
+              quantity: { increment: quantity }
+            }
+          })
+        ]);
+
+        io.to(`user:${mockUser}`).emit("portfolio_updated", {
+          message: `Bought ${quantity} shares of ${symbol} for $${cost.toFixed(2)}`,
+          type: "success"
+        });
+      } catch (error) {
+        console.error("Error buying stock:", error);
+        socket.emit("portfolio_updated", {
+          message: `Failed to buy stock`,
+          type: "error"
+        });
+      }
+    });
+
+    socket.on("sell_stock", async ({ symbol, quantity }) => {
+      if (!mockUser) return;
+      try {
+        const user = await prisma.user.findUnique({
+          where: { username: mockUser },
+          include: { character: true }
+        });
+        if (!user || !user.character) return;
+
+        const stock = await prisma.stock.findUnique({ where: { symbol } });
+        if (!stock) return;
+
+        const portfolioItem = await prisma.portfolioItem.findUnique({
+          where: {
+            characterId_stockId: {
+              characterId: user.character.id,
+              stockId: stock.id
+            }
+          }
+        });
+
+        if (!portfolioItem || portfolioItem.quantity < quantity) {
+          socket.emit("portfolio_updated", {
+            message: `Not enough shares to sell`,
+            type: "error"
+          });
+          return;
+        }
+
+        const gain = stock.price * quantity;
+
+        await prisma.$transaction([
+          prisma.character.update({
+            where: { id: user.character.id },
+            data: { wallet: { increment: gain } }
+          }),
+          prisma.portfolioItem.update({
+            where: { id: portfolioItem.id },
+            data: { quantity: { decrement: quantity } }
+          })
+        ]);
+
+        io.to(`user:${mockUser}`).emit("portfolio_updated", {
+          message: `Sold ${quantity} shares of ${symbol} for $${gain.toFixed(2)}`,
+          type: "success"
+        });
+      } catch (error) {
+        console.error("Error selling stock:", error);
+        socket.emit("portfolio_updated", {
+          message: `Failed to sell stock`,
+          type: "error"
+        });
+      }
     });
 
     socket.on("ping", () => {

@@ -36,13 +36,11 @@ export function ModelBuilding({
         
         if (mesh.material) {
           mesh.material = (mesh.material as THREE.Material).clone();
-          mesh.material.transparent = true;
-          mesh.material.opacity = opacity;
         }
       }
     });
     return clone;
-  }, [scene, opacity]);
+  }, [scene]);
 
   useEffect(() => {
     clonedScene.traverse((child) => {
@@ -50,6 +48,8 @@ export function ModelBuilding({
         const mesh = child as THREE.Mesh;
         if (mesh.material) {
           const mat = mesh.material as THREE.MeshStandardMaterial;
+           mat.transparent = true;
+          mat.opacity = opacity;
           if (hovered) {
             mat.emissive = new THREE.Color(0x333333);
             mat.emissiveIntensity = 0.5;
@@ -60,7 +60,7 @@ export function ModelBuilding({
         }
       }
     });
-  }, [hovered, clonedScene]);
+  }, [hovered, opacity, clonedScene]);
 
   // Balloon Animation
   useFrame((state) => {
