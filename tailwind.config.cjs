@@ -66,6 +66,21 @@ module.exports = {
         sans: ["var(--font-be-vietnam-pro)"],
         heading: ["var(--font-space-grotesk)"],
       },
+      animation: {
+        "gradient-x": "gradient-x 3s ease infinite",
+        "loading-bar": "loading-bar 2s ease-in-out infinite",
+      },
+      keyframes: {
+        "gradient-x": {
+          "0%, 100%": { "background-position": "0% 50%" },
+          "50%": { "background-position": "100% 50%" },
+        },
+        "loading-bar": {
+          "0%": { transform: "translateX(-100%)" },
+          "50%": { transform: "translateX(100%)" },
+          "100%": { transform: "translateX(-100%)" },
+        },
+      },
     },
   },
   plugins: [require("tailwindcss-animate")],

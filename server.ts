@@ -41,6 +41,9 @@ app.prepare().then(async () => {
   const httpServer = createServer(server);
   const io = new Server(httpServer);
 
+  // Arena Matchmaking Queue
+  const matchmakingQueue: { socketId: string; username: string }[] = [];
+
   // Stock update interval
   setInterval(async () => {
     const stocks = await prisma.stock.findMany();
@@ -83,10 +86,6 @@ app.prepare().then(async () => {
       socket.join(`user:${mockUser}`);
       console.log(`Socket ${socket.id} joined room user:${mockUser}`);
     }
-
-    socket.on("disconnect", () => {
-      console.log("User disconnected:", socket.id);
-    });
 
     socket.on("buy_stock", async ({ symbol, quantity }) => {
       if (!mockUser) return;
@@ -207,6 +206,46 @@ app.prepare().then(async () => {
     socket.on("buy_building", (data) => {
       // Broadcast to all clients in the town
       io.emit("building_updated", data);
+    });
+
+    // Arena Matchmaking
+    socket.on("join_arena", () => {
+      if (!mockUser) return;
+
+      // Check if already in queue
+      if (matchmakingQueue.find(p => p.username === mockUser)) {
+        return;
+      }
+
+      matchmakingQueue.push({ socketId: socket.id, username: mockUser });
+      console.log(`User ${mockUser} joined arena queue. Queue size: ${matchmakingQueue.length}`);
+
+      if (matchmakingQueue.length >= 2) {
+        const player1 = matchmakingQueue.shift()!;
+        const player2 = matchmakingQueue.shift()!;
+        const gameRoomId = `game-${Math.random().toString(36).substring(2, 9)}`;
+
+        console.log(`Match found! ${player1.username} vs ${player2.username}. Room: ${gameRoomId}`);
+
+        io.to(player1.socketId).emit("match_found", { gameRoomId });
+        io.to(player2.socketId).emit("match_found", { gameRoomId });
+      }
+    });
+
+    socket.on("leave_arena", () => {
+      const index = matchmakingQueue.findIndex(p => p.socketId === socket.id);
+      if (index !== -1) {
+        matchmakingQueue.splice(index, 1);
+        console.log(`User ${mockUser} left arena queue. Queue size: ${matchmakingQueue.length}`);
+      }
+    });
+
+    socket.on("disconnect", () => {
+      console.log("User disconnected:", socket.id);
+      const index = matchmakingQueue.findIndex(p => p.socketId === socket.id);
+      if (index !== -1) {
+        matchmakingQueue.splice(index, 1);
+      }
     });
   });
 

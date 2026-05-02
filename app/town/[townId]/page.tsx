@@ -11,6 +11,8 @@ import {
 import { useEffect, useState, use, useMemo } from "react";
 import { io, Socket } from "socket.io-client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Swords, Trophy, Loader2, X } from "lucide-react";
 import { ModelBuilding } from "@/components/ModelBuilding";
 import { ModelX } from "@/components/ModelX";
 import { TexturedGround } from "@/components/TexturedGround";
@@ -338,6 +340,7 @@ export default function TownPage({
   params: Promise<{ townId: string }>;
 }) {
   const { townId } = use(params);
+  const router = useRouter();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
   const [selectedBuilding, setSelectedBuilding] = useState<BuildingData | null>(
@@ -365,6 +368,8 @@ export default function TownPage({
   const [townData, setTownData] = useState<any>(null);
   const [serverTime, setServerTime] = useState<string | undefined>(undefined);
   const [showCombinedView, setShowCombinedView] = useState(false);
+  const [showArenaModal, setShowArenaModal] = useState(false);
+  const [matchmakingStatus, setMatchmakingStatus] = useState<"idle" | "searching" | "matched">("idle");
   const [editForm, setEditForm] = useState({
     title: "",
     price: 5000,
@@ -463,6 +468,14 @@ export default function TownPage({
     socketInstance.on("portfolio_updated", () => {
       // Re-fetch user data to update wallet in header
       fetchUser();
+    });
+
+    socketInstance.on("match_found", ({ gameRoomId }) => {
+      setMatchmakingStatus("matched");
+      toast.success("Match Found! Entering Arena...");
+      setTimeout(() => {
+        router.push(`/arena/${gameRoomId}`);
+      }, 2000);
     });
 
     setSocket(socketInstance);
@@ -626,6 +639,10 @@ export default function TownPage({
             isXRay={isXRay}
             serverTime={serverTime}
             onBuildingClick={(b) => {
+              if (b.id === "21") {
+                setShowArenaModal(true);
+                return;
+              }
               setSelectedBuilding(b);
               setEditForm({
                 title: (b as any).title || "",
@@ -1085,6 +1102,128 @@ export default function TownPage({
         setOpen={setShowCombinedView}
         townData={townData}
       />
+
+      <Dialog
+        open={showArenaModal}
+        onOpenChange={(open) => {
+          if (!open) {
+            if (matchmakingStatus === "searching") {
+              socket?.emit("leave_arena");
+            }
+            setShowArenaModal(false);
+            setMatchmakingStatus("idle");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[425px] bg-[#0F021A] text-white border-brand-primary/20 rounded-3xl shadow-[0_0_50px_rgba(189,0,255,0.15)] overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-primary animate-gradient-x" />
+
+          <DialogHeader className="pt-6">
+            <div className="mx-auto w-16 h-16 bg-brand-primary/10 rounded-2xl flex items-center justify-center mb-4 border border-brand-primary/20">
+              <Swords className="w-8 h-8 text-brand-primary" />
+            </div>
+            <DialogTitle className="text-3xl font-heading font-bold text-center bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+              The Battle Arena
+            </DialogTitle>
+            <DialogDescription className="text-center text-gray-400">
+              {matchmakingStatus === "idle" && "Challenge other players in a 1v1 Wipeout-style showdown."}
+              {matchmakingStatus === "searching" && "Finding a worthy opponent..."}
+              {matchmakingStatus === "matched" && "Opponent Found! Preparing for battle."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-8">
+            {matchmakingStatus === "idle" && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col items-center text-center">
+                    <Trophy className="w-6 h-6 text-brand-secondary mb-2" />
+                    <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Rewards</span>
+                    <span className="text-sm font-bold text-brand-secondary">1,000 BBT</span>
+                  </div>
+                  <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col items-center text-center">
+                    <div className="w-6 h-6 flex items-center justify-center mb-2">
+                      <span className="text-brand-primary font-bold">1v1</span>
+                    </div>
+                    <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Mode</span>
+                    <span className="text-sm font-bold">Survivor</span>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => {
+                    setMatchmakingStatus("searching");
+                    socket?.emit("join_arena");
+                  }}
+                  className="w-full h-14 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-lg rounded-2xl shadow-[0_0_20px_rgba(189,0,255,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  Enter the Battle
+                </Button>
+              </div>
+            )}
+
+            {matchmakingStatus === "searching" && (
+              <div className="flex flex-col items-center justify-center py-4 space-y-6">
+                <div className="relative">
+                  <div className="w-24 h-24 border-4 border-brand-primary/20 rounded-full animate-ping absolute" />
+                  <div className="w-24 h-24 border-t-4 border-brand-primary rounded-full animate-spin" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="w-8 h-8 text-brand-primary animate-pulse" />
+                  </div>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-brand-primary/20 rounded-full flex items-center justify-center">
+                      <span className="text-brand-primary font-bold text-xs">YOU</span>
+                    </div>
+                    <div className="w-8 h-1 bg-white/10 rounded-full overflow-hidden">
+                      <div className="h-full bg-brand-primary animate-loading-bar" />
+                    </div>
+                    <div className="w-8 h-8 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
+                      <span className="text-gray-600 font-bold text-xs">?</span>
+                    </div>
+                  </div>
+                  <p className="text-brand-primary font-mono text-sm animate-pulse">SEARCHING QUEUE...</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    socket?.emit("leave_arena");
+                    setMatchmakingStatus("idle");
+                  }}
+                  className="text-gray-500 hover:text-white hover:bg-white/5 rounded-xl"
+                >
+                  Cancel Matchmaking
+                </Button>
+              </div>
+            )}
+
+            {matchmakingStatus === "matched" && (
+              <div className="flex flex-col items-center justify-center py-4 space-y-6 animate-in zoom-in-95 duration-300">
+                <div className="flex items-center gap-8">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-16 h-16 bg-brand-primary rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(189,0,255,0.4)]">
+                      <span className="text-white font-bold text-xl">YOU</span>
+                    </div>
+                  </div>
+                  <div className="text-2xl font-black text-brand-secondary italic">VS</div>
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-16 h-16 bg-brand-secondary rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(255,184,0,0.4)]">
+                      <span className="text-white font-bold text-xl">OPP</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-green-500/10 border border-green-500/20 px-6 py-3 rounded-2xl">
+                  <p className="text-green-400 font-bold flex items-center gap-2">
+                    <span className="w-2 h-2 bg-green-400 rounded-full animate-ping" />
+                    MATCH CONFIRMED
+                  </p>
+                </div>
+                <p className="text-gray-500 text-xs uppercase tracking-widest font-bold">Teleporting in 2s...</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
