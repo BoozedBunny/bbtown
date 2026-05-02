@@ -9,7 +9,7 @@ export async function GET() {
     }
 
     return NextResponse.json({
-      username: user.name,
+      username: user.username,
       wallet: user.character.wallet,
       characterId: user.character.id
     });

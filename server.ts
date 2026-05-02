@@ -41,6 +41,71 @@ app.prepare().then(async () => {
   const httpServer = createServer(server);
   const io = new Server(httpServer);
 
+  // Arena Matchmaking Queue
+  const matchmakingQueue: { socketId: string; username: string }[] = [];
+
+  interface PlayerState {
+    id: string;
+    username: string;
+    position: [number, number, number];
+    rotation: number;
+  }
+
+  interface Obstacle {
+    id: string;
+    type: 'beam';
+    position: [number, number, number];
+    speed: number;
+    width: number;
+  }
+
+  interface GameSession {
+    roomId: string;
+    players: Record<string, PlayerState>;
+    obstacles: Obstacle[];
+    status: 'waiting' | 'playing' | 'finished';
+    timer: number;
+    intervalId?: NodeJS.Timeout;
+  }
+
+  const games: Record<string, GameSession> = {};
+
+  const spawnObstacle = (game: GameSession) => {
+    const id = `obs-${Math.random().toString(36).substring(2, 7)}`;
+    // Spawn at z = -15 or 15 and move across
+    const side = Math.random() > 0.5 ? 1 : -1;
+    const obstacle: Obstacle = {
+      id,
+      type: 'beam',
+      position: [0, 0.5, side * 15],
+      speed: side * -0.1, // Move towards center
+      width: 10
+    };
+    game.obstacles.push(obstacle);
+  };
+
+  const updateGame = (roomId: string) => {
+    const game = games[roomId];
+    if (!game || game.status !== 'playing') return;
+
+    // Update obstacles
+    game.obstacles = game.obstacles.filter(obs => {
+      obs.position[2] += obs.speed;
+      return Math.abs(obs.position[2]) <= 20;
+    });
+
+    // Randomly spawn obstacles
+    if (Math.random() < 0.05) {
+      spawnObstacle(game);
+    }
+
+    io.to(roomId).emit("game_state", {
+      players: Object.values(game.players),
+      obstacles: game.obstacles,
+      status: game.status
+    });
+  };
+
   // Stock update interval
   setInterval(async () => {
     const stocks = await prisma.stock.findMany();
@@ -83,10 +148,6 @@ app.prepare().then(async () => {
       socket.join(`user:${mockUser}`);
       console.log(`Socket ${socket.id} joined room user:${mockUser}`);
     }
-
-    socket.on("disconnect", () => {
-      console.log("User disconnected:", socket.id);
-    });
 
     socket.on("buy_stock", async ({ symbol, quantity }) => {
       if (!mockUser) return;
@@ -207,6 +268,151 @@ app.prepare().then(async () => {
     socket.on("buy_building", (data) => {
       // Broadcast to all clients in the town
       io.emit("building_updated", data);
+    });
+
+    // Arena Matchmaking & Game Logic
+    socket.on("join_arena", () => {
+      if (!mockUser) return;
+
+      // Check if already in queue
+      if (matchmakingQueue.find(p => p.username === mockUser)) {
+        return;
+      }
+
+      matchmakingQueue.push({ socketId: socket.id, username: mockUser });
+      console.log(`User ${mockUser} joined arena queue. Queue size: ${matchmakingQueue.length}`);
+
+      if (matchmakingQueue.length >= 2) {
+        const player1 = matchmakingQueue.shift()!;
+        const player2 = matchmakingQueue.shift()!;
+        const gameRoomId = `game-${Math.random().toString(36).substring(2, 9)}`;
+
+        // Initialize game session
+        games[gameRoomId] = {
+          roomId: gameRoomId,
+          players: {},
+          obstacles: [],
+          status: 'waiting',
+          timer: 0
+        };
+
+        console.log(`Match found! ${player1.username} vs ${player2.username}. Room: ${gameRoomId}`);
+
+        io.to(player1.socketId).emit("match_found", { gameRoomId });
+        io.to(player2.socketId).emit("match_found", { gameRoomId });
+      }
+    });
+
+    socket.on("leave_arena", () => {
+      const index = matchmakingQueue.findIndex(p => p.socketId === socket.id);
+      if (index !== -1) {
+        matchmakingQueue.splice(index, 1);
+        console.log(`User ${mockUser} left arena queue. Queue size: ${matchmakingQueue.length}`);
+      }
+    });
+
+    socket.on("join_arena_room", ({ roomId }) => {
+      if (!mockUser) return;
+
+      // Auto-create room if it's a test room
+      if (!games[roomId] && roomId.includes("test")) {
+        games[roomId] = {
+          roomId,
+          players: {},
+          obstacles: [],
+          status: 'waiting',
+          timer: 0
+        };
+      }
+
+      if (!games[roomId]) return;
+
+      socket.join(roomId);
+      const playerCount = Object.keys(games[roomId].players).length;
+      games[roomId].players[socket.id] = {
+        id: socket.id,
+        username: mockUser,
+        position: [playerCount === 0 ? -2 : 2, 0, 0],
+        rotation: 0
+      };
+
+      console.log(`User ${mockUser} joined arena room ${roomId}. Players: ${Object.keys(games[roomId].players).length}`);
+
+      if (Object.keys(games[roomId].players).length === 2) {
+        games[roomId].status = 'playing';
+        console.log(`Game ${roomId} starting!`);
+
+        const intervalId = setInterval(() => updateGame(roomId), 1000 / 30);
+        games[roomId].intervalId = intervalId;
+
+        io.to(roomId).emit("game_start", {
+          players: Object.values(games[roomId].players)
+        });
+      }
+    });
+
+    socket.on("player_move", ({ roomId, position, rotation }) => {
+      if (games[roomId] && games[roomId].players[socket.id]) {
+        games[roomId].players[socket.id].position = position;
+        games[roomId].players[socket.id].rotation = rotation;
+      }
+    });
+
+    socket.on("player_fell", async ({ roomId }) => {
+      if (games[roomId] && games[roomId].players[socket.id] && games[roomId].status === 'playing') {
+        console.log(`Player ${mockUser} fell off in room ${roomId}`);
+        games[roomId].status = 'finished';
+        const loser = mockUser;
+        const winner = Object.values(games[roomId].players).find(p => p.id !== socket.id)?.username;
+        const reward = 1000;
+
+        try {
+          if (winner) {
+            await prisma.character.updateMany({
+              where: { user: { username: winner } },
+              data: { wallet: { increment: reward } }
+            });
+            console.log(`Granted ${reward} reward to winner: ${winner}`);
+          }
+        } catch (error) {
+          console.error("Failed to distribute arena reward:", error);
+        }
+
+        io.to(roomId).emit("game_over", {
+          winner,
+          loser,
+          reward
+        });
+
+        if (games[roomId].intervalId) {
+          clearInterval(games[roomId].intervalId);
+        }
+
+        // Keep game session for a bit so clients can show results
+        setTimeout(() => {
+          delete games[roomId];
+        }, 10000);
+      }
+    });
+
+    socket.on("disconnect", () => {
+      console.log("User disconnected:", socket.id);
+      const index = matchmakingQueue.findIndex(p => p.socketId === socket.id);
+      if (index !== -1) {
+        matchmakingQueue.splice(index, 1);
+      }
+
+      // Cleanup games
+      for (const roomId in games) {
+        if (games[roomId].players[socket.id]) {
+          console.log(`Player ${socket.id} left game ${roomId}. Cleaning up.`);
+          if (games[roomId].intervalId) {
+            clearInterval(games[roomId].intervalId);
+          }
+          delete games[roomId];
+          io.to(roomId).emit("opponent_left");
+        }
+      }
     });
   });
 
