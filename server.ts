@@ -358,6 +358,29 @@ app.prepare().then(async () => {
       }
     });
 
+    socket.on("player_fell", ({ roomId }) => {
+      if (games[roomId] && games[roomId].players[socket.id] && games[roomId].status === 'playing') {
+        console.log(`Player ${mockUser} fell off in room ${roomId}`);
+        games[roomId].status = 'finished';
+        const loser = mockUser;
+        const winner = Object.values(games[roomId].players).find(p => p.id !== socket.id)?.username;
+
+        io.to(roomId).emit("game_over", {
+          winner,
+          loser
+        });
+
+        if (games[roomId].intervalId) {
+          clearInterval(games[roomId].intervalId);
+        }
+
+        // Keep game session for a bit so clients can show results
+        setTimeout(() => {
+          delete games[roomId];
+        }, 10000);
+      }
+    });
+
     socket.on("disconnect", () => {
       console.log("User disconnected:", socket.id);
       const index = matchmakingQueue.findIndex(p => p.socketId === socket.id);
