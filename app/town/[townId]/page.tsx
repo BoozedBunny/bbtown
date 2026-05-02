@@ -15,7 +15,7 @@ import { ModelBuilding } from "@/components/ModelBuilding";
 import { ModelX } from "@/components/ModelX";
 import { TexturedGround } from "@/components/TexturedGround";
 import { RoadTile } from "@/components/RoadTile";
-import { StockMarket } from "@/components/StockMarket";
+import { CombinedMarketView } from "@/components/CombinedMarketView";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -332,6 +332,7 @@ export default function TownPage({
   const [rotationOverrides, setRotationOverrides] = useState<Record<string, number>>({});
   const [dbBuildingStates, setDbBuildingStates] = useState<any[]>([]);
   const [townData, setTownData] = useState<any>(null);
+  const [showCombinedView, setShowCombinedView] = useState(false);
   const [editForm, setEditForm] = useState({ title: "", price: 5000, forSale: false });
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -483,7 +484,10 @@ export default function TownPage({
 
       <div className="z-10 w-full max-w-6xl flex justify-between items-center mb-8 bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 shadow-xl">
         <div>
-          <h1 className="text-3xl font-heading font-bold tracking-tight text-white flex items-center gap-3">
+          <h1
+            className="text-3xl font-heading font-bold tracking-tight text-white flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => setShowCombinedView(true)}
+          >
             <div className="w-8 h-8 bg-brand-primary rounded-lg rotate-12" />
             BoozedBunnyTown{" "}
             <span className="text-brand-secondary">#{townId}</span>
@@ -526,7 +530,6 @@ export default function TownPage({
               {connected ? "Live System" : "Offline"}
             </div>
           </div>
-          <StockMarket socket={socket} />
           <Link href="/lobby">
             <Button
               variant="ghost"
@@ -657,6 +660,15 @@ export default function TownPage({
                   <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest block mb-1">Town Treasury</span>
                   <span className="text-3xl font-bold text-brand-secondary">${townData?.bankBalance?.toLocaleString() || 0}</span>
                 </div>
+                <Button
+                  onClick={() => {
+                    setSelectedBuilding(null);
+                    setShowCombinedView(true);
+                  }}
+                  className="w-full bg-brand-primary hover:bg-brand-primary/80 mt-4"
+                >
+                  View Central Management
+                </Button>
               </div>
             )}
 
@@ -818,6 +830,13 @@ export default function TownPage({
           </div>
         </DialogContent>
       </Dialog>
+
+      <CombinedMarketView
+        socket={socket}
+        open={showCombinedView}
+        setOpen={setShowCombinedView}
+        townData={townData}
+      />
     </main>
   );
 }
