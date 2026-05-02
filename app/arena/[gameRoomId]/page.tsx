@@ -85,9 +85,12 @@ function LocalPlayer({
 
   return (
     <Ecctrl
-      animated
-      maxVelLimit={5}
-      position={[0, 10, 0]} // Drop in from above to ensure we don't spawn inside the floor
+animated
+  maxVelLimit={7}      // Maximale Laufgeschwindigkeit
+  jumpVel={12}         // Sprungkraft (muss jetzt höher sein wegen der starken Gravitation)
+  sprintMult={1.5}     // Multiplikator, wenn man Shift drückt
+  airDragMultiplier={0.2} // Wie viel Kontrolle man in der Luft hat
+  position={[0, 5, 0]}
     >
       <group ref={innerRef}>
         <mesh castShadow position={[0, -0.35, 0]}>
@@ -202,12 +205,17 @@ function ArenaScene({
         speed={1}
       />
 
-      <Physics gravity={[0, -9.81, 0]}>
+      <Physics gravity={[0, -30, 0]}>
         {/* We place the position on the RigidBody, NOT the mesh, to ensure the collider matches */}
         <RigidBody type="fixed" colliders="cuboid" position={[0, -0.5, 0]}>
-          <mesh receiveShadow>
+          {/* Das ist der sichtbare, flache Boden (nach oben verschoben) */}
+          <mesh receiveShadow position={[0, 4.5, 0]}>
             <boxGeometry args={[10, 1, 20]} />
             <meshStandardMaterial color="#1A0A2E" roughness={0.8} />
+          </mesh>
+          {/* Das ist der unsichtbare, extrem dicke Collider, der Tunneling verhindert */}
+          <mesh visible={false}>
+            <boxGeometry args={[10, 10, 20]} />
           </mesh>
         </RigidBody>
 
@@ -226,9 +234,9 @@ function ArenaScene({
             />
           ))}
 
-        {obstacles.map((obs) => (
+        {/* {obstacles.map((obs) => (
           <Beam key={obs.id} position={obs.position} width={obs.width} />
-        ))}
+        ))} */}
       </Physics>
 
       {/* Removed the extra PerspectiveCamera so Ecctrl can use its own third-person camera! */}
