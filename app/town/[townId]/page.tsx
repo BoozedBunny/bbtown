@@ -81,7 +81,7 @@ const createRoads = () => {
 const HARDCODED_BUILDINGS: BuildingData[] = [
   {
     id: "1",
-    position: [-0.6, 0.9, -2],
+    position: [-1.00, 0.90, -0.57],
     rotationY: 80,
     glb: "/models/rustic_stein.glb",
     type: "Town Hall",
@@ -89,7 +89,7 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "2",
-    position: [1.20, 0.90, -5.30],
+    position: [-1.12, 0.90, -5.49],
     rotationY: -142,
     glb: "/models/barbys_house.glb",
     type: "Residential",
@@ -97,7 +97,7 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "3",
-    position: [-2.00, 0.90, 1.00],
+    position: [-2.71, 0.90, 1.68],
     rotationY: 98,
     glb: "/models/bb_house_fin.glb",
     type: "Industrial",
@@ -105,7 +105,7 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "4",
-    position: [-2.10, 0.90, -4.30],
+    position: [-3.30, 0.90, -1.35],
     rotationY: 47,
     glb: "/models/clocktower_fin.glb",
     type: "Commercial",
@@ -113,7 +113,7 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "5",
-    position: [5.50, 0.90, -3.20],
+    position: [6.06, 0.90, -2.02],
     rotationY: -40,
     glb: "/models/massage_saloon.glb",
     type: "Commercial",
@@ -121,7 +121,7 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "6",
-    position: [8.10, 0.90, 2.20],
+    position: [7.80, 0.90, 2.00],
     rotationY: 80,
     glb: "/models/tower.glb",
     type: "Commercial",
@@ -129,7 +129,7 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "7",
-    position: [-3, 0.97, -2.6],
+    position: [-5.33, 0.97, -4.20],
     rotationY: 50,
     glb: "/models/bb_gogo_bar.glb",
     type: "Commercial",
@@ -137,15 +137,15 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "8",
-    position: [1.80, 0.97, 7.20],
-    rotationY: 128,
+    position: [1.07, 0.97, 5.75],
+    rotationY: 147,
     glb: "/models/1001_nights.glb",
     type: "Commercial",
     color: "#BD00FF",
   },
   {
     id: "9",
-    position: [-4.30, 0.97, -7.40],
+    position: [-2.65, 0.97, -7.43],
     rotationY: 50,
     glb: "/models/akihabara.glb",
     type: "Commercial",
@@ -153,7 +153,7 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "10",
-    position: [-0.50, 0.97, -9.90],
+    position: [1.56, 0.97, -9.05],
     rotationY: 88,
     glb: "/models/boat_house.glb",
     type: "Commercial",
@@ -161,7 +161,7 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "11",
-    position: [7.90, 0.97, -1.50],
+    position: [7.80, 0.97, -0.30],
     rotationY: 13,
     glb: "/models/dune_partyhouse.glb",
     type: "Commercial",
@@ -169,7 +169,7 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "12",
-    position: [1.90, 0.97, -4.60],
+    position: [-0.00, 0.97, -5.21],
     rotationY: 50,
     glb: "/models/feet_house.glb",
     type: "Commercial",
@@ -177,7 +177,7 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "13",
-    position: [-7.00, 0.97, -2.30],
+    position: [-8.01, 0.97, -0.99],
     rotationY: 50,
     glb: "/models/holy_rave.glb",
     type: "Commercial",
@@ -185,7 +185,7 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "14",
-    position: [9.00, 0.97, -8.70],
+    position: [9.51, 0.97, -5.98],
     rotationY: 26,
     glb: "/models/hoppy_heaven.glb",
     type: "Commercial",
@@ -193,7 +193,7 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "15",
-    position: [-9.00, 0.97, -5.50],
+    position: [-11.45, 0.97, -5.20],
     rotationY: 28,
     glb: "/models/pipe_house.glb",
     type: "Commercial",
@@ -201,7 +201,7 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "16",
-    position: [-2.40, 2.67, 4.00],
+    position: [-2.4, 2.67, 4.0],
     rotationY: 105,
     glb: "/models/up_up_balloon.glb",
     type: "Commercial",
@@ -209,7 +209,7 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "17",
-    position: [-0.20, 0.97, 4.30],
+    position: [-0.59, 0.97, 3.69],
     rotationY: 125,
     glb: "/models/up_up_house.glb",
     type: "Commercial",
@@ -217,7 +217,7 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "18",
-    position: [10.70, 0.97, -3.40],
+    position: [9.79, 0.97, -1.91],
     rotationY: 24,
     glb: "/models/vino_vibes.glb",
     type: "Commercial",
@@ -225,7 +225,7 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "19",
-    position: [4.60, 0.97, -7.80],
+    position: [4.27, 0.97, -5.56],
     rotationY: 50,
     glb: "/models/vodka_palace.glb",
     type: "Commercial",
@@ -233,25 +233,38 @@ const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "20",
-    position: [3.10, 0.97, 0.60],
+    position: [3.21, 0.97, 0.92],
     rotationY: 41,
     glb: "/models/vulcan_temple.glb",
     type: "Commercial",
     color: "#BD00FF",
   },
+  {
+    id: "21",
+    position: [1.72, 0.57, -2.16],
+    rotationY: 0,
+    glb: "/models/arena-v2.glb",
+    type: "Commercial",
+    color: "#BD00FF",
+  },
 ];
-
 
 function Scene({
   buildings,
   isXRay,
   onBuildingClick,
   cameraMode,
+  freeMoveBuildingId,
+  onGroundPointerMove,
+  onGroundClick,
 }: {
   buildings: BuildingData[];
   isXRay: boolean;
   onBuildingClick: (b: BuildingData) => void;
   cameraMode: "game" | "dev";
+  freeMoveBuildingId?: string | null;
+  onGroundPointerMove?: (e: any) => void;
+  onGroundClick?: (e: any) => void;
 }) {
   return (
     <>
@@ -264,28 +277,36 @@ function Scene({
       />
 
       {/* Dein neues Bild als Boden */}
-      <TexturedGround url="/textures/testground.png" />
+      <TexturedGround
+        url="/textures/testground.png"
+        onPointerMove={onGroundPointerMove}
+        onClick={onGroundClick}
+      />
 
       {/* <gridHelper args={[30, 30, "#BD00FF", "#2A0A4E"]} position={[0, 0.02, 0]}>
          <meshBasicMaterial transparent opacity={0.2} />
       </gridHelper> */}
 
       {buildings.map((b) => {
+        const isXRayActive = isXRay || freeMoveBuildingId === b.id;
+
         return (
           <ModelBuilding
             key={b.id}
             url={b.glb!}
             position={b.position}
-            opacity={!isXRay ? 1 : 0.4}
+            opacity={!isXRayActive ? 1 : 0.4}
             rotationY={b.rotationY || 0}
-            onClick={() => onBuildingClick(b)}
+            onClick={() => {
+              if (!freeMoveBuildingId) onBuildingClick(b);
+            }}
           />
         );
       })}
 
       <ModelX
         url="/models/bbtown_logo_optimized.glb"
-        position={[5.9, 0.69, 5.5]}
+        position={[6, 0.69, 4.1]}
         opacity={!isXRay ? 1 : 0.5}
         rotationY={50}
         tiltX={-76}
@@ -326,14 +347,30 @@ export default function TownPage({
   );
   const [isXRay, setIsXRay] = useState(false);
   const [cameraMode, setCameraMode] = useState<"game" | "dev">("game");
-  const [movingBuilding, setMovingBuilding] = useState<BuildingData | null>(null);
+  const [movingBuilding, setMovingBuilding] = useState<BuildingData | null>(
+    null,
+  );
+  const [freeMoveBuildingId, setFreeMoveBuildingId] = useState<string | null>(
+    null,
+  );
+  const [freeMovePosition, setFreeMovePosition] = useState<
+    [number, number, number] | null
+  >(null);
   const [stepSize, setStepSize] = useState<number>(0.5);
-  const [positionOverrides, setPositionOverrides] = useState<Record<string, [number, number, number]>>({});
-  const [rotationOverrides, setRotationOverrides] = useState<Record<string, number>>({});
+  const [positionOverrides, setPositionOverrides] = useState<
+    Record<string, [number, number, number]>
+  >({});
+  const [rotationOverrides, setRotationOverrides] = useState<
+    Record<string, number>
+  >({});
   const [dbBuildingStates, setDbBuildingStates] = useState<any[]>([]);
   const [townData, setTownData] = useState<any>(null);
   const [showCombinedView, setShowCombinedView] = useState(false);
-  const [editForm, setEditForm] = useState({ title: "", price: 5000, forSale: false });
+  const [editForm, setEditForm] = useState({
+    title: "",
+    price: 5000,
+    forSale: false,
+  });
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [showLoading, setShowLoading] = useState(true);
@@ -355,23 +392,29 @@ export default function TownPage({
     return () => clearInterval(interval);
   }, []);
 
-  const handleMove = async (axis: 'x' | 'y' | 'z' | 'rot', dir: 1 | -1) => {
+  const handleMove = async (axis: "x" | "y" | "z" | "rot", dir: 1 | -1) => {
     if (!movingBuilding) return;
-    const currentPos = positionOverrides[movingBuilding.id] || movingBuilding.position;
-    const currentRot = rotationOverrides[movingBuilding.id] ?? movingBuilding.rotationY;
-    
+    const currentPos =
+      positionOverrides[movingBuilding.id] || movingBuilding.position;
+    const currentRot =
+      rotationOverrides[movingBuilding.id] ?? movingBuilding.rotationY;
+
     const newPos: [number, number, number] = [...currentPos];
     let newRot = currentRot;
 
-    if (axis === 'x') newPos[0] += dir * stepSize;
-    if (axis === 'y') newPos[1] += dir * stepSize;
-    if (axis === 'z') newPos[2] += dir * stepSize;
-    if (axis === 'rot') newRot += dir * (stepSize * 10);
-    
-    setPositionOverrides(prev => ({ ...prev, [movingBuilding.id]: newPos }));
-    setRotationOverrides(prev => ({ ...prev, [movingBuilding.id]: newRot }));
-    setMovingBuilding({ ...movingBuilding, position: newPos, rotationY: newRot });
-    
+    if (axis === "x") newPos[0] += dir * stepSize;
+    if (axis === "y") newPos[1] += dir * stepSize;
+    if (axis === "z") newPos[2] += dir * stepSize;
+    if (axis === "rot") newRot += dir * (stepSize * 10);
+
+    setPositionOverrides((prev) => ({ ...prev, [movingBuilding.id]: newPos }));
+    setRotationOverrides((prev) => ({ ...prev, [movingBuilding.id]: newRot }));
+    setMovingBuilding({
+      ...movingBuilding,
+      position: newPos,
+      rotationY: newRot,
+    });
+
     // Update the hardcoded file
     await updateBuildingTransform(movingBuilding.id, newPos, newRot);
   };
@@ -431,7 +474,15 @@ export default function TownPage({
 
   const mergedBuildings = useMemo(() => {
     return HARDCODED_BUILDINGS.map((b) => {
-      const pos = positionOverrides[b.id] || b.position;
+      const isFreeMoving = freeMoveBuildingId === b.id;
+      const pos =
+        isFreeMoving && freeMovePosition
+          ? ([freeMovePosition[0], b.position[1], freeMovePosition[2]] as [
+              number,
+              number,
+              number,
+            ])
+          : positionOverrides[b.id] || b.position;
       const rot = rotationOverrides[b.id] ?? b.rotationY;
 
       const dbState = dbBuildingStates.find((ds) => ds.id === b.id);
@@ -457,21 +508,29 @@ export default function TownPage({
       <main className="flex min-h-screen flex-col items-center justify-center bg-brand-neutral text-white font-sans overflow-hidden relative">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-primary opacity-10 blur-[120px] rounded-full" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-secondary opacity-10 blur-[120px] rounded-full" />
-        
+
         <div className="z-10 flex flex-col items-center max-w-sm w-full bg-white/5 backdrop-blur-xl p-8 rounded-2xl border border-white/10 shadow-2xl">
           <div className="w-16 h-16 bg-brand-primary rounded-2xl rotate-12 mb-6 animate-pulse" />
-          <h2 className="text-2xl font-heading font-bold mb-2 text-center">Entering City...</h2>
-          <p className="text-gray-400 text-sm mb-8 text-center">Simulating economics and loading assets</p>
-          
+          <h2 className="text-2xl font-heading font-bold mb-2 text-center">
+            Entering City...
+          </h2>
+          <p className="text-gray-400 text-sm mb-8 text-center">
+            Simulating economics and loading assets
+          </p>
+
           <div className="w-full bg-white/10 h-3 rounded-full overflow-hidden">
-            <div 
+            <div
               className="h-full bg-gradient-to-r from-brand-primary to-brand-secondary transition-all duration-300 ease-out"
               style={{ width: `${loadingProgress}%` }}
             />
           </div>
           <div className="w-full flex justify-between mt-2">
-            <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">Progress</span>
-            <span className="text-xs text-brand-secondary font-bold">{loadingProgress}%</span>
+            <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">
+              Progress
+            </span>
+            <span className="text-xs text-brand-secondary font-bold">
+              {loadingProgress}%
+            </span>
           </div>
         </div>
       </main>
@@ -498,7 +557,9 @@ export default function TownPage({
             </p>
             {currentUser && currentUser.character && (
               <div className="bg-brand-primary/20 px-3 py-1 rounded-full border border-brand-primary/50 flex items-center gap-2">
-                <span className="text-brand-secondary font-bold text-sm">💰 ${currentUser.character.wallet.toLocaleString()}</span>
+                <span className="text-brand-secondary font-bold text-sm">
+                  💰 ${currentUser.character.wallet.toLocaleString()}
+                </span>
               </div>
             )}
           </div>
@@ -568,51 +629,183 @@ export default function TownPage({
               setEditForm({
                 title: (b as any).title || "",
                 price: b.price || 5000,
-                forSale: (b as any).forSale ?? true
+                forSale: (b as any).forSale ?? true,
               });
             }}
             cameraMode={cameraMode}
+            freeMoveBuildingId={freeMoveBuildingId}
+            onGroundPointerMove={(e) => {
+              if (freeMoveBuildingId) {
+                e.stopPropagation();
+                setFreeMovePosition([e.point.x, e.point.y, e.point.z]);
+              }
+            }}
+            onGroundClick={async (e) => {
+              if (freeMoveBuildingId && freeMovePosition) {
+                e.stopPropagation();
+
+                const targetBuilding = HARDCODED_BUILDINGS.find(
+                  (b) => b.id === freeMoveBuildingId,
+                );
+                if (targetBuilding) {
+                  // Keep original Y (height), only update X and Z from the ground plane click
+                  const newPos: [number, number, number] = [
+                    freeMovePosition[0],
+                    targetBuilding.position[1],
+                    freeMovePosition[2],
+                  ];
+                  const currentRot =
+                    rotationOverrides[freeMoveBuildingId] ??
+                    targetBuilding.rotationY;
+
+                  setPositionOverrides((prev) => ({
+                    ...prev,
+                    [freeMoveBuildingId]: newPos,
+                  }));
+                  await updateBuildingTransform(
+                    freeMoveBuildingId,
+                    newPos,
+                    currentRot,
+                  );
+                  toast.success("Position saved!");
+                }
+                setFreeMoveBuildingId(null);
+                setFreeMovePosition(null);
+              }
+            }}
           />
         </Canvas>
 
         {/* Overlay HUD elements */}
+                {freeMoveBuildingId && (
+          <div className="absolute top-6 left-1/2 -translate-x-1/2 p-4 bg-yellow-500 text-black font-bold rounded-xl shadow-[0_0_20px_rgba(234,179,8,0.5)] z-50 animate-pulse text-center">
+            Click anywhere on the ground to place the building
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="mt-2 block mx-auto border-black/20 hover:bg-black/10" 
+              onClick={() => { setFreeMoveBuildingId(null); setFreeMovePosition(null); }}
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
         {movingBuilding && cameraMode === "dev" ? (
           <div className="absolute bottom-6 left-6 p-4 bg-black/80 backdrop-blur-xl border border-yellow-500/50 rounded-xl pointer-events-auto flex flex-col gap-4 min-w-[200px]">
             <div className="flex justify-between items-center">
               <p className="text-xs text-yellow-500 uppercase font-bold">
                 Moving: {movingBuilding.type}
               </p>
-              <Button variant="ghost" size="sm" className="h-6 text-[10px] text-red-400 hover:text-red-300 uppercase tracking-wider" onClick={() => setMovingBuilding(null)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-[10px] text-red-400 hover:text-red-300 uppercase tracking-wider"
+                onClick={() => setMovingBuilding(null)}
+              >
                 Deselect
               </Button>
             </div>
-            
+           <Button 
+              size="sm" 
+              className="w-full text-xs bg-yellow-500 hover:bg-yellow-400 text-black font-bold" 
+              onClick={() => {
+                setFreeMoveBuildingId(movingBuilding.id);
+                setMovingBuilding(null);
+                toast.info("Click anywhere on the ground to place the building.");
+              }}
+            >
+              Move House Freely
+            </Button>
             <div className="space-y-2">
               <label className="text-[10px] text-gray-400 uppercase tracking-widest flex justify-between">
                 Step Size: <span>{stepSize.toFixed(1)}</span>
               </label>
-              <input type="range" min="0.1" max="5" step="0.1" value={stepSize} onChange={(e) => setStepSize(parseFloat(e.target.value))} className="w-full accent-yellow-500" />
+              <input
+                type="range"
+                min="0.1"
+                max="5"
+                step="0.1"
+                value={stepSize}
+                onChange={(e) => setStepSize(parseFloat(e.target.value))}
+                className="w-full accent-yellow-500"
+              />
             </div>
 
             <div className="flex flex-col gap-2">
-               <div className="flex justify-center gap-2">
-                 <Button size="sm" variant="outline" className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20" onClick={() => handleMove('z', -1)}>Y -</Button>
-               </div>
-               <div className="flex justify-between gap-2">
-                 <Button size="sm" variant="outline" className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20" onClick={() => handleMove('x', -1)}>X -</Button>
-                 <div className="flex flex-col gap-1 items-center">
-                    <Button size="sm" variant="outline" className="h-6 w-12 text-[10px] border-blue-500/30 hover:bg-blue-500/20" onClick={() => handleMove('y', 1)}>Z +</Button>
-                    <Button size="sm" variant="outline" className="h-6 w-12 text-[10px] border-blue-500/30 hover:bg-blue-500/20" onClick={() => handleMove('y', -1)}>Z -</Button>
-                 </div>
-                 <Button size="sm" variant="outline" className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20" onClick={() => handleMove('x', 1)}>X +</Button>
-               </div>
-               <div className="flex justify-center gap-2">
-                 <Button size="sm" variant="outline" className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20" onClick={() => handleMove('z', 1)}>Y +</Button>
-               </div>
-               <div className="flex justify-between gap-2 mt-2 pt-2 border-t border-yellow-500/30">
-                 <Button size="sm" variant="outline" className="flex-1 text-xs border-yellow-500/30 hover:bg-yellow-500/20" onClick={() => handleMove('rot', -1)}>↺ Rot L</Button>
-                 <Button size="sm" variant="outline" className="flex-1 text-xs border-yellow-500/30 hover:bg-yellow-500/20" onClick={() => handleMove('rot', 1)}>Rot R ↻</Button>
-               </div>
+              <div className="flex justify-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20"
+                  onClick={() => handleMove("z", -1)}
+                >
+                  Y -
+                </Button>
+              </div>
+              <div className="flex justify-between gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20"
+                  onClick={() => handleMove("x", -1)}
+                >
+                  X -
+                </Button>
+                <div className="flex flex-col gap-1 items-center">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 w-12 text-[10px] border-blue-500/30 hover:bg-blue-500/20"
+                    onClick={() => handleMove("y", 1)}
+                  >
+                    Z +
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 w-12 text-[10px] border-blue-500/30 hover:bg-blue-500/20"
+                    onClick={() => handleMove("y", -1)}
+                  >
+                    Z -
+                  </Button>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20"
+                  onClick={() => handleMove("x", 1)}
+                >
+                  X +
+                </Button>
+              </div>
+              <div className="flex justify-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20"
+                  onClick={() => handleMove("z", 1)}
+                >
+                  Y +
+                </Button>
+              </div>
+              <div className="flex justify-between gap-2 mt-2 pt-2 border-t border-yellow-500/30">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 text-xs border-yellow-500/30 hover:bg-yellow-500/20"
+                  onClick={() => handleMove("rot", -1)}
+                >
+                  ↺ Rot L
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 text-xs border-yellow-500/30 hover:bg-yellow-500/20"
+                  onClick={() => handleMove("rot", 1)}
+                >
+                  Rot R ↻
+                </Button>
+              </div>
             </div>
           </div>
         ) : (
@@ -635,7 +828,7 @@ export default function TownPage({
             setEditForm({
               title: (selectedBuilding as any).title || "",
               price: selectedBuilding.price || 5000,
-              forSale: (selectedBuilding as any).forSale ?? true
+              forSale: (selectedBuilding as any).forSale ?? true,
             });
           }
         }}
@@ -646,19 +839,28 @@ export default function TownPage({
               {(selectedBuilding as any)?.title || selectedBuilding?.type}
             </DialogTitle>
             <DialogDescription className="text-gray-400">
-              {selectedBuilding?.id === "4" ? "Town Infrastructure" : "Real Estate Information"}
+              {selectedBuilding?.id === "4"
+                ? "Town Infrastructure"
+                : "Real Estate Information"}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-6 py-4">
-            
             {/* BANK VIEW */}
             {selectedBuilding?.id === "4" && (
               <div className="p-6 bg-brand-primary/10 rounded-2xl border border-brand-primary/20 text-center space-y-4">
-                <h3 className="text-xl font-bold text-white">Bank of BoozedBunnyTown</h3>
-                <p className="text-sm text-gray-400">Securing the financial future of our citizens.</p>
+                <h3 className="text-xl font-bold text-white">
+                  Bank of BoozedBunnyTown
+                </h3>
+                <p className="text-sm text-gray-400">
+                  Securing the financial future of our citizens.
+                </p>
                 <div className="p-4 bg-black/40 rounded-xl">
-                  <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest block mb-1">Town Treasury</span>
-                  <span className="text-3xl font-bold text-brand-secondary">${townData?.bankBalance?.toLocaleString() || 0}</span>
+                  <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest block mb-1">
+                    Town Treasury
+                  </span>
+                  <span className="text-3xl font-bold text-brand-secondary">
+                    ${townData?.bankBalance?.toLocaleString() || 0}
+                  </span>
                 </div>
                 <Button
                   onClick={() => {
@@ -673,141 +875,186 @@ export default function TownPage({
             )}
 
             {/* OWNER MANAGEMENT VIEW */}
-            {selectedBuilding?.id !== "4" && currentUser && selectedBuilding?.ownerId === currentUser.character.id && (
-              <div className="space-y-4 p-4 bg-white/5 rounded-xl border border-white/10">
-                <h3 className="text-sm uppercase font-bold text-gray-400 tracking-widest mb-4">Manage Property</h3>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs text-gray-400 block mb-1">Property Title</label>
-                    <input 
-                      type="text" 
-                      value={editForm.title}
-                      onChange={(e) => setEditForm({...editForm, title: e.target.value})}
-                      className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-primary"
-                      placeholder="e.g. My Awesome Shop"
-                    />
-                  </div>
-                  <div className="flex gap-4">
-                    <div className="flex-1">
-                      <label className="text-xs text-gray-400 block mb-1">Sale Price ($)</label>
-                      <input 
-                        type="number" 
-                        value={editForm.price}
-                        onChange={(e) => setEditForm({...editForm, price: parseInt(e.target.value) || 0})}
+            {selectedBuilding?.id !== "4" &&
+              currentUser &&
+              selectedBuilding?.ownerId === currentUser.character.id && (
+                <div className="space-y-4 p-4 bg-white/5 rounded-xl border border-white/10">
+                  <h3 className="text-sm uppercase font-bold text-gray-400 tracking-widest mb-4">
+                    Manage Property
+                  </h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs text-gray-400 block mb-1">
+                        Property Title
+                      </label>
+                      <input
+                        type="text"
+                        value={editForm.title}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, title: e.target.value })
+                        }
                         className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-primary"
+                        placeholder="e.g. My Awesome Shop"
                       />
                     </div>
-                    <div className="flex items-end">
-                      <label className="flex items-center gap-2 cursor-pointer mb-2">
-                        <input 
-                          type="checkbox" 
-                          checked={editForm.forSale}
-                          onChange={(e) => setEditForm({...editForm, forSale: e.target.checked})}
-                          className="accent-brand-primary w-4 h-4"
+                    <div className="flex gap-4">
+                      <div className="flex-1">
+                        <label className="text-xs text-gray-400 block mb-1">
+                          Sale Price ($)
+                        </label>
+                        <input
+                          type="number"
+                          value={editForm.price}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              price: parseInt(e.target.value) || 0,
+                            })
+                          }
+                          className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-primary"
                         />
-                        <span className="text-sm font-medium">For Sale</span>
-                      </label>
+                      </div>
+                      <div className="flex items-end">
+                        <label className="flex items-center gap-2 cursor-pointer mb-2">
+                          <input
+                            type="checkbox"
+                            checked={editForm.forSale}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                forSale: e.target.checked,
+                              })
+                            }
+                            className="accent-brand-primary w-4 h-4"
+                          />
+                          <span className="text-sm font-medium">For Sale</span>
+                        </label>
+                      </div>
                     </div>
-                  </div>
-                  <Button 
-                    onClick={async () => {
-                      try {
-                        await updateBuildingSettings(selectedBuilding.id, editForm.title, editForm.price, editForm.forSale);
-                        const res = await fetch(`/api/town/${townId}/state`);
-                        if (res.ok) {
-                          const data = await res.json();
-                          setDbBuildingStates(data.buildings || []);
-                          setTownData(data.town || null);
+                    <Button
+                      onClick={async () => {
+                        try {
+                          await updateBuildingSettings(
+                            selectedBuilding.id,
+                            editForm.title,
+                            editForm.price,
+                            editForm.forSale,
+                          );
+                          const res = await fetch(`/api/town/${townId}/state`);
+                          if (res.ok) {
+                            const data = await res.json();
+                            setDbBuildingStates(data.buildings || []);
+                            setTownData(data.town || null);
+                          }
+                          if (socket) socket.emit("buy_building", { townId }); // Piggyback on this event to refresh
+                          toast.success("Property updated!");
+                        } catch (e: any) {
+                          toast.error(e.message);
                         }
-                        if (socket) socket.emit("buy_building", { townId }); // Piggyback on this event to refresh
-                        toast.success("Property updated!");
-                      } catch(e: any) { toast.error(e.message); }
-                    }}
-                    className="w-full bg-brand-primary hover:bg-brand-primary/80"
-                  >
-                    Save Changes
-                  </Button>
+                      }}
+                      className="w-full bg-brand-primary hover:bg-brand-primary/80"
+                    >
+                      Save Changes
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* NORMAL VIEW (NOT BANK, NOT OWNER) */}
-            {selectedBuilding?.id !== "4" && (!currentUser || selectedBuilding?.ownerId !== currentUser.character?.id) && (
-              <>
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
-                      Ownership
-                    </span>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-xs font-bold">
-                        {selectedBuilding?.owner?.charAt(0) || "U"}
-                      </div>
-                      <span className="text-lg font-medium">
-                        {selectedBuilding?.owner}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
-                      Status
-                    </span>
-                    <p className={`text-sm font-bold mt-1 px-2 py-1 rounded-md ${(selectedBuilding as any)?.forSale ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                      {(selectedBuilding as any)?.forSale ? `FOR SALE ($${selectedBuilding.price?.toLocaleString()})` : 'NOT FOR SALE'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
-                      Geo-Position
-                    </span>
-                    <p className="font-mono text-xs text-brand-primary">
-                      {selectedBuilding?.position
-                        ?.map((v) => v.toFixed(1))
-                        .join(", ")}
-                    </p>
-                  </div>
-                  {selectedBuilding?.employees !== undefined && (
+            {selectedBuilding?.id !== "4" &&
+              (!currentUser ||
+                selectedBuilding?.ownerId !== currentUser.character?.id) && (
+                <>
+                  <div className="flex justify-between items-start">
                     <div className="space-y-1">
                       <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
-                        Staffing
+                        Ownership
                       </span>
-                      <p className="text-xs font-medium">
-                        {selectedBuilding.employees} Employees
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-xs font-bold">
+                          {selectedBuilding?.owner?.charAt(0) || "U"}
+                        </div>
+                        <span className="text-lg font-medium">
+                          {selectedBuilding?.owner}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
+                        Status
+                      </span>
+                      <p
+                        className={`text-sm font-bold mt-1 px-2 py-1 rounded-md ${(selectedBuilding as any)?.forSale ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}
+                      >
+                        {(selectedBuilding as any)?.forSale
+                          ? `FOR SALE ($${selectedBuilding.price?.toLocaleString()})`
+                          : "NOT FOR SALE"}
                       </p>
                     </div>
-                  )}
-                </div>
-                
-                {(selectedBuilding as any)?.forSale && currentUser && selectedBuilding.price && currentUser.character.wallet >= selectedBuilding.price && (
-                  <Button
-                    onClick={async () => {
-                      try {
-                        await buyBuilding(selectedBuilding.id);
-                        const u = await getCurrentUser();
-                        setCurrentUser(u);
-                        const res = await fetch(`/api/town/${townId}/state`);
-                        if (res.ok) {
-                          const data = await res.json();
-                          setDbBuildingStates(data.buildings || []);
-                          setTownData(data.town || null);
-                        }
-                        if (socket) socket.emit("buy_building", { townId, buildingId: selectedBuilding.id });
-                        toast.success(`Successfully bought ${selectedBuilding.title || selectedBuilding.type}!`);
-                        setSelectedBuilding(null);
-                      } catch (e: any) {
-                        toast.error(e.message);
-                      }
-                    }}
-                    className="w-full bg-brand-primary hover:bg-brand-primary/80 font-bold"
-                  >
-                    Buy Property for ${selectedBuilding.price.toLocaleString()}
-                  </Button>
-                )}
-              </>
-            )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
+                        Geo-Position
+                      </span>
+                      <p className="font-mono text-xs text-brand-primary">
+                        {selectedBuilding?.position
+                          ?.map((v) => v.toFixed(1))
+                          .join(", ")}
+                      </p>
+                    </div>
+                    {selectedBuilding?.employees !== undefined && (
+                      <div className="space-y-1">
+                        <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
+                          Staffing
+                        </span>
+                        <p className="text-xs font-medium">
+                          {selectedBuilding.employees} Employees
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {(selectedBuilding as any)?.forSale &&
+                    currentUser &&
+                    selectedBuilding.price &&
+                    currentUser.character.wallet >= selectedBuilding.price && (
+                      <Button
+                        onClick={async () => {
+                          try {
+                            await buyBuilding(selectedBuilding.id);
+                            const u = await getCurrentUser();
+                            setCurrentUser(u);
+                            const res = await fetch(
+                              `/api/town/${townId}/state`,
+                            );
+                            if (res.ok) {
+                              const data = await res.json();
+                              setDbBuildingStates(data.buildings || []);
+                              setTownData(data.town || null);
+                            }
+                            if (socket)
+                              socket.emit("buy_building", {
+                                townId,
+                                buildingId: selectedBuilding.id,
+                              });
+                            toast.success(
+                              `Successfully bought ${selectedBuilding.title || selectedBuilding.type}!`,
+                            );
+                            setSelectedBuilding(null);
+                          } catch (e: any) {
+                            toast.error(e.message);
+                          }
+                        }}
+                        className="w-full bg-brand-primary hover:bg-brand-primary/80 font-bold"
+                      >
+                        Buy Property for $
+                        {selectedBuilding.price.toLocaleString()}
+                      </Button>
+                    )}
+                </>
+              )}
 
             {cameraMode === "dev" && (
               <Button
