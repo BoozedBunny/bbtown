@@ -363,6 +363,7 @@ export default function TownPage({
   >({});
   const [dbBuildingStates, setDbBuildingStates] = useState<any[]>([]);
   const [townData, setTownData] = useState<any>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [serverTime, setServerTime] = useState<string | undefined>(undefined);
   const [showCombinedView, setShowCombinedView] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -543,13 +544,18 @@ export default function TownPage({
 
       <div className="z-10 w-full max-w-6xl flex justify-between items-center mb-8 bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 shadow-xl">
         <div>
-          <h1
-            className="text-3xl font-heading font-bold tracking-tight text-white flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={() => setShowCombinedView(true)}
-          >
-            <div className="w-8 h-8 bg-brand-primary rounded-lg rotate-12" />
-            BoozedBunnyTown{" "}
-            <span className="text-brand-secondary">#{townId}</span>
+          <h1 className="text-3xl font-heading font-bold tracking-tight text-white flex items-center gap-3">
+            <button
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity text-left focus:outline-none focus:ring-2 focus:ring-brand-primary rounded-lg p-1 -m-1"
+              onClick={() => setShowCombinedView(true)}
+              aria-label="Open Town Central Management"
+            >
+              <div className="w-8 h-8 bg-brand-primary rounded-lg rotate-12" />
+              <span>
+                BoozedBunnyTown{" "}
+                <span className="text-brand-secondary">#{townId}</span>
+              </span>
+            </button>
           </h1>
           <div className="flex gap-4">
             <p className="text-gray-400 text-sm mt-1">
@@ -739,6 +745,7 @@ export default function TownPage({
                   variant="outline"
                   className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20"
                   onClick={() => handleMove("z", -1)}
+                  aria-label="Move South (Decrease Y)"
                 >
                   Y -
                 </Button>
@@ -749,6 +756,7 @@ export default function TownPage({
                   variant="outline"
                   className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20"
                   onClick={() => handleMove("x", -1)}
+                  aria-label="Move West (Decrease X)"
                 >
                   X -
                 </Button>
@@ -758,6 +766,7 @@ export default function TownPage({
                     variant="outline"
                     className="h-6 w-12 text-[10px] border-blue-500/30 hover:bg-blue-500/20"
                     onClick={() => handleMove("y", 1)}
+                    aria-label="Move Up (Increase Z)"
                   >
                     Z +
                   </Button>
@@ -766,6 +775,7 @@ export default function TownPage({
                     variant="outline"
                     className="h-6 w-12 text-[10px] border-blue-500/30 hover:bg-blue-500/20"
                     onClick={() => handleMove("y", -1)}
+                    aria-label="Move Down (Decrease Z)"
                   >
                     Z -
                   </Button>
@@ -775,6 +785,7 @@ export default function TownPage({
                   variant="outline"
                   className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20"
                   onClick={() => handleMove("x", 1)}
+                  aria-label="Move East (Increase X)"
                 >
                   X +
                 </Button>
@@ -785,6 +796,7 @@ export default function TownPage({
                   variant="outline"
                   className="w-12 text-xs border-yellow-500/30 hover:bg-yellow-500/20"
                   onClick={() => handleMove("z", 1)}
+                  aria-label="Move North (Increase Y)"
                 >
                   Y +
                 </Button>
@@ -795,6 +807,7 @@ export default function TownPage({
                   variant="outline"
                   className="flex-1 text-xs border-yellow-500/30 hover:bg-yellow-500/20"
                   onClick={() => handleMove("rot", -1)}
+                  aria-label="Rotate Counter-clockwise"
                 >
                   ↺ Rot L
                 </Button>
@@ -803,6 +816,7 @@ export default function TownPage({
                   variant="outline"
                   className="flex-1 text-xs border-yellow-500/30 hover:bg-yellow-500/20"
                   onClick={() => handleMove("rot", 1)}
+                  aria-label="Rotate Clockwise"
                 >
                   Rot R ↻
                 </Button>
@@ -885,10 +899,11 @@ export default function TownPage({
                   </h3>
                   <div className="space-y-3">
                     <div>
-                      <label className="text-xs text-gray-400 block mb-1">
+                      <label htmlFor="property-title" className="text-xs text-gray-400 block mb-1">
                         Property Title
                       </label>
                       <input
+                        id="property-title"
                         type="text"
                         value={editForm.title}
                         onChange={(e) =>
@@ -900,10 +915,11 @@ export default function TownPage({
                     </div>
                     <div className="flex gap-4">
                       <div className="flex-1">
-                        <label className="text-xs text-gray-400 block mb-1">
+                        <label htmlFor="property-price" className="text-xs text-gray-400 block mb-1">
                           Sale Price ($)
                         </label>
                         <input
+                          id="property-price"
                           type="number"
                           value={editForm.price}
                           onChange={(e) =>
@@ -916,8 +932,9 @@ export default function TownPage({
                         />
                       </div>
                       <div className="flex items-end">
-                        <label className="flex items-center gap-2 cursor-pointer mb-2">
+                        <label htmlFor="property-for-sale" className="flex items-center gap-2 cursor-pointer mb-2">
                           <input
+                            id="property-for-sale"
                             type="checkbox"
                             checked={editForm.forSale}
                             onChange={(e) =>
@@ -933,7 +950,9 @@ export default function TownPage({
                       </div>
                     </div>
                     <Button
+                      disabled={isProcessing}
                       onClick={async () => {
+                        setIsProcessing(true);
                         try {
                           await updateBuildingSettings(
                             selectedBuilding.id,
@@ -951,11 +970,13 @@ export default function TownPage({
                           toast.success("Property updated!");
                         } catch (e: any) {
                           toast.error(e.message);
+                        } finally {
+                          setIsProcessing(false);
                         }
                       }}
-                      className="w-full bg-brand-primary hover:bg-brand-primary/80"
+                      className="w-full bg-brand-primary hover:bg-brand-primary/80 disabled:opacity-50"
                     >
-                      Save Changes
+                      {isProcessing ? "Saving..." : "Save Changes"}
                     </Button>
                   </div>
                 </div>
@@ -1019,10 +1040,11 @@ export default function TownPage({
 
                   {(selectedBuilding as any)?.forSale &&
                     currentUser &&
-                    selectedBuilding.price &&
-                    currentUser.character.wallet >= selectedBuilding.price && (
+                    selectedBuilding.price && (
                       <Button
+                        disabled={isProcessing || currentUser.character.wallet < selectedBuilding.price}
                         onClick={async () => {
+                          setIsProcessing(true);
                           try {
                             await buyBuilding(selectedBuilding.id);
                             const u = await getCurrentUser();
@@ -1046,12 +1068,16 @@ export default function TownPage({
                             setSelectedBuilding(null);
                           } catch (e: any) {
                             toast.error(e.message);
+                          } finally {
+                            setIsProcessing(false);
                           }
                         }}
-                        className="w-full bg-brand-primary hover:bg-brand-primary/80 font-bold"
+                        className="w-full bg-brand-primary hover:bg-brand-primary/80 font-bold disabled:opacity-50"
                       >
-                        Buy Property for $
-                        {selectedBuilding.price.toLocaleString()}
+                        {isProcessing ? "Processing..." :
+                         currentUser.character.wallet < selectedBuilding.price ?
+                         "Insufficient Funds" :
+                         `Buy Property for $${selectedBuilding.price.toLocaleString()}`}
                       </Button>
                     )}
                 </>
