@@ -15,8 +15,44 @@ const beVietnamPro = Be_Vietnam_Pro({
 });
 
 export const metadata: Metadata = {
-  title: "BoozedBunny AI Town",
-  description: "A browser-based 3D multiplayer game",
+  title: {
+    default: "BoozedBunny AI Town",
+    template: "%s | BoozedBunny AI Town",
+  },
+  description: "A browser-based 3D multiplayer game where you build and compete in an isometric empire.",
+  keywords: ["AI Town", "Multiplayer", "3D Game", "Simulation", "Isometric", "BoozedBunny"],
+  authors: [{ name: "BoozedBunny Team" }],
+  metadataBase: new URL("https://bbtown.ai"),
+  creator: "BoozedBunny",
+  publisher: "BoozedBunny",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/logo.png",
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://bbtown.ai",
+    title: "BoozedBunny AI Town",
+    description: "Enter the next generation of building and competition in BoozedBunny AI Town.",
+    siteName: "BoozedBunny AI Town",
+    images: [
+      {
+        url: "/logo.png",
+        width: 512,
+        height: 512,
+        alt: "BoozedBunny AI Town Logo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "BoozedBunny AI Town",
+    description: "Enter the next generation of building and competition in BoozedBunny AI Town.",
+    images: ["/logo.png"],
+    creator: "@BoozedBunny",
+  },
 };
 
 export default function RootLayout({

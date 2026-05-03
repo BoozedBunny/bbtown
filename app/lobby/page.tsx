@@ -1,6 +1,7 @@
 import { getSessionUser } from "../../lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { createCharacter } from "../actions/character";
 import { Button } from "@/components/ui/button";
 import { doWork } from "../actions/work";
@@ -13,12 +14,19 @@ export default async function LobbyPage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-brand-neutral p-4 text-white overflow-hidden relative">
-      <div className="absolute top-[20%] right-[-5%] w-[30%] h-[30%] bg-brand-primary opacity-10 blur-[100px] rounded-full" />
-      <div className="absolute bottom-[20%] left-[-5%] w-[30%] h-[30%] bg-brand-secondary opacity-5 blur-[100px] rounded-full" />
-
-      <div className="z-10 w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 p-8 rounded-2xl shadow-2xl">
-        <h1 className="text-3xl font-heading font-bold mb-6 text-center bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent">Lobby</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen p-4 text-white overflow-hidden relative brand-bg-overlay">
+      <div className="z-10 w-full max-w-md glass-card p-8">
+        <div className="flex flex-col items-center mb-6">
+          <div className="relative w-16 h-16 mb-2">
+            <Image
+              src="/logo.png"
+              alt="BoozedBunny Logo"
+              fill
+              className="object-contain"
+            />
+          </div>
+          <h1 className="text-3xl font-heading font-bold brand-gradient-text text-center">Lobby</h1>
+        </div>
 
         <div className="mb-8 p-4 bg-brand-primary/10 border border-brand-primary/20 rounded-xl">
           <p className="text-gray-400 text-sm">Logged in as:</p>
