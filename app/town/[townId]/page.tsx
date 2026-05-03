@@ -295,6 +295,7 @@ function Scene({
         return (
           <ModelBuilding
             key={b.id}
+            id={b.id}
             url={b.glb!}
             position={b.position}
             opacity={!isXRayActive ? 1 : 0.4}
