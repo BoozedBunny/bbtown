@@ -2,12 +2,13 @@
 
 import { use, useEffect, useState, useRef, Suspense } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { KeyboardControls, Stars } from "@react-three/drei";
+import { KeyboardControls, Stars, Gltf } from "@react-three/drei";
 import { io, Socket } from "socket.io-client";
 import { Loader2, Swords, Trophy, Users } from "lucide-react";
 import * as THREE from "three";
 import { Physics, RigidBody } from "@react-three/rapier";
-import Ecctrl from "ecctrl";
+import Ecctrl, { EcctrlAnimation } from "ecctrl";
+import { Model as Player } from "@/components/Player";
 import { useRouter } from "next/navigation";
 
 interface PlayerState {
@@ -32,6 +33,11 @@ const keyboardMap = [
   { name: "rightward", keys: ["ArrowRight", "KeyD"] },
   { name: "jump", keys: ["Space"] },
   { name: "run", keys: ["Shift"] },
+  // Optional animation key map
+  /* { name: "action1", keys: ["1"] },
+  { name: "action2", keys: ["2"] },
+  { name: "action3", keys: ["3"] },
+  { name: "action4", keys: ["KeyF"] }, */
 ];
 
 function LocalPlayer({
@@ -83,20 +89,44 @@ function LocalPlayer({
     }
   });
 
+  // Hier verknüpfst du die ecctrl-Events mit deinen Modell-Animationen
+  const animationSet = {
+    idle: "Idle_15",
+    walk: "Walking",
+    run: "Running",
+    jump: "Regular_Jump",
+    jumpIdle: "Idle_3",
+    jumpLand: "Standard_Forward_Charge_inplace",
+    fall: "Idle_9", // This is for falling from high sky
+    // Currently support four additional animations
+    /* action1: "Wave",
+    action2: "Dance",
+    action3: "Cheer",
+    action4: "Attack(1h)", // This is special action which can be trigger while walking or running */
+  };
+
   return (
     <Ecctrl
-animated
-  maxVelLimit={7}      // Maximale Laufgeschwindigkeit
-  jumpVel={12}         // Sprungkraft (muss jetzt höher sein wegen der starken Gravitation)
-  sprintMult={1.5}     // Multiplikator, wenn man Shift drückt
-  airDragMultiplier={0.2} // Wie viel Kontrolle man in der Luft hat
-  position={[0, 5, 0]}
+      camCollision={false}
+      animated
+      maxVelLimit={5}
+      jumpVel={4} // Weniger Sprungkraft, da Gravitation jetzt normal ist
+      sprintMult={2.5}
+      airDragMultiplier={0.2}
+      position={[0, 15, 0]}
+      camInitDis={-5} // Kamera-Abstand
+      // --- NEU: Wir tunen das Hovercraft, damit es nicht wobbelt ---
+  floatHeight={0}      // Schaltet das Schweben ab, Figur liegt auf dem Boden
+  dampingC={0.2}
     >
       <group ref={innerRef}>
-        <mesh castShadow position={[0, -0.35, 0]}>
-          <capsuleGeometry args={[0.4, 0.7]} />
-          <meshStandardMaterial color="#BD00FF" />
-        </mesh>
+        <EcctrlAnimation
+          characterURL="/models/player.glb"
+          animationSet={animationSet}
+        >
+          {/* Den Y-Wert ggf. leicht anpassen, falls er jetzt leicht in der Luft schwebt */}
+          <Player position={[0, -0.65, 0]} />
+        </EcctrlAnimation>
       </group>
     </Ecctrl>
   );
@@ -190,34 +220,42 @@ function ArenaScene({
     <>
       <ambientLight intensity={0.5} />
       <directionalLight
-        position={[10, 10, 10]}
+        position={[10, 20, 10]}
         castShadow
         intensity={1.5}
         shadow-mapSize={[1024, 1024]}
       />
-      <Stars
-        radius={100}
-        depth={50}
-        count={5000}
-        factor={4}
-        saturation={0}
-        fade
-        speed={1}
-      />
+      <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
 
-      <Physics gravity={[0, -30, 0]}>
-        {/* We place the position on the RigidBody, NOT the mesh, to ensure the collider matches */}
-        <RigidBody type="fixed" colliders="cuboid" position={[0, -0.5, 0]}>
-          {/* Das ist der sichtbare, flache Boden (nach oben verschoben) */}
-          <mesh receiveShadow position={[0, 4.5, 0]}>
-            <boxGeometry args={[10, 1, 20]} />
-            <meshStandardMaterial color="#1A0A2E" roughness={0.8} />
+      {/* 1. DEBUG MODUS AKTIVIERT! Zeigt alle Physik-Boxen als rote Linien an */}
+      <Physics gravity={[0, -9.81, 0]} /* debug */> 
+        
+        {/* 2. NUR OPTIK: Das Gltf hat KEINEN RigidBody mehr drum herum! */}
+        {/* <Gltf 
+          castShadow 
+          receiveShadow 
+          rotation={[-Math.PI / 2, 0, 0]} 
+          scale={0.11} 
+          src="/fantasy_game_inn2-transformed.glb" 
+          position={[0, -0.5, 0]}
+        /> */}
+
+        {/* 3. DER ECHTE BODEN: Ein unsichtbarer, flacher Block */}
+        {/* <RigidBody 
+          type="fixed" 
+          position={[0, -1, 0]} 
+          restitution={0} 
+          friction={1}
+        >
+          <mesh>
+            <boxGeometry args={[50, 1, 50]} />
+            <meshBasicMaterial color="#BD00FF" wireframe={true} transparent opacity={0.2} />
           </mesh>
-          {/* Das ist der unsichtbare, extrem dicke Collider, der Tunneling verhindert */}
-          <mesh visible={false}>
-            <boxGeometry args={[10, 10, 20]} />
-          </mesh>
-        </RigidBody>
+        </RigidBody> */}
+
+                  <RigidBody type="fixed" colliders="trimesh">
+            <Gltf /* castShadow */ receiveShadow rotation={[-Math.PI / 2, 0, 0]} scale={0.11} src="/fantasy_game_inn2-transformed.glb" />
+          </RigidBody>
 
         {status === "playing" && (
           <LocalPlayer onMove={onMove} onFall={onFall} />
@@ -233,13 +271,7 @@ function ArenaScene({
               username={p.username}
             />
           ))}
-
-        {/* {obstacles.map((obs) => (
-          <Beam key={obs.id} position={obs.position} width={obs.width} />
-        ))} */}
       </Physics>
-
-      {/* Removed the extra PerspectiveCamera so Ecctrl can use its own third-person camera! */}
     </>
   );
 }
@@ -335,18 +367,29 @@ export default function ArenaPage({
           </div>
         )}
 
-        <div className="bg-black/40 backdrop-blur-xl p-4 rounded-2xl border border-white/10 flex items-center gap-4">
-          <Users className="w-5 h-5 text-gray-400" />
-          <div>
-            <h2 className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
-              Players
-            </h2>
-            <p className="text-sm font-bold">{gameState.players.length} / 2</p>
+        <div className="flex gap-4">
+          <div className="bg-black/40 backdrop-blur-xl p-4 rounded-2xl border border-white/10 flex items-center gap-4 pointer-events-auto">
+            <Users className="w-5 h-5 text-gray-400" />
+            <div>
+              <h2 className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                Players
+              </h2>
+              <p className="text-sm font-bold">
+                {gameState.players.length} /{" "}
+                {gameRoomId.startsWith("solo-") ? "1" : "2"}
+              </p>
+            </div>
           </div>
+          <button
+            onClick={() => router.push("/")}
+            className="bg-red-500/10 hover:bg-red-500/20 text-red-500 px-6 py-4 rounded-2xl border border-red-500/30 text-xs font-bold uppercase tracking-widest transition-all pointer-events-auto"
+          >
+            Leave Battle
+          </button>
         </div>
       </div>
 
-      {gameState.status === "waiting" && (
+      {gameState.status === "waiting" && !gameRoomId.startsWith("solo-") && (
         <div
           id="waiting-overlay"
           className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#05010a]/80 backdrop-blur-sm"

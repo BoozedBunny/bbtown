@@ -303,6 +303,22 @@ app.prepare().then(async () => {
       }
     });
 
+    socket.on("join_singleplayer_arena", () => {
+      if (!mockUser) return;
+      const gameRoomId = `solo-${Math.random().toString(36).substring(2, 9)}`;
+
+      games[gameRoomId] = {
+        roomId: gameRoomId,
+        players: {},
+        obstacles: [],
+        status: 'waiting',
+        timer: 0
+      };
+
+      console.log(`Singleplayer arena created for ${mockUser}. Room: ${gameRoomId}`);
+      socket.emit("match_found", { gameRoomId });
+    });
+
     socket.on("leave_arena", () => {
       const index = matchmakingQueue.findIndex(p => p.socketId === socket.id);
       if (index !== -1) {
@@ -329,16 +345,18 @@ app.prepare().then(async () => {
 
       socket.join(roomId);
       const playerCount = Object.keys(games[roomId].players).length;
+      const isSolo = roomId.startsWith('solo-');
+
       games[roomId].players[socket.id] = {
         id: socket.id,
         username: mockUser,
-        position: [playerCount === 0 ? -2 : 2, 0, 0],
+        position: [isSolo ? 0 : (playerCount === 0 ? -2 : 2), 0, 0],
         rotation: 0
       };
 
       console.log(`User ${mockUser} joined arena room ${roomId}. Players: ${Object.keys(games[roomId].players).length}`);
 
-      if (Object.keys(games[roomId].players).length === 2) {
+      if (isSolo || Object.keys(games[roomId].players).length === 2) {
         games[roomId].status = 'playing';
         console.log(`Game ${roomId} starting!`);
 
@@ -364,10 +382,11 @@ app.prepare().then(async () => {
         games[roomId].status = 'finished';
         const loser = mockUser;
         const winner = Object.values(games[roomId].players).find(p => p.id !== socket.id)?.username;
-        const reward = 1000;
+        const isSolo = roomId.startsWith('solo-');
+        const reward = isSolo ? 0 : 1000;
 
         try {
-          if (winner) {
+          if (winner && !isSolo) {
             await prisma.character.updateMany({
               where: { user: { username: winner } },
               data: { wallet: { increment: reward } }
@@ -379,7 +398,7 @@ app.prepare().then(async () => {
         }
 
         io.to(roomId).emit("game_over", {
-          winner,
+          winner: isSolo ? undefined : winner,
           loser,
           reward
         });
