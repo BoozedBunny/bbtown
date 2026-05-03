@@ -1187,6 +1187,15 @@ export default function TownPage({
                 </div>
                 <Button
                   onClick={() => {
+                    setMatchmakingStatus("matched");
+                    socket?.emit("join_singleplayer_arena");
+                  }}
+                  className="w-full h-14 bg-white/5 hover:bg-white/10 text-white font-bold text-lg rounded-2xl border border-white/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  Enter Singleplayer
+                </Button>
+                <Button
+                  onClick={() => {
                     setMatchmakingStatus("searching");
                     socket?.emit("join_arena");
                   }}

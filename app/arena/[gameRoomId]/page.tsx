@@ -335,18 +335,28 @@ export default function ArenaPage({
           </div>
         )}
 
-        <div className="bg-black/40 backdrop-blur-xl p-4 rounded-2xl border border-white/10 flex items-center gap-4">
-          <Users className="w-5 h-5 text-gray-400" />
-          <div>
-            <h2 className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
-              Players
-            </h2>
-            <p className="text-sm font-bold">{gameState.players.length} / 2</p>
+        <div className="flex gap-4">
+          <div className="bg-black/40 backdrop-blur-xl p-4 rounded-2xl border border-white/10 flex items-center gap-4 pointer-events-auto">
+            <Users className="w-5 h-5 text-gray-400" />
+            <div>
+              <h2 className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                Players
+              </h2>
+              <p className="text-sm font-bold">
+                {gameState.players.length} / {gameRoomId.startsWith("solo-") ? "1" : "2"}
+              </p>
+            </div>
           </div>
+          <button
+            onClick={() => router.push("/")}
+            className="bg-red-500/10 hover:bg-red-500/20 text-red-500 px-6 py-4 rounded-2xl border border-red-500/30 text-xs font-bold uppercase tracking-widest transition-all pointer-events-auto"
+          >
+            Leave Battle
+          </button>
         </div>
       </div>
 
-      {gameState.status === "waiting" && (
+      {gameState.status === "waiting" && !gameRoomId.startsWith("solo-") && (
         <div
           id="waiting-overlay"
           className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#05010a]/80 backdrop-blur-sm"
