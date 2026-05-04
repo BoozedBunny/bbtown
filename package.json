@@ -36,7 +36,6 @@
     "autoprefixer": "^10.5.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "ecctrl": "^1.0.97",
     "express": "^4.22.1",
     "lucide-react": "^1.8.0",
     "next": "^15.5.15",
