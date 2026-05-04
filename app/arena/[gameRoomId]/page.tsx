@@ -20,6 +20,7 @@ interface PlayerState {
   username: string;
   position: [number, number, number];
   rotation: number;
+  anim: string;
 }
 
 interface Obstacle {
@@ -48,7 +49,7 @@ function LocalPlayer({
   onMove,
   onFall,
 }: {
-  onMove: (pos: [number, number, number], rot: number) => void;
+  onMove: (pos: [number, number, number], rot: number, anim: string) => void;
   onFall: () => void;
 }) {
   const rigidBodyRef = useRef<any>(null);
@@ -59,8 +60,8 @@ function LocalPlayer({
   // --- NEU: RAPIER & SPRUNG-LOGIK ---
   const { rapier, world } = useRapier();
   const jumpPressed = useRef(false); // Verhindert das Gedrückthalten der Taste
-  const jumpCount = useRef(0);       // Zählt die Sprünge für den Doppelsprung
-  const MAX_JUMPS = 2;               // 2 = Doppelsprung, 1 = Normaler Sprung
+  const jumpCount = useRef(0); // Zählt die Sprünge für den Doppelsprung
+  const MAX_JUMPS = 2; // 2 = Doppelsprung, 1 = Normaler Sprung
 
   // Start-Animation ist jetzt unser sauberes Idle_1
   const [currentAnim, setCurrentAnim] = useState("Idle_1");
@@ -206,28 +207,31 @@ function LocalPlayer({
       true,
     );
 
-// --- 2. SPRINGEN (Der saubere, einzelne Sprung) ---
-    
-    // 1. Raycast-Startpunkt: Exakt UNTER dem Charakter (pos.y - 0.95), 
+    // --- 2. SPRINGEN (Der saubere, einzelne Sprung) ---
+
+    // 1. Raycast-Startpunkt: Exakt UNTER dem Charakter (pos.y - 0.95),
     // damit der Laser nicht versehentlich den eigenen Körper trifft!
-    const rayOrigin = { x: pos.x, y: pos.y - 0.95, z: pos.z }; 
+    const rayOrigin = { x: pos.x, y: pos.y - 0.95, z: pos.z };
     const rayDir = { x: 0, y: -1, z: 0 };
     const ray = new rapier.Ray(rayOrigin, rayDir);
-    
-    // Laser schießt 0.2 Meter (20cm) nach unten
-    const hit = world.castRay(ray, 0.2, true); 
 
-    // Wir sind NUR "Grounded", wenn der Laser den Boden trifft 
+    // Laser schießt 0.2 Meter (20cm) nach unten
+    const hit = world.castRay(ray, 0.2, true);
+
+    // Wir sind NUR "Grounded", wenn der Laser den Boden trifft
     // UND wir nicht gerade durch den Sprung steil nach oben/unten fliegen
     const isGrounded = hit !== null && Math.abs(velocity.y) < 0.2;
 
     // 2. Die Sprung-Logik mit "Anti-Flappy-Bird" Schutz
     if (keys.jump && isGrounded && !jumpPressed.current) {
       jumpPressed.current = true; // Taste als "gedrückt" sperren
-      rigidBodyRef.current.setLinvel({ x: velocity.x, y: JUMP_FORCE, z: velocity.z }, true);
+      rigidBodyRef.current.setLinvel(
+        { x: velocity.x, y: JUMP_FORCE, z: velocity.z },
+        true,
+      );
     } else if (!keys.jump) {
       // Erst wenn die Leertaste losgelassen wird, geben wir den nächsten Sprung frei
-      jumpPressed.current = false; 
+      jumpPressed.current = false;
     }
 
     // --- 3. ANIMATIONEN (Jetzt mit klaren Namen!) ---
@@ -276,7 +280,7 @@ function LocalPlayer({
     if (pos.y < -5) {
       onFall();
     } else {
-      onMove([pos.x, pos.y, pos.z], modelRef.current.rotation.y);
+      onMove([pos.x, pos.y, pos.z], modelRef.current.rotation.y, nextAnim);
     }
   });
 
@@ -301,16 +305,17 @@ function RemotePlayer({
   position,
   rotation,
   username,
+  anim, // NEW: Receive animation state
 }: {
   position: [number, number, number];
   rotation: number;
   username: string;
+  anim?: string; // NEW
 }) {
   const rbRef = useRef<any>(null);
 
   useEffect(() => {
     if (rbRef.current) {
-      // Safely update the Rapier kinematic body
       rbRef.current.setTranslation(
         { x: position[0], y: position[1], z: position[2] },
         true,
@@ -325,11 +330,58 @@ function RemotePlayer({
   return (
     <RigidBody ref={rbRef} type="kinematicPosition" colliders="cuboid">
       <group>
-        <mesh castShadow position={[0, -0.35, 0]}>
-          <capsuleGeometry args={[0.4, 0.7]} />
-          <meshStandardMaterial color="#FFB800" />
-        </mesh>
+        {/* NEW: Replaced Capsule with the actual Player model and correct animation */}
+        <Player currentAction={anim || "Idle_1"} position={[0, -0.92, 0]} />
       </group>
+    </RigidBody>
+  );
+}
+
+function MovingObstacle({
+  startZ,
+  speed = 10,
+}: {
+  startZ: number;
+  speed?: number;
+}) {
+  const rbRef = useRef<any>(null);
+
+  useFrame((state, delta) => {
+    if (!rbRef.current) return;
+
+    // Aktuelle Position auslesen
+    const currentPos = rbRef.current.translation();
+
+    // Neue Z-Position berechnen (bewegt sich nach hinten)
+    let newZ = currentPos.z + speed * delta;
+
+    // Deine Plattform ist 70 lang (von -35 bis +35).
+    // Wenn das Objekt hinten ankommt, setzen wir es wieder nach ganz vorne!
+    if (newZ > 35) {
+      newZ = -35;
+    }
+
+    // WICHTIG: Bei kinematischen Körpern nutzen wir setNextKinematicTranslation!
+    // Dadurch berechnet die Physik-Engine die Wucht korrekt und schiebt den Spieler.
+    rbRef.current.setNextKinematicTranslation({
+      x: 0, // Immer mittig auf der X-Achse
+      y: -0.5, // Leicht über deinem Boden (der Boden endet bei Y=-1)
+      z: newZ,
+    });
+  });
+
+  return (
+    // type="kinematicPosition" macht es zum unaufhaltsamen Objekt!
+    <RigidBody ref={rbRef} type="kinematicPosition" colliders="cuboid">
+      <mesh castShadow receiveShadow>
+        {/* args: [Breite, Höhe, Tiefe]. Breite 22 ist etwas breiter als deine 20er Plattform! */}
+        <boxGeometry args={[22, 1, 1]} />
+        <meshStandardMaterial
+          color="#FF0055"
+          emissive="#FF0055"
+          emissiveIntensity={2}
+        />
+      </mesh>
     </RigidBody>
   );
 }
@@ -349,17 +401,16 @@ function ArenaScene({
   status: string;
   socketId: string | null;
 }) {
-
   // Lade die Textur (R3F sucht automatisch im /public Ordner)
-const floorTexture = useTexture("/textures/rocky_trail_02_diff_4k.jpg");
+  const floorTexture = useTexture("/textures/rocky_trail_02_diff_4k.jpg");
 
-// Bringe der Textur bei, dass sie sich wiederholen darf
-floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
+  // Bringe der Textur bei, dass sie sich wiederholen darf
+  floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
 
-// Lege fest, wie oft sie sich wiederholt.
-// Bei 20 Breite und 70 Länge ist ein Verhältnis wie 4 zu 14 ein guter Startwert.
-// Wenn die Steine zu groß aussehen, erhöhe diese Zahlen!
-floorTexture.repeat.set(4, 14);
+  // Lege fest, wie oft sie sich wiederholt.
+  // Bei 20 Breite und 70 Länge ist ein Verhältnis wie 4 zu 14 ein guter Startwert.
+  // Wenn die Steine zu groß aussehen, erhöhe diese Zahlen!
+  floorTexture.repeat.set(4, 14);
   return (
     <>
       <ambientLight intensity={0.5} />
@@ -369,12 +420,17 @@ floorTexture.repeat.set(4, 14);
         intensity={1.5}
         shadow-mapSize={[1024, 1024]}
       />
-{/* 
+      {/* 
   sunPosition = [X, Y, Z] 
   Y steuert die Höhe der Sonne. Wenn Y nah an 0 ist, bekommst du einen Sonnenuntergang. 
   Wenn Y hoch ist (z.B. 2), hast du Mittagssonne.
 */}
-<Sky distance={450000} sunPosition={[5, 1, 8]} inclination={0} azimuth={0.25} />
+      <Sky
+        distance={450000}
+        sunPosition={[5, 1, 8]}
+        inclination={0}
+        azimuth={0.25}
+      />
 
       {/* 1. DEBUG MODUS AKTIVIERT! Zeigt alle Physik-Boxen als rote Linien an */}
       <Physics gravity={[0, -9.81, 0]} timeStep="vary" /* debug */>
@@ -413,10 +469,14 @@ floorTexture.repeat.set(4, 14);
             <Gltf  receiveShadow rotation={[-Math.PI / 2, 0, 0]} scale={0.11} src="/fantasy_game_inn2-transformed.glb" />
           </RigidBody> */}
 
+        {/* Wir setzen 3 Stück mit unterschiedlichen Start-Positionen und Geschwindigkeiten */}
+        <MovingObstacle startZ={-35} speed={12} />
+        <MovingObstacle startZ={-15} speed={8} />
+        <MovingObstacle startZ={5} speed={15} />
+
         {status === "playing" && (
           <LocalPlayer onMove={onMove} onFall={onFall} />
         )}
-
         {players
           .filter((p) => p.id !== socketId)
           .map((p) => (
@@ -425,6 +485,7 @@ floorTexture.repeat.set(4, 14);
               position={p.position}
               rotation={p.rotation}
               username={p.username}
+              anim={p.anim}
             />
           ))}
       </Physics>
@@ -487,8 +548,8 @@ export default function ArenaPage({
     };
   }, [gameRoomId]);
 
-  const handleMove = (position: [number, number, number], rotation: number) => {
-    socket?.emit("player_move", { roomId: gameRoomId, position, rotation });
+const handleMove = (position: [number, number, number], rotation: number, anim: string) => {
+    socket?.emit("player_move", { roomId: gameRoomId, position, rotation, anim });
   };
 
   const handleFall = () => {
