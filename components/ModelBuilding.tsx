@@ -4,15 +4,17 @@ import { useGLTF, Html } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useState, useEffect, useRef } from "react";
 import * as THREE from "three";
-import { Search } from "lucide-react";
+import { Search, Landmark, Swords } from "lucide-react";
 
 export function ModelBuilding({ 
+  id,
   url, 
   position, 
   rotationY = 0, 
   opacity = 1, 
   onClick 
 }: { 
+  id?: string,
   url: string, 
   position: [number, number, number], 
   rotationY?: number, 
@@ -91,6 +93,25 @@ export function ModelBuilding({
 
   const rotationInRadians = useMemo(() => (rotationY * Math.PI) / 180, [rotationY]);
 
+  const Icon = useMemo(() => {
+    if (id === "4") return Landmark;
+    if (id === "21") return Swords;
+    return Search;
+  }, [id]);
+
+  const iconBgColor = useMemo(() => {
+    if (id === "4") return "bg-brand-secondary shadow-[0_0_15px_rgba(255,184,0,0.8)]";
+    return "bg-brand-primary shadow-[0_0_15px_rgba(189,0,255,0.8)]";
+  }, [id]);
+
+  const iconPosition = useMemo(() => {
+    const box = new THREE.Box3().setFromObject(clonedScene);
+    const h = box.max.y - box.min.y;
+    // Special case for balloon which is higher up
+    if (url.includes("up_up_balloon")) return [0, 0.5, 0] as [number, number, number];
+    return [0, h * 0.8, 0] as [number, number, number];
+  }, [clonedScene, url]);
+
   return (
     <group 
       ref={groupRef}
@@ -104,9 +125,9 @@ export function ModelBuilding({
       />
       
       {hovered && (
-        <Html position={[0, 1.5, 0.5]} center zIndexRange={[100, 0]}>
+        <Html position={iconPosition} center zIndexRange={[100, 0]}>
           <div 
-            className="bg-brand-primary p-2 rounded-full cursor-pointer shadow-[0_0_15px_rgba(189,0,255,0.8)] border-2 border-white animate-bounce pointer-events-auto"
+            className={`${iconBgColor} p-2 rounded-full cursor-pointer border-2 border-white animate-bounce pointer-events-auto`}
             onClick={(e) => {
               e.stopPropagation();
               if (onClick) onClick();
@@ -126,7 +147,7 @@ export function ModelBuilding({
               }, 150);
             }}
           >
-            <Search className="w-5 h-5 text-white" />
+            <Icon className="w-5 h-5 text-white" />
           </div>
         </Html>
       )}
