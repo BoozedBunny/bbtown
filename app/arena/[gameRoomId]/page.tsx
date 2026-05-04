@@ -110,22 +110,22 @@ function LocalPlayer({
       camCollision={false}
       animated
       maxVelLimit={5}
-      jumpVel={4} // Weniger Sprungkraft, da Gravitation jetzt normal ist
+      jumpVel={6} // Increased jump velocity for better responsiveness
       sprintMult={2.5}
       airDragMultiplier={0.2}
       position={[0, 15, 0]}
       camInitDis={-5} // Kamera-Abstand
-      // --- NEU: Wir tunen das Hovercraft, damit es nicht wobbelt ---
-  floatHeight={0}      // Schaltet das Schweben ab, Figur liegt auf dem Boden
-  dampingC={0.2}
+      // --- TUNED: Using a small floatHeight prevents sticking and rattling ---
+      floatHeight={0.3}
+      dampingC={0.2}
     >
       <group ref={innerRef}>
         <EcctrlAnimation
           characterURL="/models/player.glb"
           animationSet={animationSet}
         >
-          {/* Den Y-Wert ggf. leicht anpassen, falls er jetzt leicht in der Luft schwebt */}
-          <Player position={[0, -0.65, 0]} />
+          {/* Adjusted Y position to account for floatHeight and keep character grounded */}
+          <Player position={[0, -0.95, 0]} />
         </EcctrlAnimation>
       </group>
     </Ecctrl>
@@ -227,35 +227,31 @@ function ArenaScene({
       />
       <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
 
-      {/* 1. DEBUG MODUS AKTIVIERT! Zeigt alle Physik-Boxen als rote Linien an */}
-      <Physics gravity={[0, -9.81, 0]} /* debug */> 
+      {/* 1. Physics environment with standard gravity */}
+      <Physics gravity={[0, -9.81, 0]}>
         
-        {/* 2. NUR OPTIK: Das Gltf hat KEINEN RigidBody mehr drum herum! */}
-        {/* <Gltf 
-          castShadow 
-          receiveShadow 
-          rotation={[-Math.PI / 2, 0, 0]} 
-          scale={0.11} 
-          src="/fantasy_game_inn2-transformed.glb" 
-          position={[0, -0.5, 0]}
-        /> */}
-
-        {/* 3. DER ECHTE BODEN: Ein unsichtbarer, flacher Block */}
-        {/* <RigidBody 
+        {/* 2. OPTIMIZED GROUND: Using a cuboid collider for a smooth surface instead of trimesh */}
+        <RigidBody
           type="fixed" 
-          position={[0, -1, 0]} 
+          position={[0, -0.5, 0]}
           restitution={0} 
           friction={1}
+          colliders="cuboid"
         >
-          <mesh>
+          <mesh visible={false}>
             <boxGeometry args={[50, 1, 50]} />
-            <meshBasicMaterial color="#BD00FF" wireframe={true} transparent opacity={0.2} />
+            <meshBasicMaterial color="#BD00FF" transparent opacity={0.2} />
           </mesh>
-        </RigidBody> */}
+        </RigidBody>
 
-                  <RigidBody type="fixed" colliders="trimesh">
-            <Gltf /* castShadow */ receiveShadow rotation={[-Math.PI / 2, 0, 0]} scale={0.11} src="/fantasy_game_inn2-transformed.glb" />
-          </RigidBody>
+        {/* 3. VISUAL ARENA MODEL: No collider to prevent jitter and sticking */}
+        <Gltf
+          receiveShadow
+          rotation={[-Math.PI / 2, 0, 0]}
+          scale={0.11}
+          src="/fantasy_game_inn2-transformed.glb"
+          position={[0, 0, 0]}
+        />
 
         {status === "playing" && (
           <LocalPlayer onMove={onMove} onFall={onFall} />
