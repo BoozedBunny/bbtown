@@ -5,6 +5,8 @@ import Image from "next/image";
 import { createCharacter } from "../actions/character";
 import { Button } from "@/components/ui/button";
 import { doWork } from "../actions/work";
+import { LobbyTownEntryClient } from "./LobbyTownEntryClient";
+import { getTownPreloadManifest } from "../town/[townId]/preload-manifest";
 
 export default async function LobbyPage() {
   const user = await getSessionUser();
@@ -12,6 +14,9 @@ export default async function LobbyPage() {
   if (!user) {
     redirect("/login");
   }
+
+  const townHref = "/town/1";
+  const preloadManifest = getTownPreloadManifest();
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 text-white overflow-hidden relative brand-bg-overlay">
@@ -94,11 +99,11 @@ export default async function LobbyPage() {
               </div>
             </div>
 
-            <Link href="/town/1" className="block">
-              <Button className="w-full py-8 text-xl font-bold bg-brand-secondary hover:bg-brand-secondary/80 text-brand-neutral rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(255,184,0,0.2)]">
-                ENTER TOWN
-              </Button>
-            </Link>
+            <LobbyTownEntryClient
+              townHref={townHref}
+              glbAssets={preloadManifest.glbAssets}
+              staticAssets={preloadManifest.staticAssets}
+            />
           </section>
         )}
 
