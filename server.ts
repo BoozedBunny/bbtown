@@ -155,6 +155,14 @@ app.prepare().then(async () => {
     socket.on("buy_stock", async ({ symbol, quantity }) => {
       if (!mockUser) return;
       try {
+        if (!Number.isInteger(quantity) || quantity <= 0) {
+          socket.emit("portfolio_updated", {
+            message: "Quantity must be a positive whole number",
+            type: "error",
+          });
+          return;
+        }
+
         const user = await prisma.user.findUnique({
           where: { username: mockUser },
           include: { character: true },
@@ -212,6 +220,14 @@ app.prepare().then(async () => {
     socket.on("sell_stock", async ({ symbol, quantity }) => {
       if (!mockUser) return;
       try {
+        if (!Number.isInteger(quantity) || quantity <= 0) {
+          socket.emit("portfolio_updated", {
+            message: "Quantity must be a positive whole number",
+            type: "error",
+          });
+          return;
+        }
+
         const user = await prisma.user.findUnique({
           where: { username: mockUser },
           include: { character: true },
