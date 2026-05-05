@@ -37,6 +37,7 @@ type ModelBuildingProps = {
   onClick?: () => void;
   activeHoverBuildingId?: string | null;
   onHoverBuildingChange?: (id: string | null) => void;
+  hoverSuppressed?: boolean;
 };
 
 export function ModelBuilding({
@@ -48,6 +49,7 @@ export function ModelBuilding({
   onClick,
   activeHoverBuildingId,
   onHoverBuildingChange,
+  hoverSuppressed = false,
 }: ModelBuildingProps) {
   const { scene } = useGLTF(url);
   const [hoverVisible, setHoverVisible] = useState(false);
@@ -55,6 +57,7 @@ export function ModelBuilding({
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isModelHotRef = useRef(false);
   const isIconHotRef = useRef(false);
+  const hoverArmedRef = useRef(true);
 
   const followTargetRef = useRef({ x: 0, y: 0 });
   const followCurrentRef = useRef({ x: 0, y: 0 });
@@ -63,6 +66,7 @@ export function ModelBuilding({
 
   const isBalloon = url.includes("up_up_balloon");
   const isCoarsePointerRef = useRef(false);
+  const pendingModalOpenRef = useRef(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -140,7 +144,27 @@ export function ModelBuilding({
     }
   };
 
+  const forceHideHover = (disarmHover = false) => {
+    clearHideTimeout();
+    isModelHotRef.current = false;
+    isIconHotRef.current = false;
+    if (disarmHover) {
+      hoverArmedRef.current = false;
+    }
+    setHoverVisible(false);
+    if (activeHoverBuildingId === id && onHoverBuildingChange) {
+      onHoverBuildingChange(null);
+    }
+    document.body.style.cursor = "auto";
+    followTargetRef.current = { x: 0, y: 0 };
+    followCurrentRef.current = { x: 0, y: 0 };
+    if (iconTargetRef.current) {
+      iconTargetRef.current.style.transform = "translate3d(0px, 0px, 0)";
+    }
+  };
+
   const showHover = () => {
+    if (hoverSuppressed || !hoverArmedRef.current) return;
     clearHideTimeout();
     setHoverVisible(true);
     if (id && onHoverBuildingChange) onHoverBuildingChange(id);
@@ -206,6 +230,7 @@ export function ModelBuilding({
 
   const handlePointerEnter = (e: any) => {
     e.stopPropagation();
+    if (hoverSuppressed) return;
     isModelHotRef.current = true;
     showHover();
   };
@@ -213,10 +238,19 @@ export function ModelBuilding({
   const handlePointerLeave = (e: any) => {
     e.stopPropagation();
     isModelHotRef.current = false;
+    if (!isIconHotRef.current && !hoverSuppressed) {
+      hoverArmedRef.current = true;
+    }
     followTargetRef.current = { x: 0, y: 0 };
     startFollowLoop();
     scheduleHideIfCold();
   };
+
+  useEffect(() => {
+    if (!hoverSuppressed) return;
+    pendingModalOpenRef.current = false;
+    forceHideHover(true);
+  }, [hoverSuppressed]);
 
   const rotationInRadians = useMemo(() => (rotationY * Math.PI) / 180, [rotationY]);
 
@@ -268,12 +302,14 @@ export function ModelBuilding({
             className="pointer-events-auto flex h-[60px] w-[60px] items-center justify-center"
             onPointerOver={(e) => {
               e.stopPropagation();
+              if (hoverSuppressed) return;
               isIconHotRef.current = true;
               showHover();
               document.body.style.cursor = "pointer";
               startFollowLoop();
             }}
             onPointerMove={(e) => {
+              if (hoverSuppressed) return;
               if (isCoarsePointerRef.current) return;
               const target = e.currentTarget as HTMLDivElement;
               const rect = target.getBoundingClientRect();
@@ -285,12 +321,16 @@ export function ModelBuilding({
             onPointerOut={(e) => {
               e.stopPropagation();
               isIconHotRef.current = false;
+              if (!isModelHotRef.current && !hoverSuppressed) {
+                hoverArmedRef.current = true;
+              }
               followTargetRef.current = { x: 0, y: 0 };
               startFollowLoop();
               scheduleHideIfCold();
             }}
             onClick={(e) => {
               e.stopPropagation();
+              pendingModalOpenRef.current = true;
               if (onClick) onClick();
             }}
           >
