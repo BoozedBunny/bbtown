@@ -396,7 +396,7 @@ function ArenaScene({
 }: {
   players: PlayerState[];
   obstacles: Obstacle[];
-  onMove: (pos: [number, number, number], rot: number) => void;
+  onMove: (pos: [number, number, number], rot: number, anim: string) => void;
   onFall: () => void;
   status: string;
   socketId: string | null;
@@ -511,6 +511,19 @@ export default function ArenaPage({
   }>({ players: [], obstacles: [], status: "waiting" });
   const [connected, setConnected] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [sceneReady, setSceneReady] = useState(false);
+
+  useEffect(() => {
+    // Reset readiness whenever room changes so first paint is always guarded by an opaque boot layer.
+    setSceneReady(false);
+
+    // Safety valve: avoid indefinite black screen if onCreated never fires.
+    const fallbackTimer = setTimeout(() => {
+      setSceneReady(true);
+    }, 4000);
+
+    return () => clearTimeout(fallbackTimer);
+  }, [gameRoomId]);
 
   useEffect(() => {
     const s = io();
@@ -556,6 +569,15 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
     if (gameState.status === "playing") {
       socket?.emit("player_fell", { roomId: gameRoomId });
     }
+  };
+
+  const handleCanvasCreated = () => {
+    // Wait two animation frames after Canvas creation to avoid exposing partial first-frame GPU/shader warmup.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setSceneReady(true);
+      });
+    });
   };
 
   return (
@@ -609,7 +631,7 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
       {gameState.status === "waiting" && !gameRoomId.startsWith("solo-") && (
         <div
           id="waiting-overlay"
-          className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#05010a]/80 backdrop-blur-sm"
+          className={`absolute inset-0 z-20 flex flex-col items-center justify-center backdrop-blur-sm transition-colors duration-200 ${sceneReady ? "bg-[#05010a]/80" : "bg-[#05010a]"}`}
         >
           <div className="w-20 h-20 border-4 border-brand-primary/20 border-t-brand-primary rounded-full animate-spin mb-6" />
           <h2 className="text-2xl font-heading font-bold mb-2">
@@ -667,9 +689,9 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
       )}
 
       <div className="absolute inset-0 z-0">
-        <Suspense fallback={null}>
+        <Suspense fallback={<div className="absolute inset-0 bg-[#05010a]" />}>
           <KeyboardControls map={keyboardMap}>
-            <Canvas shadows>
+            <Canvas shadows onCreated={handleCanvasCreated}>
               <ArenaScene
                 players={gameState.players}
                 obstacles={gameState.obstacles}
@@ -681,6 +703,10 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
             </Canvas>
           </KeyboardControls>
         </Suspense>
+
+        {!sceneReady && (
+          <div className="pointer-events-none absolute inset-0 z-10 bg-[#05010a]" />
+        )}
       </div>
 
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex gap-4 pointer-events-none">
