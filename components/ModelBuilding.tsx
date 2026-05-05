@@ -11,6 +11,23 @@ const FOLLOW_RADIUS_PX = 22;
 const FOLLOW_DEAD_ZONE_PX = 7;
 const FOLLOW_ALPHA = 0.2;
 
+const TWO_PI = Math.PI * 2;
+
+// up_up_balloon.glb motion tuning (QA/product):
+// - BALLOON_BOB_AMP: 0.12-0.20
+// - BALLOON_DRIFT_RADIUS: 0.06-0.12
+// - BALLOON_YAW_SWAY_AMP: 2°-5°
+// Keep frequencies low (<= 0.35Hz) for natural balloon inertia.
+const BALLOON_BOB_AMP = 0.16;
+const BALLOON_BOB_HZ = 0.22;
+const BALLOON_DRIFT_RADIUS = 0.09;
+const BALLOON_DRIFT_HZ = 0.11;
+const BALLOON_YAW_SWAY_AMP = THREE.MathUtils.degToRad(3.5);
+const BALLOON_YAW_SWAY_HZ = 0.14;
+const BALLOON_PHASE_BOB = 0;
+const BALLOON_PHASE_DRIFT = 1.2;
+const BALLOON_PHASE_YAW = 2.1;
+
 type ModelBuildingProps = {
   id?: string;
   url: string;
@@ -202,6 +219,21 @@ export function ModelBuilding({
   };
 
   const rotationInRadians = useMemo(() => (rotationY * Math.PI) / 180, [rotationY]);
+
+  useFrame((state) => {
+    if (!isBalloon || !groupRef.current) return;
+
+    const t = state.clock.getElapsedTime();
+    const bob = Math.sin(TWO_PI * BALLOON_BOB_HZ * t + BALLOON_PHASE_BOB) * BALLOON_BOB_AMP;
+    const driftAngle = TWO_PI * BALLOON_DRIFT_HZ * t + BALLOON_PHASE_DRIFT;
+    const driftX = Math.cos(driftAngle) * BALLOON_DRIFT_RADIUS;
+    const driftZ = Math.sin(driftAngle) * BALLOON_DRIFT_RADIUS;
+    const yawSway =
+      Math.sin(TWO_PI * BALLOON_YAW_SWAY_HZ * t + BALLOON_PHASE_YAW) * BALLOON_YAW_SWAY_AMP;
+
+    groupRef.current.position.set(position[0] + driftX, position[1] + bob, position[2] + driftZ);
+    groupRef.current.rotation.y = rotationInRadians + yawSway;
+  });
 
   const Icon = useMemo(() => {
     if (id === "4") return Landmark;
