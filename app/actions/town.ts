@@ -21,11 +21,11 @@ export async function buyBuilding(buildingId: string) {
 
   const transactions = [];
 
-  // Deduct from buyer
+  // Deduct from buyer atomically only if funds are still available
   transactions.push(
-    prisma.character.update({
-      where: { id: character.id },
-      data: { wallet: character.wallet - building.price }
+    prisma.character.updateMany({
+      where: { id: character.id, wallet: { gte: building.price } },
+      data: { wallet: { decrement: building.price } }
     })
   );
 
@@ -46,15 +46,18 @@ export async function buyBuilding(buildingId: string) {
     );
   }
 
-  // Update building ownership and take it off the market
+  // Update building ownership and take it off the market only if still for sale
   transactions.push(
-    prisma.buildingState.update({
-      where: { id: buildingId },
+    prisma.buildingState.updateMany({
+      where: { id: buildingId, forSale: true },
       data: { ownerId: character.id, forSale: false }
     })
   );
 
-  await prisma.$transaction(transactions);
+  const [buyerUpdate, , buildingUpdate] = await prisma.$transaction(transactions);
+
+  if (buyerUpdate.count === 0) throw new Error("Not enough funds");
+  if (buildingUpdate.count === 0) throw new Error("Building is not for sale");
 
   return { success: true };
 }
@@ -69,10 +72,14 @@ export async function updateBuildingSettings(buildingId: string, title: string, 
 
   if (!building) throw new Error("Building not found");
   if (building.ownerId !== user.character.id) throw new Error("Not the owner");
+  if (!Number.isFinite(price) || price < 0) throw new Error("Price must be a non-negative number");
+
+  const normalizedTitle = title.trim();
+  if (!normalizedTitle) throw new Error("Title cannot be empty");
 
   await prisma.buildingState.update({
     where: { id: buildingId },
-    data: { title, price, forSale }
+    data: { title: normalizedTitle, price, forSale }
   });
 
   return { success: true };
