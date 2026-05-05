@@ -46,11 +46,11 @@ type GLTFResult = GLTF & {
   animations: GLTFAction[];
 };
 
-export function Model({ currentAction = "Idle_15", ...props }: any) {
+export function Model({ currentAction = "Idle_1", ...props }: any) {
   const group = React.useRef<THREE.Group>(null);
   const { scene, animations } = useGLTF("/models/player.glb");
   const clone = React.useMemo(() => SkeletonUtils.clone(scene), [scene]);
-  const { nodes, materials } = useGraph(clone) as GLTFResult;
+  const { nodes, materials } = useGraph(clone) as unknown as GLTFResult;
   const { actions } = useAnimations(animations, group);
 
   // NEU: Dieser Hook kümmert sich um das Abspielen und das weiche Überblenden (Crossfade)
@@ -85,4 +85,4 @@ export function Model({ currentAction = "Idle_15", ...props }: any) {
   );
 }
 
-useGLTF.preload("/player.glb");
+useGLTF.preload("/models/player.glb");
