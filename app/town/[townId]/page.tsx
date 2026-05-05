@@ -264,6 +264,8 @@ function Scene({
   onGroundPointerMove,
   onGroundClick,
   serverTime,
+  activeHoverBuildingId,
+  onHoverBuildingChange,
 }: {
   buildings: BuildingData[];
   isXRay: boolean;
@@ -273,6 +275,8 @@ function Scene({
   onGroundPointerMove?: (e: any) => void;
   onGroundClick?: (e: any) => void;
   serverTime?: string;
+  activeHoverBuildingId?: string | null;
+  onHoverBuildingChange?: (id: string | null) => void;
 }) {
   return (
     <>
@@ -300,6 +304,8 @@ function Scene({
             position={b.position}
             opacity={!isXRayActive ? 1 : 0.4}
             rotationY={b.rotationY || 0}
+            activeHoverBuildingId={activeHoverBuildingId}
+            onHoverBuildingChange={onHoverBuildingChange}
             onClick={() => {
               if (!freeMoveBuildingId) onBuildingClick(b);
             }}
@@ -345,6 +351,7 @@ export default function TownPage({
   const router = useRouter();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
+  const [activeHoverBuildingId, setActiveHoverBuildingId] = useState<string | null>(null);
   const [selectedBuilding, setSelectedBuilding] = useState<BuildingData | null>(
     null,
   );
@@ -655,6 +662,8 @@ export default function TownPage({
             buildings={mergedBuildings}
             isXRay={isXRay}
             serverTime={serverTime}
+            activeHoverBuildingId={activeHoverBuildingId}
+            onHoverBuildingChange={setActiveHoverBuildingId}
             onBuildingClick={(b) => {
               if (b.id === "21") {
                 setShowArenaModal(true);

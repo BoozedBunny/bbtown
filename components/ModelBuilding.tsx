@@ -6,27 +6,54 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import * as THREE from "three";
 import { Search, Landmark, Swords } from "lucide-react";
 
-export function ModelBuilding({ 
+const HIDE_DELAY_MS = 200;
+const FOLLOW_RADIUS_PX = 22;
+const FOLLOW_DEAD_ZONE_PX = 7;
+const FOLLOW_ALPHA = 0.2;
+
+type ModelBuildingProps = {
+  id?: string;
+  url: string;
+  position: [number, number, number];
+  rotationY?: number;
+  opacity?: number;
+  onClick?: () => void;
+  activeHoverBuildingId?: string | null;
+  onHoverBuildingChange?: (id: string | null) => void;
+};
+
+export function ModelBuilding({
   id,
-  url, 
-  position, 
-  rotationY = 0, 
-  opacity = 1, 
-  onClick 
-}: { 
-  id?: string,
-  url: string, 
-  position: [number, number, number], 
-  rotationY?: number, 
-  opacity?: number,
-  onClick?: () => void 
-}) {
+  url,
+  position,
+  rotationY = 0,
+  opacity = 1,
+  onClick,
+  activeHoverBuildingId,
+  onHoverBuildingChange,
+}: ModelBuildingProps) {
   const { scene } = useGLTF(url);
-  const [hovered, setHovered] = useState(false);
+  const [hoverVisible, setHoverVisible] = useState(false);
   const groupRef = useRef<THREE.Group>(null);
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isModelHotRef = useRef(false);
+  const isIconHotRef = useRef(false);
+
+  const followTargetRef = useRef({ x: 0, y: 0 });
+  const followCurrentRef = useRef({ x: 0, y: 0 });
+  const followRafRef = useRef<number | null>(null);
+  const iconTargetRef = useRef<HTMLDivElement | null>(null);
 
   const isBalloon = url.includes("up_up_balloon");
+  const isCoarsePointerRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      isCoarsePointerRef.current = window.matchMedia("(pointer: coarse)").matches;
+    }
+  }, []);
+
+  const isExternallyActive = !activeHoverBuildingId || activeHoverBuildingId === id;
 
   const clonedScene = useMemo(() => {
     const clone = scene.clone();
@@ -35,7 +62,7 @@ export function ModelBuilding({
         const mesh = child as THREE.Mesh;
         mesh.castShadow = true;
         mesh.receiveShadow = true;
-        
+
         if (mesh.material) {
           mesh.material = (mesh.material as THREE.Material).clone();
         }
@@ -50,9 +77,9 @@ export function ModelBuilding({
         const mesh = child as THREE.Mesh;
         if (mesh.material) {
           const mat = mesh.material as THREE.MeshStandardMaterial;
-           mat.transparent = true;
+          mat.transparent = true;
           mat.opacity = opacity;
-          if (hovered) {
+          if (hoverVisible) {
             mat.emissive = new THREE.Color(0x333333);
             mat.emissiveIntensity = 0.5;
           } else {
@@ -62,33 +89,116 @@ export function ModelBuilding({
         }
       }
     });
-  }, [hovered, opacity, clonedScene]);
+  }, [hoverVisible, opacity, clonedScene]);
 
-  // Balloon Animation
-  useFrame((state) => {
-    if (isBalloon && groupRef.current) {
-      // Bobbing effect
-      const time = state.clock.getElapsedTime();
-      // Base Y position is position[1]. 
-      // We'll use local position.y since group is at position={position}
-      groupRef.current.position.y = position[1] + Math.sin(time * 2) * 0.2;
+  useEffect(() => {
+    if (activeHoverBuildingId && activeHoverBuildingId !== id) {
+      isModelHotRef.current = false;
+      isIconHotRef.current = false;
+      setHoverVisible(false);
+      followTargetRef.current = { x: 0, y: 0 };
+      followCurrentRef.current = { x: 0, y: 0 };
+      if (iconTargetRef.current) {
+        iconTargetRef.current.style.transform = "translate3d(0px, 0px, 0)";
+      }
     }
-  });
+  }, [activeHoverBuildingId, id]);
 
-  const handlePointerEnter = (e: any) => {
-    e.stopPropagation();
+  useEffect(() => {
+    return () => {
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
+      if (followRafRef.current) {
+        cancelAnimationFrame(followRafRef.current);
+      }
+      document.body.style.cursor = "auto";
+    };
+  }, []);
+
+  const clearHideTimeout = () => {
     if (hideTimeoutRef.current) {
       clearTimeout(hideTimeoutRef.current);
       hideTimeoutRef.current = null;
     }
-    setHovered(true);
+  };
+
+  const showHover = () => {
+    clearHideTimeout();
+    setHoverVisible(true);
+    if (id && onHoverBuildingChange) onHoverBuildingChange(id);
+  };
+
+  const scheduleHideIfCold = () => {
+    if (isModelHotRef.current || isIconHotRef.current) return;
+    clearHideTimeout();
+    hideTimeoutRef.current = setTimeout(() => {
+      if (!isModelHotRef.current && !isIconHotRef.current) {
+        setHoverVisible(false);
+        if (activeHoverBuildingId === id && onHoverBuildingChange) {
+          onHoverBuildingChange(null);
+        }
+        document.body.style.cursor = "auto";
+        followTargetRef.current = { x: 0, y: 0 };
+      }
+    }, HIDE_DELAY_MS);
+  };
+
+  const clampFollow = (x: number, y: number) => {
+    const dist = Math.hypot(x, y);
+    if (dist <= FOLLOW_DEAD_ZONE_PX) return { x: 0, y: 0 };
+    if (dist <= FOLLOW_RADIUS_PX) return { x, y };
+    const scale = FOLLOW_RADIUS_PX / dist;
+    return { x: x * scale, y: y * scale };
+  };
+
+  const startFollowLoop = () => {
+    if (followRafRef.current !== null) return;
+
+    const tick = () => {
+      const target = followTargetRef.current;
+      const current = followCurrentRef.current;
+
+      current.x += (target.x - current.x) * FOLLOW_ALPHA;
+      current.y += (target.y - current.y) * FOLLOW_ALPHA;
+
+      if (Math.abs(current.x) < 0.5) current.x = 0;
+      if (Math.abs(current.y) < 0.5) current.y = 0;
+
+      if (iconTargetRef.current) {
+        iconTargetRef.current.style.transform = `translate3d(${current.x}px, ${current.y}px, 0)`;
+      }
+
+      const stillActive = hoverVisible || isModelHotRef.current || isIconHotRef.current;
+      const nearlySettled =
+        Math.abs(target.x - current.x) < 0.5 &&
+        Math.abs(target.y - current.y) < 0.5 &&
+        Math.abs(current.x) < 0.5 &&
+        Math.abs(current.y) < 0.5;
+
+      if (!stillActive && nearlySettled) {
+        followRafRef.current = null;
+        return;
+      }
+
+      followRafRef.current = requestAnimationFrame(tick);
+    };
+
+    followRafRef.current = requestAnimationFrame(tick);
+  };
+
+  const handlePointerEnter = (e: any) => {
+    e.stopPropagation();
+    isModelHotRef.current = true;
+    showHover();
   };
 
   const handlePointerLeave = (e: any) => {
-    hideTimeoutRef.current = setTimeout(() => {
-      setHovered(false);
-      document.body.style.cursor = 'auto';
-    }, 150);
+    e.stopPropagation();
+    isModelHotRef.current = false;
+    followTargetRef.current = { x: 0, y: 0 };
+    startFollowLoop();
+    scheduleHideIfCold();
   };
 
   const rotationInRadians = useMemo(() => (rotationY * Math.PI) / 180, [rotationY]);
@@ -107,47 +217,56 @@ export function ModelBuilding({
   const iconPosition = useMemo(() => {
     const box = new THREE.Box3().setFromObject(clonedScene);
     const h = box.max.y - box.min.y;
-    // Special case for balloon which is higher up
     if (url.includes("up_up_balloon")) return [0, 0.5, 0] as [number, number, number];
     return [0, h * 0.8, 0] as [number, number, number];
   }, [clonedScene, url]);
 
   return (
-    <group 
-      ref={groupRef}
-      position={position} 
-      rotation={[0, rotationInRadians, 0]}
-    >
-      <primitive 
-        object={clonedScene} 
+    <group ref={groupRef} position={position} rotation={[0, rotationInRadians, 0]}>
+      <primitive
+        object={clonedScene}
         onPointerOver={handlePointerEnter}
         onPointerOut={handlePointerLeave}
       />
-      
-      {hovered && (
+
+      {hoverVisible && isExternallyActive && (
         <Html position={iconPosition} center zIndexRange={[100, 0]}>
-          <div 
-            className={`${iconBgColor} p-2 rounded-full cursor-pointer border-2 border-white animate-bounce pointer-events-auto`}
+          <div
+            ref={iconTargetRef}
+            className="pointer-events-auto flex h-[60px] w-[60px] items-center justify-center"
+            onPointerOver={(e) => {
+              e.stopPropagation();
+              isIconHotRef.current = true;
+              showHover();
+              document.body.style.cursor = "pointer";
+              startFollowLoop();
+            }}
+            onPointerMove={(e) => {
+              if (isCoarsePointerRef.current) return;
+              const target = e.currentTarget as HTMLDivElement;
+              const rect = target.getBoundingClientRect();
+              const dx = e.clientX - (rect.left + rect.width / 2);
+              const dy = e.clientY - (rect.top + rect.height / 2);
+              followTargetRef.current = clampFollow(dx, dy);
+              startFollowLoop();
+            }}
+            onPointerOut={(e) => {
+              e.stopPropagation();
+              isIconHotRef.current = false;
+              followTargetRef.current = { x: 0, y: 0 };
+              startFollowLoop();
+              scheduleHideIfCold();
+            }}
             onClick={(e) => {
               e.stopPropagation();
               if (onClick) onClick();
             }}
-            onPointerOver={() => {
-              if (hideTimeoutRef.current) {
-                clearTimeout(hideTimeoutRef.current);
-                hideTimeoutRef.current = null;
-              }
-              setHovered(true);
-              document.body.style.cursor = 'pointer';
-            }}
-            onPointerOut={(e) => {
-              hideTimeoutRef.current = setTimeout(() => {
-                setHovered(false);
-                document.body.style.cursor = 'auto';
-              }, 150);
-            }}
           >
-            <Icon className="w-5 h-5 text-white" />
+            <div
+              className={`${iconBgColor} h-[38px] w-[38px] rounded-full border-2 border-white p-2 transition-transform hover:scale-105`}
+            >
+              <Icon className="h-5 w-5 text-white" />
+            </div>
           </div>
         </Html>
       )}
