@@ -17,11 +17,11 @@ const handle = app.getRequestHandler();
 app.prepare().then(async () => {
   // Initialize funny stocks
   const FUNNY_STOCKS = [
-    { symbol: 'BANA', name: 'Banana Stand', price: 10.0 },
-    { symbol: 'STONK', name: 'Stonks R Us', price: 69.0 },
-    { symbol: 'DOGE', name: 'Doge Much Wow', price: 4.2 },
-    { symbol: 'TEAR', name: 'Unicorn Tears', price: 100.0 },
-    { symbol: 'COPE', name: 'Copium Corp', price: 50.0 },
+    { symbol: "BANA", name: "Banana Stand", price: 10.0 },
+    { symbol: "STONK", name: "Stonks R Us", price: 69.0 },
+    { symbol: "DOGE", name: "Doge Much Wow", price: 4.2 },
+    { symbol: "TEAR", name: "Unicorn Tears", price: 100.0 },
+    { symbol: "COPE", name: "Copium Corp", price: 50.0 },
   ];
 
   for (const stock of FUNNY_STOCKS) {
@@ -32,8 +32,8 @@ app.prepare().then(async () => {
         symbol: stock.symbol,
         name: stock.name,
         price: stock.price,
-        previousPrice: stock.price
-      }
+        previousPrice: stock.price,
+      },
     });
   }
 
@@ -49,11 +49,12 @@ app.prepare().then(async () => {
     username: string;
     position: [number, number, number];
     rotation: number;
+    anim: string;
   }
 
   interface Obstacle {
     id: string;
-    type: 'beam';
+    type: "beam";
     position: [number, number, number];
     speed: number;
     width: number;
@@ -63,7 +64,7 @@ app.prepare().then(async () => {
     roomId: string;
     players: Record<string, PlayerState>;
     obstacles: Obstacle[];
-    status: 'waiting' | 'playing' | 'finished';
+    status: "waiting" | "playing" | "finished";
     timer: number;
     intervalId?: NodeJS.Timeout;
   }
@@ -76,20 +77,20 @@ app.prepare().then(async () => {
     const side = Math.random() > 0.5 ? 1 : -1;
     const obstacle: Obstacle = {
       id,
-      type: 'beam',
+      type: "beam",
       position: [0, 0.5, side * 15],
       speed: side * -0.1, // Move towards center
-      width: 10
+      width: 10,
     };
     game.obstacles.push(obstacle);
   };
 
   const updateGame = (roomId: string) => {
     const game = games[roomId];
-    if (!game || game.status !== 'playing') return;
+    if (!game || game.status !== "playing") return;
 
     // Update obstacles
-    game.obstacles = game.obstacles.filter(obs => {
+    game.obstacles = game.obstacles.filter((obs) => {
       obs.position[2] += obs.speed;
       return Math.abs(obs.position[2]) <= 20;
     });
@@ -102,7 +103,7 @@ app.prepare().then(async () => {
     io.to(roomId).emit("game_state", {
       players: Object.values(game.players),
       obstacles: game.obstacles,
-      status: game.status
+      status: game.status,
     });
   };
 
@@ -111,27 +112,27 @@ app.prepare().then(async () => {
     const stocks = await prisma.stock.findMany();
     for (const stock of stocks) {
       // Random movement between -5% and +5%
-      const changePercent = (Math.random() * 0.1) - 0.05;
+      const changePercent = Math.random() * 0.1 - 0.05;
       const newPrice = Math.max(0.01, stock.price * (1 + changePercent));
-      
+
       await prisma.$transaction([
         prisma.stock.update({
           where: { id: stock.id },
           data: {
             previousPrice: stock.price,
-            price: newPrice
-          }
+            price: newPrice,
+          },
         }),
         prisma.stockHistory.create({
           data: {
             stockId: stock.id,
-            price: newPrice
-          }
-        })
+            price: newPrice,
+          },
+        }),
       ]);
     }
     const updatedStocks = await prisma.stock.findMany({
-      orderBy: { symbol: 'asc' }
+      orderBy: { symbol: "asc" },
     });
     io.emit("stocks_updated", updatedStocks);
   }, 10000);
@@ -141,8 +142,10 @@ app.prepare().then(async () => {
 
     // Identify user via cookies for secure communication
     const cookieHeader = socket.handshake.headers.cookie;
-    const cookies = cookieHeader ? Object.fromEntries(cookieHeader.split('; ').map(c => c.split('='))) : {};
-    const mockUser = cookies['mock_user'];
+    const cookies = cookieHeader
+      ? Object.fromEntries(cookieHeader.split("; ").map((c) => c.split("=")))
+      : {};
+    const mockUser = cookies["mock_user"];
 
     if (mockUser) {
       socket.join(`user:${mockUser}`);
@@ -154,7 +157,7 @@ app.prepare().then(async () => {
       try {
         const user = await prisma.user.findUnique({
           where: { username: mockUser },
-          include: { character: true }
+          include: { character: true },
         });
         if (!user || !user.character) return;
 
@@ -165,7 +168,7 @@ app.prepare().then(async () => {
         if (user.character.wallet < cost) {
           socket.emit("portfolio_updated", {
             message: `Insufficient funds to buy ${quantity} shares of ${symbol}`,
-            type: "error"
+            type: "error",
           });
           return;
         }
@@ -173,35 +176,35 @@ app.prepare().then(async () => {
         await prisma.$transaction([
           prisma.character.update({
             where: { id: user.character.id },
-            data: { wallet: { decrement: cost } }
+            data: { wallet: { decrement: cost } },
           }),
           prisma.portfolioItem.upsert({
             where: {
               characterId_stockId: {
                 characterId: user.character.id,
-                stockId: stock.id
-              }
+                stockId: stock.id,
+              },
             },
             create: {
               characterId: user.character.id,
               stockId: stock.id,
-              quantity
+              quantity,
             },
             update: {
-              quantity: { increment: quantity }
-            }
-          })
+              quantity: { increment: quantity },
+            },
+          }),
         ]);
 
         io.to(`user:${mockUser}`).emit("portfolio_updated", {
           message: `Bought ${quantity} shares of ${symbol} for $${cost.toFixed(2)}`,
-          type: "success"
+          type: "success",
         });
       } catch (error) {
         console.error("Error buying stock:", error);
         socket.emit("portfolio_updated", {
           message: `Failed to buy stock`,
-          type: "error"
+          type: "error",
         });
       }
     });
@@ -211,7 +214,7 @@ app.prepare().then(async () => {
       try {
         const user = await prisma.user.findUnique({
           where: { username: mockUser },
-          include: { character: true }
+          include: { character: true },
         });
         if (!user || !user.character) return;
 
@@ -222,15 +225,15 @@ app.prepare().then(async () => {
           where: {
             characterId_stockId: {
               characterId: user.character.id,
-              stockId: stock.id
-            }
-          }
+              stockId: stock.id,
+            },
+          },
         });
 
         if (!portfolioItem || portfolioItem.quantity < quantity) {
           socket.emit("portfolio_updated", {
             message: `Not enough shares to sell`,
-            type: "error"
+            type: "error",
           });
           return;
         }
@@ -240,23 +243,23 @@ app.prepare().then(async () => {
         await prisma.$transaction([
           prisma.character.update({
             where: { id: user.character.id },
-            data: { wallet: { increment: gain } }
+            data: { wallet: { increment: gain } },
           }),
           prisma.portfolioItem.update({
             where: { id: portfolioItem.id },
-            data: { quantity: { decrement: quantity } }
-          })
+            data: { quantity: { decrement: quantity } },
+          }),
         ]);
 
         io.to(`user:${mockUser}`).emit("portfolio_updated", {
           message: `Sold ${quantity} shares of ${symbol} for $${gain.toFixed(2)}`,
-          type: "success"
+          type: "success",
         });
       } catch (error) {
         console.error("Error selling stock:", error);
         socket.emit("portfolio_updated", {
           message: `Failed to sell stock`,
-          type: "error"
+          type: "error",
         });
       }
     });
@@ -275,12 +278,14 @@ app.prepare().then(async () => {
       if (!mockUser) return;
 
       // Check if already in queue
-      if (matchmakingQueue.find(p => p.username === mockUser)) {
+      if (matchmakingQueue.find((p) => p.username === mockUser)) {
         return;
       }
 
       matchmakingQueue.push({ socketId: socket.id, username: mockUser });
-      console.log(`User ${mockUser} joined arena queue. Queue size: ${matchmakingQueue.length}`);
+      console.log(
+        `User ${mockUser} joined arena queue. Queue size: ${matchmakingQueue.length}`,
+      );
 
       if (matchmakingQueue.length >= 2) {
         const player1 = matchmakingQueue.shift()!;
@@ -292,11 +297,13 @@ app.prepare().then(async () => {
           roomId: gameRoomId,
           players: {},
           obstacles: [],
-          status: 'waiting',
-          timer: 0
+          status: "waiting",
+          timer: 0,
         };
 
-        console.log(`Match found! ${player1.username} vs ${player2.username}. Room: ${gameRoomId}`);
+        console.log(
+          `Match found! ${player1.username} vs ${player2.username}. Room: ${gameRoomId}`,
+        );
 
         io.to(player1.socketId).emit("match_found", { gameRoomId });
         io.to(player2.socketId).emit("match_found", { gameRoomId });
@@ -311,19 +318,23 @@ app.prepare().then(async () => {
         roomId: gameRoomId,
         players: {},
         obstacles: [],
-        status: 'waiting',
-        timer: 0
+        status: "waiting",
+        timer: 0,
       };
 
-      console.log(`Singleplayer arena created for ${mockUser}. Room: ${gameRoomId}`);
+      console.log(
+        `Singleplayer arena created for ${mockUser}. Room: ${gameRoomId}`,
+      );
       socket.emit("match_found", { gameRoomId });
     });
 
     socket.on("leave_arena", () => {
-      const index = matchmakingQueue.findIndex(p => p.socketId === socket.id);
+      const index = matchmakingQueue.findIndex((p) => p.socketId === socket.id);
       if (index !== -1) {
         matchmakingQueue.splice(index, 1);
-        console.log(`User ${mockUser} left arena queue. Queue size: ${matchmakingQueue.length}`);
+        console.log(
+          `User ${mockUser} left arena queue. Queue size: ${matchmakingQueue.length}`,
+        );
       }
     });
 
@@ -336,8 +347,8 @@ app.prepare().then(async () => {
           roomId,
           players: {},
           obstacles: [],
-          status: 'waiting',
-          timer: 0
+          status: "waiting",
+          timer: 0,
         };
       }
 
@@ -345,51 +356,61 @@ app.prepare().then(async () => {
 
       socket.join(roomId);
       const playerCount = Object.keys(games[roomId].players).length;
-      const isSolo = roomId.startsWith('solo-');
+      const isSolo = roomId.startsWith("solo-");
 
       games[roomId].players[socket.id] = {
         id: socket.id,
         username: mockUser,
-        position: [isSolo ? 0 : (playerCount === 0 ? -2 : 2), 0, 0],
-        rotation: 0
+        position: [isSolo ? 0 : playerCount === 0 ? -2 : 2, 0, 0],
+        rotation: 0,
+        anim: "Idle_1", // <-- NEU: Standard-Animation beim Spawnen
       };
 
-      console.log(`User ${mockUser} joined arena room ${roomId}. Players: ${Object.keys(games[roomId].players).length}`);
+      console.log(
+        `User ${mockUser} joined arena room ${roomId}. Players: ${Object.keys(games[roomId].players).length}`,
+      );
 
       if (isSolo || Object.keys(games[roomId].players).length === 2) {
-        games[roomId].status = 'playing';
+        games[roomId].status = "playing";
         console.log(`Game ${roomId} starting!`);
 
         const intervalId = setInterval(() => updateGame(roomId), 1000 / 30);
         games[roomId].intervalId = intervalId;
 
         io.to(roomId).emit("game_start", {
-          players: Object.values(games[roomId].players)
+          players: Object.values(games[roomId].players),
         });
       }
     });
 
-    socket.on("player_move", ({ roomId, position, rotation }) => {
+    socket.on("player_move", ({ roomId, position, rotation, anim }) => {
       if (games[roomId] && games[roomId].players[socket.id]) {
         games[roomId].players[socket.id].position = position;
         games[roomId].players[socket.id].rotation = rotation;
+        games[roomId].players[socket.id].anim = anim || "Idle_1"; // <-- NEU: Im State speichern
       }
     });
 
     socket.on("player_fell", async ({ roomId }) => {
-      if (games[roomId] && games[roomId].players[socket.id] && games[roomId].status === 'playing') {
+      if (
+        games[roomId] &&
+        games[roomId].players[socket.id] &&
+        games[roomId].status === "playing"
+      ) {
         console.log(`Player ${mockUser} fell off in room ${roomId}`);
-        games[roomId].status = 'finished';
+        games[roomId].status = "finished";
         const loser = mockUser;
-        const winner = Object.values(games[roomId].players).find(p => p.id !== socket.id)?.username;
-        const isSolo = roomId.startsWith('solo-');
+        const winner = Object.values(games[roomId].players).find(
+          (p) => p.id !== socket.id,
+        )?.username;
+        const isSolo = roomId.startsWith("solo-");
         const reward = isSolo ? 0 : 1000;
 
         try {
           if (winner && !isSolo) {
             await prisma.character.updateMany({
               where: { user: { username: winner } },
-              data: { wallet: { increment: reward } }
+              data: { wallet: { increment: reward } },
             });
             console.log(`Granted ${reward} reward to winner: ${winner}`);
           }
@@ -400,7 +421,7 @@ app.prepare().then(async () => {
         io.to(roomId).emit("game_over", {
           winner: isSolo ? undefined : winner,
           loser,
-          reward
+          reward,
         });
 
         if (games[roomId].intervalId) {
@@ -416,7 +437,7 @@ app.prepare().then(async () => {
 
     socket.on("disconnect", () => {
       console.log("User disconnected:", socket.id);
-      const index = matchmakingQueue.findIndex(p => p.socketId === socket.id);
+      const index = matchmakingQueue.findIndex((p) => p.socketId === socket.id);
       if (index !== -1) {
         matchmakingQueue.splice(index, 1);
       }

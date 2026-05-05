@@ -1,13 +1,17 @@
 "use client";
 
 import { use, useEffect, useState, useRef, Suspense } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { KeyboardControls, Stars, Gltf } from "@react-three/drei";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import {
+  KeyboardControls,
+  Sky,
+  useKeyboardControls,
+  useTexture,
+} from "@react-three/drei";
 import { io, Socket } from "socket.io-client";
 import { Loader2, Swords, Trophy, Users } from "lucide-react";
 import * as THREE from "three";
-import { Physics, RigidBody } from "@react-three/rapier";
-import Ecctrl, { EcctrlAnimation } from "ecctrl";
+import { Physics, RigidBody, useRapier } from "@react-three/rapier";
 import { Model as Player } from "@/components/Player";
 import { useRouter } from "next/navigation";
 
@@ -16,6 +20,7 @@ interface PlayerState {
   username: string;
   position: [number, number, number];
   rotation: number;
+  anim: string;
 }
 
 interface Obstacle {
@@ -44,91 +49,255 @@ function LocalPlayer({
   onMove,
   onFall,
 }: {
-  onMove: (pos: [number, number, number], rot: number) => void;
+  onMove: (pos: [number, number, number], rot: number, anim: string) => void;
   onFall: () => void;
 }) {
-  // We use a group ref inside Ecctrl to safely track position without Rapier API mismatches
-  const innerRef = useRef<THREE.Group>(null);
-  const lastPos = useRef<[number, number, number]>([0, 0, 0]);
-  const lastRot = useRef<number>(0);
-  const fellRef = useRef(false);
+  const rigidBodyRef = useRef<any>(null);
+  const modelRef = useRef<THREE.Group>(null);
+  const [, getKeys] = useKeyboardControls();
+  const { camera, gl } = useThree();
 
-  useFrame(() => {
-    if (!innerRef.current) return;
+  // --- NEU: RAPIER & SPRUNG-LOGIK ---
+  const { rapier, world } = useRapier();
+  const jumpPressed = useRef(false); // Verhindert das Gedrückthalten der Taste
+  const jumpCount = useRef(0); // Zählt die Sprünge für den Doppelsprung
+  const MAX_JUMPS = 2; // 2 = Doppelsprung, 1 = Normaler Sprung
 
-    // 1. Get world position
-    const worldPos = new THREE.Vector3();
-    innerRef.current.getWorldPosition(worldPos);
+  // Start-Animation ist jetzt unser sauberes Idle_1
+  const [currentAnim, setCurrentAnim] = useState("Idle_1");
 
-    // 2. Get world rotation
-    const worldQuat = new THREE.Quaternion();
-    innerRef.current.getWorldQuaternion(worldQuat);
-    const euler = new THREE.Euler().setFromQuaternion(worldQuat);
-    const currentYRot = euler.y;
+  const SPEED = 6;
+  const JUMP_FORCE = 6;
 
-    const pos: [number, number, number] = [worldPos.x, worldPos.y, worldPos.z];
+  // --- KAMERA STATE ---
+  const yaw = useRef(0);
+  const pitch = useRef(0.3);
+  const radius = useRef(8);
 
-    // Check for fall (Threshold is Y < -5)
-    if (pos[1] < -5 && !fellRef.current) {
-      fellRef.current = true;
-      onFall();
+  // --- DAS WOW-IDLE SYSTEM ---
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+
+    if (currentAnim.startsWith("Idle")) {
+      const waitTime = Math.random() * 6000 + 4000;
+
+      timeout = setTimeout(() => {
+        // Unsere echten, neuen Idles!
+        const idles = ["Idle_1", "Idle_2", "Idle_3"];
+        const otherIdles = idles.filter((anim) => anim !== currentAnim);
+        const randomIdle =
+          otherIdles[Math.floor(Math.random() * otherIdles.length)];
+
+        setCurrentAnim(randomIdle);
+      }, waitTime);
     }
 
-    // Only emit if moved or rotated significantly to save bandwidth
-    const dist = Math.sqrt(
-      Math.pow(pos[0] - lastPos.current[0], 2) +
-        Math.pow(pos[1] - lastPos.current[1], 2) +
-        Math.pow(pos[2] - lastPos.current[2], 2),
-    );
-    const rotDist = Math.abs(currentYRot - lastRot.current);
+    return () => clearTimeout(timeout);
+  }, [currentAnim]);
 
-    if (dist > 0.05 || rotDist > 0.05) {
-      lastPos.current = pos;
-      lastRot.current = currentYRot;
-      onMove(pos, currentYRot);
+  // --- MAUS & KAMERA EVENT LISTENERS (Unverändert) ---
+  useEffect(() => {
+    const handleCanvasClick = () => {
+      if (!document.pointerLockElement) {
+        gl.domElement.requestPointerLock();
+      }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (document.pointerLockElement === gl.domElement) {
+        const sensitivity = 0.002;
+        yaw.current -= e.movementX * sensitivity;
+        pitch.current -= e.movementY * sensitivity;
+        pitch.current = Math.max(0.1, Math.min(1.2, pitch.current));
+      }
+    };
+
+    const handleWheel = (e: WheelEvent) => {
+      if (document.pointerLockElement === gl.domElement) {
+        const zoomSensitivity = 0.005;
+        radius.current += e.deltaY * zoomSensitivity;
+        radius.current = Math.max(3, Math.min(15, radius.current));
+      }
+    };
+
+    gl.domElement.addEventListener("click", handleCanvasClick);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("wheel", handleWheel);
+
+    return () => {
+      gl.domElement.removeEventListener("click", handleCanvasClick);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("wheel", handleWheel);
+    };
+  }, [gl.domElement]);
+
+  useFrame(() => {
+    if (!rigidBodyRef.current || !modelRef.current) return;
+
+    const keys = getKeys();
+    const velocity = rigidBodyRef.current.linvel();
+    const pos = rigidBodyRef.current.translation();
+
+    // --- 1. BEWEGUNG BERECHNEN ---
+    let inputX = 0;
+    let inputZ = 0;
+
+    if (keys.forward) inputZ -= 1;
+    if (keys.backward) inputZ += 1;
+    if (keys.leftward) inputX -= 1;
+    if (keys.rightward) inputX += 1;
+
+    const inputVec = new THREE.Vector2(inputX, inputZ);
+    const isMoving = inputVec.lengthSq() > 0;
+    const moveDir = new THREE.Vector3();
+
+    // Logik: Geht er GERADEAUS rückwärts? (S gedrückt, aber nicht W)
+    const isWalkingBackward = keys.backward && !keys.forward;
+
+    if (isMoving) {
+      inputVec.normalize();
+
+      const camForward = new THREE.Vector3(
+        -Math.sin(yaw.current),
+        0,
+        -Math.cos(yaw.current),
+      );
+      const camRight = new THREE.Vector3(
+        Math.cos(yaw.current),
+        0,
+        -Math.sin(yaw.current),
+      );
+
+      moveDir.add(camForward.multiplyScalar(-inputVec.y));
+      moveDir.add(camRight.multiplyScalar(inputVec.x));
+
+      // NEU: Wenn er rückwärts geht, darf er nicht rennen (Standard in den meisten Spielen)
+      // Außerdem machen wir das Rückwärtslaufen minimal langsamer (0.8x)
+      let currentSpeed = SPEED;
+      if (isWalkingBackward) {
+        currentSpeed = SPEED * 0.8;
+      } else if (keys.run) {
+        currentSpeed = SPEED * 1.5;
+      }
+
+      moveDir.normalize().multiplyScalar(currentSpeed);
+
+      // --- WICHTIG: DIE RÜCKWÄRTS-BLICKRICHTUNG ---
+      let lookX = moveDir.x;
+      let lookZ = moveDir.z;
+
+      // Wenn er rückwärts läuft, invertieren wir den Blick-Vektor!
+      // Er läuft auf die Kamera zu, guckt aber von ihr weg.
+      if (isWalkingBackward) {
+        lookX = -moveDir.x;
+        lookZ = -moveDir.z;
+      }
+
+      const targetAngle = Math.atan2(lookX, lookZ);
+      const currentAngle = modelRef.current.rotation.y;
+
+      let diff = targetAngle - currentAngle;
+      diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+
+      modelRef.current.rotation.y += diff * 0.15;
+    }
+
+    rigidBodyRef.current.setLinvel(
+      { x: moveDir.x, y: velocity.y, z: moveDir.z },
+      true,
+    );
+
+    // --- 2. SPRINGEN (Der saubere, einzelne Sprung) ---
+
+    // 1. Raycast-Startpunkt: Exakt UNTER dem Charakter (pos.y - 0.95),
+    // damit der Laser nicht versehentlich den eigenen Körper trifft!
+    const rayOrigin = { x: pos.x, y: pos.y - 0.95, z: pos.z };
+    const rayDir = { x: 0, y: -1, z: 0 };
+    const ray = new rapier.Ray(rayOrigin, rayDir);
+
+    // Laser schießt 0.2 Meter (20cm) nach unten
+    const hit = world.castRay(ray, 0.2, true);
+
+    // Wir sind NUR "Grounded", wenn der Laser den Boden trifft
+    // UND wir nicht gerade durch den Sprung steil nach oben/unten fliegen
+    const isGrounded = hit !== null && Math.abs(velocity.y) < 0.2;
+
+    // 2. Die Sprung-Logik mit "Anti-Flappy-Bird" Schutz
+    if (keys.jump && isGrounded && !jumpPressed.current) {
+      jumpPressed.current = true; // Taste als "gedrückt" sperren
+      rigidBodyRef.current.setLinvel(
+        { x: velocity.x, y: JUMP_FORCE, z: velocity.z },
+        true,
+      );
+    } else if (!keys.jump) {
+      // Erst wenn die Leertaste losgelassen wird, geben wir den nächsten Sprung frei
+      jumpPressed.current = false;
+    }
+
+    // --- 3. ANIMATIONEN (Jetzt mit klaren Namen!) ---
+    let nextAnim = currentAnim;
+
+    if (!isGrounded) {
+      // Wenn die Fallgeschwindigkeit stark negativ ist, fällt er tief!
+      if (velocity.y < -4) {
+        nextAnim = "FreeFalling";
+      } else {
+        nextAnim = "Jump";
+      }
+    } else if (isMoving) {
+      // Wenn S gedrückt ist, Walk_Backwards. Sonst prüfen ob Shift (Run) oder normal (Walk)
+      if (isWalkingBackward) {
+        nextAnim = "Walk_Backwards";
+      } else {
+        nextAnim = keys.run ? "Run" : "Walk";
+      }
+    } else {
+      // Er steht still.
+      const REAL_IDLES = ["Idle_1", "Idle_2", "Idle_3"];
+      if (!REAL_IDLES.includes(currentAnim)) {
+        nextAnim = "Idle_1";
+      }
+    }
+
+    if (nextAnim !== currentAnim) setCurrentAnim(nextAnim);
+
+    // --- 4. THIRD-PERSON KAMERA ORBIT ---
+    const heightOffset = 1.2;
+
+    const camX =
+      pos.x + radius.current * Math.sin(yaw.current) * Math.cos(pitch.current);
+    const camY =
+      pos.y + heightOffset + radius.current * Math.sin(pitch.current);
+    const camZ =
+      pos.z + radius.current * Math.cos(yaw.current) * Math.cos(pitch.current);
+
+    const targetCameraPos = new THREE.Vector3(camX, camY, camZ);
+
+    camera.position.lerp(targetCameraPos, 0.2);
+    camera.lookAt(pos.x, pos.y + heightOffset, pos.z);
+
+    // --- 5. NETZWERK SYNC ---
+    if (pos.y < -5) {
+      onFall();
+    } else {
+      onMove([pos.x, pos.y, pos.z], modelRef.current.rotation.y, nextAnim);
     }
   });
 
-  // Hier verknüpfst du die ecctrl-Events mit deinen Modell-Animationen
-  const animationSet = {
-    idle: "Idle_15",
-    walk: "Walking",
-    run: "Running",
-    jump: "Regular_Jump",
-    jumpIdle: "Idle_3",
-    jumpLand: "Standard_Forward_Charge_inplace",
-    fall: "Idle_9", // This is for falling from high sky
-    // Currently support four additional animations
-    /* action1: "Wave",
-    action2: "Dance",
-    action3: "Cheer",
-    action4: "Attack(1h)", // This is special action which can be trigger while walking or running */
-  };
-
   return (
-    <Ecctrl
-      camCollision={false}
-      animated
-      maxVelLimit={5}
-      jumpVel={4} // Weniger Sprungkraft, da Gravitation jetzt normal ist
-      sprintMult={2.5}
-      airDragMultiplier={0.2}
-      position={[0, 15, 0]}
-      camInitDis={-5} // Kamera-Abstand
-      // --- NEU: Wir tunen das Hovercraft, damit es nicht wobbelt ---
-  floatHeight={0}      // Schaltet das Schweben ab, Figur liegt auf dem Boden
-  dampingC={0.2}
+    <RigidBody
+      ref={rigidBodyRef}
+      /* colliders="capsule"  */
+      mass={1}
+      type="dynamic"
+      position={[0, 5, 0]}
+      enabledRotations={[false, false, false]}
+      friction={0}
     >
-      <group ref={innerRef}>
-        <EcctrlAnimation
-          characterURL="/models/player.glb"
-          animationSet={animationSet}
-        >
-          {/* Den Y-Wert ggf. leicht anpassen, falls er jetzt leicht in der Luft schwebt */}
-          <Player position={[0, -0.65, 0]} />
-        </EcctrlAnimation>
+      <group ref={modelRef}>
+        <Player currentAction={currentAnim} position={[0, -0.92, 0]} />
       </group>
-    </Ecctrl>
+    </RigidBody>
   );
 }
 
@@ -136,16 +305,17 @@ function RemotePlayer({
   position,
   rotation,
   username,
+  anim, // NEW: Receive animation state
 }: {
   position: [number, number, number];
   rotation: number;
   username: string;
+  anim?: string; // NEW
 }) {
   const rbRef = useRef<any>(null);
 
   useEffect(() => {
     if (rbRef.current) {
-      // Safely update the Rapier kinematic body
       rbRef.current.setTranslation(
         { x: position[0], y: position[1], z: position[2] },
         true,
@@ -160,40 +330,55 @@ function RemotePlayer({
   return (
     <RigidBody ref={rbRef} type="kinematicPosition" colliders="cuboid">
       <group>
-        <mesh castShadow position={[0, -0.35, 0]}>
-          <capsuleGeometry args={[0.4, 0.7]} />
-          <meshStandardMaterial color="#FFB800" />
-        </mesh>
+        {/* NEW: Replaced Capsule with the actual Player model and correct animation */}
+        <Player currentAction={anim || "Idle_1"} position={[0, -0.92, 0]} />
       </group>
     </RigidBody>
   );
 }
 
-function Beam({
-  position,
-  width,
+function MovingObstacle({
+  startZ,
+  speed = 10,
 }: {
-  position: [number, number, number];
-  width: number;
+  startZ: number;
+  speed?: number;
 }) {
   const rbRef = useRef<any>(null);
 
-  useEffect(() => {
-    if (rbRef.current) {
-      rbRef.current.setTranslation(
-        { x: position[0], y: position[1], z: position[2] },
-        true,
-      );
+  useFrame((state, delta) => {
+    if (!rbRef.current) return;
+
+    // Aktuelle Position auslesen
+    const currentPos = rbRef.current.translation();
+
+    // Neue Z-Position berechnen (bewegt sich nach hinten)
+    let newZ = currentPos.z + speed * delta;
+
+    // Deine Plattform ist 70 lang (von -35 bis +35).
+    // Wenn das Objekt hinten ankommt, setzen wir es wieder nach ganz vorne!
+    if (newZ > 35) {
+      newZ = -35;
     }
-  }, [position]);
+
+    // WICHTIG: Bei kinematischen Körpern nutzen wir setNextKinematicTranslation!
+    // Dadurch berechnet die Physik-Engine die Wucht korrekt und schiebt den Spieler.
+    rbRef.current.setNextKinematicTranslation({
+      x: 0, // Immer mittig auf der X-Achse
+      y: -0.5, // Leicht über deinem Boden (der Boden endet bei Y=-1)
+      z: newZ,
+    });
+  });
 
   return (
+    // type="kinematicPosition" macht es zum unaufhaltsamen Objekt!
     <RigidBody ref={rbRef} type="kinematicPosition" colliders="cuboid">
       <mesh castShadow receiveShadow>
-        <boxGeometry args={[width, 0.5, 0.5]} />
+        {/* args: [Breite, Höhe, Tiefe]. Breite 22 ist etwas breiter als deine 20er Plattform! */}
+        <boxGeometry args={[22, 1, 1]} />
         <meshStandardMaterial
-          color="#FF4D00"
-          emissive="#FF4D00"
+          color="#FF0055"
+          emissive="#FF0055"
           emissiveIntensity={2}
         />
       </mesh>
@@ -216,6 +401,16 @@ function ArenaScene({
   status: string;
   socketId: string | null;
 }) {
+  // Lade die Textur (R3F sucht automatisch im /public Ordner)
+  const floorTexture = useTexture("/textures/rocky_trail_02_diff_4k.jpg");
+
+  // Bringe der Textur bei, dass sie sich wiederholen darf
+  floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
+
+  // Lege fest, wie oft sie sich wiederholt.
+  // Bei 20 Breite und 70 Länge ist ein Verhältnis wie 4 zu 14 ein guter Startwert.
+  // Wenn die Steine zu groß aussehen, erhöhe diese Zahlen!
+  floorTexture.repeat.set(4, 14);
   return (
     <>
       <ambientLight intensity={0.5} />
@@ -225,11 +420,20 @@ function ArenaScene({
         intensity={1.5}
         shadow-mapSize={[1024, 1024]}
       />
-      <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+      {/* 
+  sunPosition = [X, Y, Z] 
+  Y steuert die Höhe der Sonne. Wenn Y nah an 0 ist, bekommst du einen Sonnenuntergang. 
+  Wenn Y hoch ist (z.B. 2), hast du Mittagssonne.
+*/}
+      <Sky
+        distance={450000}
+        sunPosition={[5, 1, 8]}
+        inclination={0}
+        azimuth={0.25}
+      />
 
       {/* 1. DEBUG MODUS AKTIVIERT! Zeigt alle Physik-Boxen als rote Linien an */}
-      <Physics gravity={[0, -9.81, 0]} /* debug */> 
-        
+      <Physics gravity={[0, -9.81, 0]} timeStep="vary" /* debug */>
         {/* 2. NUR OPTIK: Das Gltf hat KEINEN RigidBody mehr drum herum! */}
         {/* <Gltf 
           castShadow 
@@ -253,14 +457,26 @@ function ArenaScene({
           </mesh>
         </RigidBody> */}
 
-                  <RigidBody type="fixed" colliders="trimesh">
-            <Gltf /* castShadow */ receiveShadow rotation={[-Math.PI / 2, 0, 0]} scale={0.11} src="/fantasy_game_inn2-transformed.glb" />
-          </RigidBody>
+        <RigidBody type="fixed">
+          <mesh receiveShadow position={[0, -3.5, 0]}>
+            <boxGeometry args={[20, 5, 70]} />
+            {/* Hier kommt die Textur drauf! */}
+            <meshStandardMaterial map={floorTexture} />
+          </mesh>
+        </RigidBody>
+
+        {/*  <RigidBody type="fixed" colliders="trimesh">
+            <Gltf  receiveShadow rotation={[-Math.PI / 2, 0, 0]} scale={0.11} src="/fantasy_game_inn2-transformed.glb" />
+          </RigidBody> */}
+
+        {/* Wir setzen 3 Stück mit unterschiedlichen Start-Positionen und Geschwindigkeiten */}
+        <MovingObstacle startZ={-35} speed={12} />
+        <MovingObstacle startZ={-15} speed={8} />
+        <MovingObstacle startZ={5} speed={15} />
 
         {status === "playing" && (
           <LocalPlayer onMove={onMove} onFall={onFall} />
         )}
-
         {players
           .filter((p) => p.id !== socketId)
           .map((p) => (
@@ -269,6 +485,7 @@ function ArenaScene({
               position={p.position}
               rotation={p.rotation}
               username={p.username}
+              anim={p.anim}
             />
           ))}
       </Physics>
@@ -331,8 +548,8 @@ export default function ArenaPage({
     };
   }, [gameRoomId]);
 
-  const handleMove = (position: [number, number, number], rotation: number) => {
-    socket?.emit("player_move", { roomId: gameRoomId, position, rotation });
+const handleMove = (position: [number, number, number], rotation: number, anim: string) => {
+    socket?.emit("player_move", { roomId: gameRoomId, position, rotation, anim });
   };
 
   const handleFall = () => {
