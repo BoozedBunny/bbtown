@@ -46,6 +46,7 @@ function Scene({
   serverTime,
   activeHoverBuildingId,
   onHoverBuildingChange,
+  hoverSuppressed,
 }: {
   buildings: BuildingData[];
   isXRay: boolean;
@@ -57,6 +58,7 @@ function Scene({
   serverTime?: string;
   activeHoverBuildingId?: string | null;
   onHoverBuildingChange?: (id: string | null) => void;
+  hoverSuppressed?: boolean;
 }) {
   return (
     <>
@@ -86,6 +88,7 @@ function Scene({
             rotationY={b.rotationY || 0}
             activeHoverBuildingId={activeHoverBuildingId}
             onHoverBuildingChange={onHoverBuildingChange}
+            hoverSuppressed={hoverSuppressed}
             onClick={() => {
               if (!freeMoveBuildingId) onBuildingClick(b);
             }}
@@ -160,6 +163,11 @@ export default function TownPage({
   const [showCombinedView, setShowCombinedView] = useState(false);
   const [showArenaModal, setShowArenaModal] = useState(false);
   const [matchmakingStatus, setMatchmakingStatus] = useState<"idle" | "searching" | "matched">("idle");
+
+  const hoverSuppressed = useMemo(
+    () => !!selectedBuilding || showArenaModal || showCombinedView,
+    [selectedBuilding, showArenaModal, showCombinedView],
+  );
   const [editForm, setEditForm] = useState({
     title: "",
     price: 5000,
@@ -306,6 +314,11 @@ export default function TownPage({
     });
   }, [dbBuildingStates, freeMoveBuildingId, freeMovePosition, positionOverrides, rotationOverrides]);
 
+  useEffect(() => {
+    if (!hoverSuppressed) return;
+    setActiveHoverBuildingId(null);
+  }, [hoverSuppressed]);
+
   if (showLoading) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center text-white font-sans overflow-hidden relative brand-bg-overlay">
@@ -444,7 +457,9 @@ export default function TownPage({
             serverTime={serverTime}
             activeHoverBuildingId={activeHoverBuildingId}
             onHoverBuildingChange={setActiveHoverBuildingId}
+            hoverSuppressed={hoverSuppressed}
             onBuildingClick={(b) => {
+              setActiveHoverBuildingId(null);
               if (b.id === ARENA_BUILDING_ID) {
                 setShowArenaModal(true);
                 return;
