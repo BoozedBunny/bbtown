@@ -116,7 +116,7 @@ export function DayNightCycle({ serverTime }: { serverTime?: string }) {
         shadow-camera-top={20}
         shadow-camera-bottom={-20}
       />
-      <Environment preset={lighting.environmentPreset} />
+      <Environment preset={lighting.environmentPreset} environmentIntensity={lighting.isDay ? 0.5 : 1.4} />
     </>
   );
 }
