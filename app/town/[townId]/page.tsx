@@ -175,25 +175,6 @@ export default function TownPage({
     forSale: false,
   });
   const [currentUser, setCurrentUser] = useState<UserWithCharacter | null>(null);
-  const [loadingProgress, setLoadingProgress] = useState(0);
-  const [showLoading, setShowLoading] = useState(true);
-
-  useEffect(() => {
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += Math.floor(Math.random() * 15) + 5;
-      if (progress >= 100) {
-        progress = 100;
-        setLoadingProgress(progress);
-        clearInterval(interval);
-        setTimeout(() => setShowLoading(false), 600);
-      } else {
-        setLoadingProgress(progress);
-      }
-    }, 150);
-
-    return () => clearInterval(interval);
-  }, []);
 
   const handleMove = async (axis: "x" | "y" | "z" | "rot", dir: 1 | -1) => {
     if (!movingBuilding) return;
@@ -326,44 +307,6 @@ export default function TownPage({
     if (!hoverSuppressed) return;
     setActiveHoverBuildingId(null);
   }, [hoverSuppressed]);
-
-  if (showLoading) {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center text-white font-sans overflow-hidden relative brand-bg-overlay">
-        <div className="z-10 flex flex-col items-center max-w-sm w-full glass-card p-8">
-          <div className="relative w-24 h-24 mb-6 animate-pulse">
-            <Image
-              src="/logo.png"
-              alt="BoozedBunny Logo"
-              fill
-              className="object-contain drop-shadow-[0_0_15px_rgba(189,0,255,0.5)]"
-            />
-          </div>
-          <h2 className="text-2xl font-heading font-bold mb-2 text-center brand-gradient-text">
-            Entering City...
-          </h2>
-          <p className="text-gray-400 text-sm mb-8 text-center">
-            Simulating economics and loading assets
-          </p>
-
-          <div className="w-full bg-white/10 h-3 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-brand-primary to-brand-secondary transition-all duration-300 ease-out"
-              style={{ width: `${loadingProgress}%` }}
-            />
-          </div>
-          <div className="w-full flex justify-between mt-2">
-            <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">
-              Progress
-            </span>
-            <span className="text-xs text-brand-secondary font-bold">
-              {loadingProgress}%
-            </span>
-          </div>
-        </div>
-      </main>
-    );
-  }
 
   return (
     <main className="flex min-h-screen flex-col items-center p-8 text-white font-sans overflow-hidden relative brand-bg-overlay">
