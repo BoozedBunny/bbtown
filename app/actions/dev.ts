@@ -6,7 +6,7 @@ import path from "path";
 export async function updateBuildingTransform(buildingId: string, position: [number, number, number], rotationY: number) {
   if (process.env.NODE_ENV !== "development") return { success: false, error: "Not in dev mode" };
 
-  const filePath = path.join(process.cwd(), "app", "town", "[townId]", "page.tsx");
+  const filePath = path.join(process.cwd(), "app", "town", "[townId]", "town-config.ts");
   let content = fs.readFileSync(filePath, "utf-8");
 
   // Find the exact ID string (e.g. id: "1",)

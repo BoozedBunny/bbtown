@@ -32,228 +32,8 @@ import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "../../actions/user";
 import { buyBuilding, updateBuildingSettings } from "../../actions/town";
 import { updateBuildingTransform } from "../../actions/dev";
-
-interface BuildingData {
-  id: string;
-  position: [number, number, number];
-  rotationY: number;
-  glb?: string;
-  type: string;
-  owner?: string;
-  ownerId?: string;
-  color?: string;
-  price?: number;
-  employees?: number;
-  title?: string;
-  forSale?: boolean;
-}
-
-const createRoads = () => {
-  const roads: BuildingData[] = [];
-
-  // Horizontale Hauptstraße (X von -10 bis 10)
-  for (let x = -10; x <= 10; x++) {
-    roads.push({
-      id: `r-h-${x}`,
-      type: "road",
-      position: [x, 0, 0],
-      rotationY: 0,
-    });
-  }
-
-  // Vertikale Seitenstraße 1 (Z von -10 bis 10 bei X = -4)
-  for (let z = -10; z <= 10; z++) {
-    roads.push({
-      id: `r-v1-${z}`,
-      type: "road",
-      position: [-4, 0, z],
-      rotationY: 90,
-    });
-  }
-
-  // Vertikale Seitenstraße 2 (Z von -10 bis 10 bei X = 4)
-  for (let z = -10; z <= 10; z++) {
-    roads.push({
-      id: `r-v2-${z}`,
-      type: "road",
-      position: [4, 0, z],
-      rotationY: 90,
-    });
-  }
-
-  return roads;
-};
-
-const HARDCODED_BUILDINGS: BuildingData[] = [
-  {
-    id: "1",
-    position: [-1.00, 0.90, -0.57],
-    rotationY: 80,
-    glb: "/models/rustic_stein.glb",
-    type: "Town Hall",
-    color: "#BD00FF",
-  },
-  {
-    id: "2",
-    position: [-1.12, 0.90, -5.49],
-    rotationY: -142,
-    glb: "/models/barbys_house.glb",
-    type: "Residential",
-    color: "#FFB800",
-  },
-  {
-    id: "3",
-    position: [-2.71, 0.90, 1.68],
-    rotationY: 98,
-    glb: "/models/bb_house_fin.glb",
-    type: "Industrial",
-    color: "#FF4D00",
-  },
-  {
-    id: "4",
-    position: [-3.30, 0.90, -1.35],
-    rotationY: 47,
-    glb: "/models/clocktower_fin.glb",
-    type: "Commercial",
-    color: "#BD00FF",
-  },
-  {
-    id: "5",
-    position: [6.06, 0.90, -2.02],
-    rotationY: -40,
-    glb: "/models/massage_saloon.glb",
-    type: "Commercial",
-    color: "#BD00FF",
-  },
-  {
-    id: "6",
-    position: [7.80, 0.90, 2.00],
-    rotationY: 80,
-    glb: "/models/tower.glb",
-    type: "Commercial",
-    color: "#BD00FF",
-  },
-  {
-    id: "7",
-    position: [-5.33, 0.97, -4.20],
-    rotationY: 50,
-    glb: "/models/bb_gogo_bar.glb",
-    type: "Commercial",
-    color: "#BD00FF",
-  },
-  {
-    id: "8",
-    position: [1.07, 0.97, 5.75],
-    rotationY: 147,
-    glb: "/models/1001_nights.glb",
-    type: "Commercial",
-    color: "#BD00FF",
-  },
-  {
-    id: "9",
-    position: [-2.65, 0.97, -7.43],
-    rotationY: 50,
-    glb: "/models/akihabara.glb",
-    type: "Commercial",
-    color: "#BD00FF",
-  },
-  {
-    id: "10",
-    position: [1.56, 0.97, -9.05],
-    rotationY: 88,
-    glb: "/models/boat_house.glb",
-    type: "Commercial",
-    color: "#BD00FF",
-  },
-  {
-    id: "11",
-    position: [7.80, 0.97, -0.30],
-    rotationY: 13,
-    glb: "/models/dune_partyhouse.glb",
-    type: "Commercial",
-    color: "#BD00FF",
-  },
-  {
-    id: "12",
-    position: [-0.00, 0.97, -5.21],
-    rotationY: 50,
-    glb: "/models/feet_house.glb",
-    type: "Commercial",
-    color: "#BD00FF",
-  },
-  {
-    id: "13",
-    position: [-8.01, 0.97, -0.99],
-    rotationY: 50,
-    glb: "/models/holy_rave.glb",
-    type: "Commercial",
-    color: "#BD00FF",
-  },
-  {
-    id: "14",
-    position: [9.51, 0.97, -5.98],
-    rotationY: 26,
-    glb: "/models/hoppy_heaven.glb",
-    type: "Commercial",
-    color: "#BD00FF",
-  },
-  {
-    id: "15",
-    position: [-11.45, 0.97, -5.20],
-    rotationY: 28,
-    glb: "/models/pipe_house.glb",
-    type: "Commercial",
-    color: "#BD00FF",
-  },
-  {
-    id: "16",
-    position: [-2.4, 2.67, 4.0],
-    rotationY: 105,
-    glb: "/models/up_up_balloon.glb",
-    type: "Commercial",
-    color: "#BD00FF",
-  },
-  {
-    id: "17",
-    position: [-0.59, 0.97, 3.69],
-    rotationY: 125,
-    glb: "/models/up_up_house.glb",
-    type: "Commercial",
-    color: "#BD00FF",
-  },
-  {
-    id: "18",
-    position: [9.79, 0.97, -1.91],
-    rotationY: 24,
-    glb: "/models/vino_vibes.glb",
-    type: "Commercial",
-    color: "#BD00FF",
-  },
-  {
-    id: "19",
-    position: [4.27, 0.97, -5.56],
-    rotationY: 50,
-    glb: "/models/vodka_palace.glb",
-    type: "Commercial",
-    color: "#BD00FF",
-  },
-  {
-    id: "20",
-    position: [3.21, 0.97, 0.92],
-    rotationY: 41,
-    glb: "/models/vulcan_temple.glb",
-    type: "Commercial",
-    color: "#BD00FF",
-  },
-  {
-    id: "21",
-    position: [1.72, 0.57, -2.16],
-    rotationY: 0,
-    glb: "/models/arena-v2.glb",
-    type: "Commercial",
-    color: "#BD00FF",
-  },
-];
+import { ARENA_BUILDING_ID, BANK_BUILDING_ID, HARDCODED_BUILDINGS } from "./town-config";
+import type { BuildingData, DbBuildingState, TownStateData, UserWithCharacter } from "./town-types";
 
 function Scene({
   buildings,
@@ -373,8 +153,8 @@ export default function TownPage({
   const [rotationOverrides, setRotationOverrides] = useState<
     Record<string, number>
   >({});
-  const [dbBuildingStates, setDbBuildingStates] = useState<any[]>([]);
-  const [townData, setTownData] = useState<any>(null);
+  const [dbBuildingStates, setDbBuildingStates] = useState<DbBuildingState[]>([]);
+  const [townData, setTownData] = useState<TownStateData | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [serverTime, setServerTime] = useState<string | undefined>(undefined);
   const [showCombinedView, setShowCombinedView] = useState(false);
@@ -385,7 +165,7 @@ export default function TownPage({
     price: 5000,
     forSale: false,
   });
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<UserWithCharacter | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [showLoading, setShowLoading] = useState(true);
 
@@ -524,7 +304,7 @@ export default function TownPage({
       }
       return { ...b, position: pos, rotationY: rot };
     });
-  }, [dbBuildingStates]);
+  }, [dbBuildingStates, freeMoveBuildingId, freeMovePosition, positionOverrides, rotationOverrides]);
 
   if (showLoading) {
     return (
@@ -665,15 +445,15 @@ export default function TownPage({
             activeHoverBuildingId={activeHoverBuildingId}
             onHoverBuildingChange={setActiveHoverBuildingId}
             onBuildingClick={(b) => {
-              if (b.id === "21") {
+              if (b.id === ARENA_BUILDING_ID) {
                 setShowArenaModal(true);
                 return;
               }
               setSelectedBuilding(b);
               setEditForm({
-                title: (b as any).title || "",
+                title: b.title || "",
                 price: b.price || 5000,
-                forSale: (b as any).forSale ?? true,
+                forSale: b.forSale ?? true,
               });
             }}
             cameraMode={cameraMode}
@@ -878,9 +658,9 @@ export default function TownPage({
           if (!open) setSelectedBuilding(null);
           else if (selectedBuilding) {
             setEditForm({
-              title: (selectedBuilding as any).title || "",
+              title: selectedBuilding.title || "",
               price: selectedBuilding.price || 5000,
-              forSale: (selectedBuilding as any).forSale ?? true,
+              forSale: selectedBuilding.forSale ?? true,
             });
           }
         }}
@@ -888,17 +668,17 @@ export default function TownPage({
         <DialogContent className="sm:max-w-[425px] bg-[#11041d] text-white border-white/10 rounded-2xl shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-2xl font-heading font-bold text-brand-secondary">
-              {(selectedBuilding as any)?.title || selectedBuilding?.type}
+              {selectedBuilding?.title || selectedBuilding?.type}
             </DialogTitle>
             <DialogDescription className="text-gray-400">
-              {selectedBuilding?.id === "4"
+              {selectedBuilding?.id === BANK_BUILDING_ID
                 ? "Town Infrastructure"
                 : "Real Estate Information"}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-6 py-4">
             {/* BANK VIEW */}
-            {selectedBuilding?.id === "4" && (
+            {selectedBuilding?.id === BANK_BUILDING_ID && (
               <div className="p-6 bg-brand-primary/10 rounded-2xl border border-brand-primary/20 text-center space-y-4">
                 <h3 className="text-xl font-bold text-white">
                   Bank of BoozedBunnyTown
@@ -1043,9 +823,9 @@ export default function TownPage({
                         Status
                       </span>
                       <p
-                        className={`text-sm font-bold mt-1 px-2 py-1 rounded-md ${(selectedBuilding as any)?.forSale ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}
+                        className={`text-sm font-bold mt-1 px-2 py-1 rounded-md ${selectedBuilding?.forSale ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}
                       >
-                        {(selectedBuilding as any)?.forSale
+                        {selectedBuilding?.forSale
                           ? `FOR SALE ($${selectedBuilding.price?.toLocaleString()})`
                           : "NOT FOR SALE"}
                       </p>
@@ -1075,7 +855,7 @@ export default function TownPage({
                     )}
                   </div>
 
-                  {(selectedBuilding as any)?.forSale &&
+                  {selectedBuilding?.forSale &&
                     currentUser &&
                     selectedBuilding.price && (
                       <Button
