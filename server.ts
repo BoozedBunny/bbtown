@@ -4,6 +4,7 @@ import next from "next";
 import { Server } from "socket.io";
 import express from "express";
 import { PrismaClient } from "@prisma/client";
+import { COMPANY_PROFILES } from "@/lib/market/companyProfiles";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
@@ -15,24 +16,16 @@ const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
 app.prepare().then(async () => {
-  // Initialize funny stocks
-  const FUNNY_STOCKS = [
-    { symbol: "BANA", name: "Banana Stand", price: 10.0 },
-    { symbol: "STONK", name: "Stonks R Us", price: 69.0 },
-    { symbol: "DOGE", name: "Doge Much Wow", price: 4.2 },
-    { symbol: "TEAR", name: "Unicorn Tears", price: 100.0 },
-    { symbol: "COPE", name: "Copium Corp", price: 50.0 },
-  ];
-
-  for (const stock of FUNNY_STOCKS) {
+  // Initialize exchange company universe from shared profile config.
+  for (const stock of COMPANY_PROFILES) {
     await prisma.stock.upsert({
       where: { symbol: stock.symbol },
       update: {},
       create: {
         symbol: stock.symbol,
         name: stock.name,
-        price: stock.price,
-        previousPrice: stock.price,
+        price: stock.basePrice,
+        previousPrice: stock.basePrice,
       },
     });
   }

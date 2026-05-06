@@ -20,6 +20,7 @@ import { TexturedGround } from "@/components/TexturedGround";
 import { DayNightCycle } from "@/components/DayNightCycle";
 import { RoadTile } from "@/components/RoadTile";
 import { CombinedMarketView } from "@/components/CombinedMarketView";
+import { MarketTickerTape } from "@/components/MarketTickerTape";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -168,6 +169,7 @@ export default function TownPage({
   const [isProcessing, setIsProcessing] = useState(false);
   const [serverTime, setServerTime] = useState<string | undefined>(undefined);
   const [showCombinedView, setShowCombinedView] = useState(false);
+  const [marketPreselectedSymbol, setMarketPreselectedSymbol] = useState<string | null>(null);
   const [showArenaModal, setShowArenaModal] = useState(false);
   const [matchmakingStatus, setMatchmakingStatus] = useState<"idle" | "searching" | "matched">("idle");
   const [isTransitioningToArena, setIsTransitioningToArena] = useState(false);
@@ -629,6 +631,13 @@ export default function TownPage({
         )}
       </div>
 
+      <MarketTickerTape
+        onSelectSymbol={(symbol) => {
+          setMarketPreselectedSymbol(symbol);
+          setShowCombinedView(true);
+        }}
+      />
+
       <Dialog
         open={!!selectedBuilding}
         onOpenChange={(open) => {
@@ -904,6 +913,8 @@ export default function TownPage({
         open={showCombinedView}
         setOpen={setShowCombinedView}
         townData={townData}
+        preselectedSymbol={marketPreselectedSymbol}
+        onPreselectedSymbolConsumed={() => setMarketPreselectedSymbol(null)}
       />
 
       <Dialog
