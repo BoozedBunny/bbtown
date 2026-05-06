@@ -12,7 +12,7 @@ import { useEffect, useState, use, useMemo } from "react";
 import { io, Socket } from "socket.io-client";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Swords, Trophy, Loader2, X } from "lucide-react";
 import { ModelBuilding } from "@/components/ModelBuilding";
 import { ModelX } from "@/components/ModelX";
@@ -35,6 +35,7 @@ import { buyBuilding, updateBuildingSettings } from "../../actions/town";
 import { updateBuildingTransform } from "../../actions/dev";
 import { ARENA_BUILDING_ID, BANK_BUILDING_ID, HARDCODED_BUILDINGS } from "./town-config";
 import type { BuildingData, DbBuildingState, TownStateData, UserWithCharacter } from "./town-types";
+import type { CentralManagementIntent, CentralManagementTab } from "@/lib/ui/centralManagementIntent";
 
 function Scene({
   buildings,
@@ -141,6 +142,8 @@ export default function TownPage({
 }) {
   const { townId } = use(params);
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
   const [activeHoverBuildingId, setActiveHoverBuildingId] = useState<string | null>(null);
@@ -170,7 +173,7 @@ export default function TownPage({
   const [isProcessing, setIsProcessing] = useState(false);
   const [serverTime, setServerTime] = useState<string | undefined>(undefined);
   const [showCombinedView, setShowCombinedView] = useState(false);
-  const [marketPreselectedSymbol, setMarketPreselectedSymbol] = useState<string | null>(null);
+  const [marketIntent, setMarketIntent] = useState<CentralManagementIntent | null>(null);
   const [showArenaModal, setShowArenaModal] = useState(false);
   const [matchmakingStatus, setMatchmakingStatus] = useState<"idle" | "searching" | "matched">("idle");
   const [isTransitioningToArena, setIsTransitioningToArena] = useState(false);
@@ -185,6 +188,48 @@ export default function TownPage({
     forSale: false,
   });
   const [currentUser, setCurrentUser] = useState<UserWithCharacter | null>(null);
+
+  const updateCentralManagementQuery = (tab: CentralManagementTab, symbol?: string | null) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("cm", tab);
+    if (tab === "market" && symbol?.trim()) {
+      params.set("symbol", symbol.trim().toUpperCase());
+    } else {
+      params.delete("symbol");
+    }
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  };
+
+  const openCentralManagement = (intent: CentralManagementIntent) => {
+    setMarketIntent(intent);
+    setShowCombinedView(true);
+    updateCentralManagementQuery(intent.tab, intent.symbol ?? null);
+  };
+
+  const closeCentralManagement = () => {
+    setShowCombinedView(false);
+    setMarketIntent(null);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("cm");
+    params.delete("symbol");
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  };
+
+  useEffect(() => {
+    const cm = searchParams.get("cm");
+    if (cm !== "market" && cm !== "treasury") return;
+
+    const symbol = searchParams.get("symbol");
+    const intent: CentralManagementIntent = {
+      tab: cm,
+      symbol: cm === "market" ? symbol : null,
+      source: "query",
+    };
+    setMarketIntent(intent);
+    setShowCombinedView(true);
+  }, [searchParams]);
 
   const handleMove = async (axis: "x" | "y" | "z" | "rot", dir: 1 | -1) => {
     if (!movingBuilding) return;
@@ -329,7 +374,12 @@ export default function TownPage({
           <h1 className="text-3xl font-heading font-bold tracking-tight text-white flex items-center gap-3">
             <button
               className="flex items-center gap-3 hover:opacity-80 transition-opacity text-left focus:outline-none focus:ring-2 focus:ring-brand-primary rounded-lg p-1 -m-1"
-              onClick={() => setShowCombinedView(true)}
+              onClick={() =>
+                openCentralManagement({
+                  tab: "treasury",
+                  source: "manual",
+                })
+              }
               aria-label="Open Town Central Management"
             >
               <div className="relative w-8 h-8">
@@ -634,8 +684,11 @@ export default function TownPage({
 
       <MarketTickerTape
         onSelectSymbol={(symbol) => {
-          setMarketPreselectedSymbol(symbol);
-          setShowCombinedView(true);
+          openCentralManagement({
+            tab: "market",
+            symbol,
+            source: "ticker",
+          });
         }}
       />
 
@@ -684,7 +737,10 @@ export default function TownPage({
                 <Button
                   onClick={() => {
                     setSelectedBuilding(null);
-                    setShowCombinedView(true);
+                    openCentralManagement({
+                      tab: "treasury",
+                      source: "bank",
+                    });
                   }}
                   className="w-full bg-brand-primary hover:bg-brand-primary/80 mt-4"
                 >
@@ -912,10 +968,16 @@ export default function TownPage({
       <CombinedMarketView
         socket={socket}
         open={showCombinedView}
-        setOpen={setShowCombinedView}
+        setOpen={(open) => {
+          if (!open) {
+            closeCentralManagement();
+            return;
+          }
+          setShowCombinedView(true);
+        }}
         townData={townData}
-        preselectedSymbol={marketPreselectedSymbol}
-        onPreselectedSymbolConsumed={() => setMarketPreselectedSymbol(null)}
+        intent={marketIntent}
+        onIntentConsumed={() => setMarketIntent(null)}
       />
 
       <Dialog
