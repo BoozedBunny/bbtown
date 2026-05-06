@@ -105,6 +105,13 @@ function Scene({
         tiltZ={70}
       />
 
+        <ModelX
+        url="/models/ground.glb"
+        position={[0, -2.36, 0]}
+        opacity={!isXRay ? 1 : 0.5}
+        scale={20}
+      />
+
       <ContactShadows
         position={[0, 0, 0]}
         opacity={0.4}
