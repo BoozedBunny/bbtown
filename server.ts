@@ -5,6 +5,8 @@ import { Server } from "socket.io";
 import express from "express";
 import { PrismaClient } from "@prisma/client";
 import { COMPANY_PROFILES } from "./lib/market/companyProfiles";
+import { runTreasuryDailySettlement } from "./lib/treasury/treasuryService";
+import { runLoanDelinquencySweep } from "./lib/treasury/loanService";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
@@ -131,6 +133,15 @@ app.prepare().then(async () => {
     });
     io.emit("stocks_updated", updatedStocks);
   }, 10000);
+
+  setInterval(async () => {
+    try {
+      await runTreasuryDailySettlement();
+      await runLoanDelinquencySweep();
+    } catch (error) {
+      console.error("Treasury/loan settlement failed", error);
+    }
+  }, 60_000);
 
   io.on("connection", (socket) => {
     console.log("A user connected:", socket.id);

@@ -58,6 +58,44 @@
   }
 }
 
+@keyframes dialog-open-bounce {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 6px)) scale(0.97);
+  }
+  65% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes dialog-open-fade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@layer utilities {
+  .dialog-open-bounce[data-state="open"] {
+    animation: dialog-open-bounce 210ms cubic-bezier(0.22, 1.24, 0.36, 1) both;
+    will-change: transform, opacity;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dialog-open-bounce[data-state="open"] {
+      animation: dialog-open-fade 80ms ease-out both;
+      will-change: opacity;
+    }
+  }
+}
+
 @layer components {
   .brand-bg-overlay {
     @apply relative overflow-hidden;

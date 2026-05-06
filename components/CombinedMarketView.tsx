@@ -5,6 +5,7 @@ import { Socket } from "socket.io-client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { NewsFeedSurface } from "@/components/NewsFeedSurface";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ArrowDownCircle, ArrowLeft, ArrowUpCircle, ShoppingBag, Wallet } from "lucide-react";
 import { toast } from "sonner";
@@ -49,6 +50,21 @@ type Snapshot = {
   news: Array<{ id: string; tone: "UP" | "DOWN" | "FLAT"; headline: string; body: string; timestampLabel: string }>;
 };
 
+type TreasurySnapshot = {
+  dateKey: string;
+  variationAmount: number;
+  openingBalance: number;
+  closingBalance: number;
+};
+
+type LoanState = {
+  id: string;
+  status: "ACTIVE" | "DELINQUENT" | "PAID" | "DEFAULTED";
+  remainingPrincipal: number;
+  lateFeesAccrued: number;
+  nextDueDateKey: string;
+};
+
 const CHART_STROKE_UP = "#2dd4bf";
 const CHART_STROKE_DOWN = "#fb7185";
 
@@ -57,6 +73,7 @@ export function CombinedMarketView({
   open,
   setOpen,
   townData,
+  townId,
   intent,
   onIntentConsumed,
 }: {
@@ -64,6 +81,7 @@ export function CombinedMarketView({
   open: boolean;
   setOpen: (open: boolean) => void;
   townData: any;
+  townId: string;
   intent?: CentralManagementIntent | null;
   onIntentConsumed?: () => void;
 }) {
@@ -74,15 +92,32 @@ export function CombinedMarketView({
   const [wallet, setWallet] = useState(0);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [activeTab, setActiveTab] = useState<CentralManagementTab>("treasury");
+  const [treasurySummary, setTreasurySummary] = useState<{ bankBalance: number; todaySnapshot?: TreasurySnapshot; last7Days: TreasurySnapshot[] } | null>(null);
+  const [loanState, setLoanState] = useState<LoanState | null>(null);
+  const [loanPrincipalInput, setLoanPrincipalInput] = useState(1000);
+  const [repayAmountInput, setRepayAmountInput] = useState(100);
+  const [loanBusy, setLoanBusy] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
-      const [pRes, sRes, meRes] = await Promise.all([fetch("/api/portfolio"), fetch("/api/stocks"), fetch("/api/me")]);
+      const townId = townData?.id ?? 1;
+      const [pRes, sRes, meRes, treasuryRes, loanRes] = await Promise.all([
+        fetch("/api/portfolio"),
+        fetch("/api/stocks"),
+        fetch("/api/me"),
+        fetch(`/api/treasury/${townId}`),
+        fetch("/api/loans/me"),
+      ]);
       if (pRes.ok) setPortfolio(await pRes.json());
       if (sRes.ok) setStocks(await sRes.json());
       if (meRes.ok) {
         const me = await meRes.json();
         setWallet(me.wallet);
+      }
+      if (treasuryRes.ok) setTreasurySummary(await treasuryRes.json());
+      if (loanRes.ok) {
+        const loanData = await loanRes.json();
+        setLoanState(loanData.loan ?? null);
       }
     };
     if (open) fetchData();
@@ -168,6 +203,83 @@ export function CombinedMarketView({
   const buy = (symbol: string, quantity: number) => socket?.emit("buy_stock", { symbol, quantity });
   const sell = (symbol: string, quantity: number) => socket?.emit("sell_stock", { symbol, quantity });
 
+  const refreshFinance = async () => {
+    const townId = townData?.id ?? 1;
+    const [meRes, treasuryRes, loanRes] = await Promise.all([
+      fetch("/api/me"),
+      fetch(`/api/treasury/${townId}`),
+      fetch("/api/loans/me"),
+    ]);
+    if (meRes.ok) {
+      const me = await meRes.json();
+      setWallet(me.wallet);
+    }
+    if (treasuryRes.ok) setTreasurySummary(await treasuryRes.json());
+    if (loanRes.ok) {
+      const data = await loanRes.json();
+      setLoanState(data.loan ?? null);
+    }
+  };
+
+  const handleIssueLoan = async () => {
+    try {
+      setLoanBusy(true);
+      const quoteRes = await fetch("/api/loans/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestedPrincipal: loanPrincipalInput }),
+      });
+      const quoteData = await quoteRes.json();
+      if (!quoteData?.eligible || !quoteData?.quote) {
+        toast.error(quoteData?.reasonCode ?? "Not eligible for loan");
+        return;
+      }
+      const issueRes = await fetch("/api/loans/issue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          quote: quoteData.quote,
+          quoteHash: quoteData.quote.hash,
+          idempotencyKey: `issue:${Date.now()}:${Math.random()}`,
+        }),
+      });
+      const issueData = await issueRes.json();
+      if (issueData?.error) {
+        toast.error(issueData.error);
+        return;
+      }
+      toast.success("Loan issued");
+      await refreshFinance();
+    } finally {
+      setLoanBusy(false);
+    }
+  };
+
+  const handleRepayLoan = async () => {
+    if (!loanState) return;
+    try {
+      setLoanBusy(true);
+      const repayRes = await fetch("/api/loans/repay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          loanId: loanState.id,
+          amount: repayAmountInput,
+          idempotencyKey: `repay:${Date.now()}:${Math.random()}`,
+        }),
+      });
+      const repayData = await repayRes.json();
+      if (repayData?.error) {
+        toast.error(repayData.error);
+        return;
+      }
+      toast.success("Repayment submitted");
+      await refreshFinance();
+    } finally {
+      setLoanBusy(false);
+    }
+  };
+
   const currentHolding = useMemo(() => {
     if (!selectedStock) return 0;
     return portfolio.find((p) => p.stockId === selectedStock.id)?.quantity || 0;
@@ -187,20 +299,48 @@ export function CombinedMarketView({
             <TabsList className="bg-white/5 border border-white/10 p-1">
               <TabsTrigger value="treasury" className="data-[state=active]:bg-brand-primary/20 data-[state=active]:text-brand-primary">Treasury</TabsTrigger>
               <TabsTrigger value="market" className="data-[state=active]:bg-brand-primary/20 data-[state=active]:text-brand-primary">Market</TabsTrigger>
+              <TabsTrigger value="news" className="data-[state=active]:bg-brand-primary/20 data-[state=active]:text-brand-primary">News</TabsTrigger>
             </TabsList>
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto overflow-x-clip p-6">
             <TabsContent value="treasury" className="mt-0 space-y-6">
-              <div className="p-8 bg-brand-primary/10 rounded-3xl border border-brand-primary/20 text-center space-y-6">
-                <div className="mx-auto w-20 h-20 bg-brand-primary/20 rounded-2xl flex items-center justify-center border border-brand-primary/30"><Wallet className="w-10 h-10 text-brand-secondary" /></div>
-                <div>
-                  <h3 className="text-2xl font-bold text-white mb-2">City Treasury</h3>
-                  <p className="text-sm text-gray-400 max-w-md mx-auto">The financial heartbeat of BoozedBunnyTown.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-6 bg-brand-primary/10 rounded-3xl border border-brand-primary/20 text-center space-y-4">
+                  <div className="mx-auto w-16 h-16 bg-brand-primary/20 rounded-2xl flex items-center justify-center border border-brand-primary/30"><Wallet className="w-8 h-8 text-brand-secondary" /></div>
+                  <h3 className="text-xl font-bold text-white">City Treasury</h3>
+                  <div className="text-4xl font-bold text-brand-secondary">${(treasurySummary?.bankBalance ?? townData?.bankBalance ?? 0).toLocaleString()}</div>
+                  <div className="text-xs text-gray-400">Today variation: {(treasurySummary?.todaySnapshot?.variationAmount ?? 0) >= 0 ? "+" : ""}{treasurySummary?.todaySnapshot?.variationAmount ?? 0}</div>
                 </div>
-                <div className="p-6 bg-black/40 rounded-2xl border border-white/5 max-w-sm mx-auto">
-                  <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest block mb-2 text-center">Global Bank Balance</span>
-                  <span className="text-4xl font-bold text-brand-secondary block text-center tracking-tight">${townData?.bankBalance?.toLocaleString() || 0}</span>
+                <div className="p-6 bg-white/5 rounded-3xl border border-white/10 space-y-3">
+                  <div className="text-xs uppercase tracking-widest text-gray-400 font-bold">Borrow Panel</div>
+                  {!loanState ? (
+                    <>
+                      <input value={loanPrincipalInput} onChange={(e) => setLoanPrincipalInput(Number(e.target.value) || 0)} type="number" min={500} className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2" />
+                      <Button onClick={handleIssueLoan} disabled={loanBusy} className="w-full bg-brand-secondary text-black hover:bg-brand-secondary/80 font-bold">Request Loan</Button>
+                    </>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="text-sm">Status: <span className="font-bold">{loanState.status}</span></div>
+                      <div className="text-sm">Principal remaining: ${loanState.remainingPrincipal.toLocaleString()}</div>
+                      <div className="text-sm">Late fees: ${loanState.lateFeesAccrued.toLocaleString()}</div>
+                      <div className="text-sm">Due: {loanState.nextDueDateKey}</div>
+                      <input value={repayAmountInput} onChange={(e) => setRepayAmountInput(Number(e.target.value) || 0)} type="number" min={100} className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2" />
+                      <Button onClick={handleRepayLoan} disabled={loanBusy} className="w-full bg-brand-primary hover:bg-brand-primary/80 font-bold">Repay</Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+                <div className="text-xs uppercase tracking-widest text-gray-400 font-bold mb-2">Treasury History (Last 7 Days)</div>
+                <div className="space-y-1 text-sm text-gray-300">
+                  {(treasurySummary?.last7Days ?? []).map((day) => (
+                    <div key={day.dateKey} className="flex justify-between">
+                      <span>{day.dateKey}</span>
+                      <span className={day.variationAmount >= 0 ? "text-brand-secondary" : "text-brand-tertiary"}>{day.variationAmount >= 0 ? "+" : ""}{day.variationAmount}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </TabsContent>
@@ -295,6 +435,10 @@ export function CombinedMarketView({
                   </div>
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="news" className="mt-0 h-full">
+              <NewsFeedSurface mode="modal" townId={townId} />
             </TabsContent>
           </div>
         </Tabs>

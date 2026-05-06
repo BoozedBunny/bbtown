@@ -1,6 +1,6 @@
-export type CentralManagementTab = "treasury" | "market";
+export type CentralManagementTab = "treasury" | "market" | "news";
 
-export type CentralManagementIntentSource = "ticker" | "bank" | "query" | "manual";
+export type CentralManagementIntentSource = "ticker" | "bank" | "query" | "manual" | "news";
 
 export type CentralManagementIntent = {
   tab: CentralManagementTab;

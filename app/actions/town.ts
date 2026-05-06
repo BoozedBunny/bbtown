@@ -1,5 +1,6 @@
 "use server";
 
+import { TreasuryLedgerKind } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { getSessionUser } from "../../lib/auth";
 
@@ -38,10 +39,23 @@ export async function buyBuilding(buildingId: string) {
       })
     );
   } else {
+    const townId = parseInt(building.townId);
     transactions.push(
       prisma.town.update({
-        where: { id: parseInt(building.townId) },
+        where: { id: townId },
         data: { bankBalance: { increment: building.price } }
+      })
+    );
+    transactions.push(
+      prisma.treasuryLedgerEntry.create({
+        data: {
+          townId,
+          kind: TreasuryLedgerKind.BUILDING_SALE_INFLOW,
+          amount: building.price,
+          referenceType: "BuildingState",
+          referenceId: building.id,
+          metadataJson: JSON.stringify({ source: "buyBuilding" }),
+        }
       })
     );
   }
