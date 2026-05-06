@@ -337,45 +337,108 @@ function RemotePlayer({
   );
 }
 
+type ArenaEntryPhase =
+  | "boot"
+  | "preloading"
+  | "ready_hold"
+  | "fade_out_overlay"
+  | "playing"
+  | "load_error";
+
+type ObstaclePreset = {
+  id: string;
+  startZ: number;
+  speed: number;
+  width: number;
+  height: number;
+  centerX: number;
+  phaseOffsetMs: number;
+};
+
+const OBSTACLE_Z_MIN = -35;
+const OBSTACLE_Z_MAX = 35;
+const OBSTACLE_DEPTH = 1.2;
+const OBSTACLE_BASE_Y = -0.5;
+
+const OBSTACLE_PRESETS: ObstaclePreset[] = [
+  {
+    id: "jump-gate-full",
+    startZ: -35,
+    speed: 12,
+    width: 20,
+    height: 1.8,
+    centerX: 0,
+    phaseOffsetMs: 0,
+  },
+  {
+    id: "short-left-block",
+    startZ: -20,
+    speed: 9,
+    width: 8,
+    height: 2.2,
+    centerX: -6,
+    phaseOffsetMs: 1100,
+  },
+  {
+    id: "short-right-block",
+    startZ: -5,
+    speed: 10,
+    width: 8,
+    height: 2.2,
+    centerX: 6,
+    phaseOffsetMs: 2200,
+  },
+];
+
 function MovingObstacle({
   startZ,
-  speed = 10,
+  speed,
+  width,
+  height,
+  centerX,
+  phaseOffsetMs = 0,
 }: {
   startZ: number;
-  speed?: number;
+  speed: number;
+  width: number;
+  height: number;
+  centerX: number;
+  phaseOffsetMs?: number;
 }) {
   const rbRef = useRef<any>(null);
+  const elapsedMsRef = useRef(0);
 
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     if (!rbRef.current) return;
 
-    // Aktuelle Position auslesen
-    const currentPos = rbRef.current.translation();
-
-    // Neue Z-Position berechnen (bewegt sich nach hinten)
-    let newZ = currentPos.z + speed * delta;
-
-    // Deine Plattform ist 70 lang (von -35 bis +35).
-    // Wenn das Objekt hinten ankommt, setzen wir es wieder nach ganz vorne!
-    if (newZ > 35) {
-      newZ = -35;
+    elapsedMsRef.current += delta * 1000;
+    if (elapsedMsRef.current < phaseOffsetMs) {
+      return;
     }
 
-    // WICHTIG: Bei kinematischen Körpern nutzen wir setNextKinematicTranslation!
-    // Dadurch berechnet die Physik-Engine die Wucht korrekt und schiebt den Spieler.
+    const currentPos = rbRef.current.translation();
+    let newZ = currentPos.z + speed * delta;
+
+    if (newZ > OBSTACLE_Z_MAX) {
+      newZ = OBSTACLE_Z_MIN;
+    }
+
     rbRef.current.setNextKinematicTranslation({
-      x: 0, // Immer mittig auf der X-Achse
-      y: -0.5, // Leicht über deinem Boden (der Boden endet bei Y=-1)
+      x: centerX,
+      y: OBSTACLE_BASE_Y,
       z: newZ,
     });
   });
 
   return (
-    // type="kinematicPosition" macht es zum unaufhaltsamen Objekt!
-    <RigidBody ref={rbRef} type="kinematicPosition" colliders="cuboid">
+    <RigidBody
+      ref={rbRef}
+      type="kinematicPosition"
+      colliders="cuboid"
+      position={[centerX, OBSTACLE_BASE_Y, startZ]}
+    >
       <mesh castShadow receiveShadow>
-        {/* args: [Breite, Höhe, Tiefe]. Breite 22 ist etwas breiter als deine 20er Plattform! */}
-        <boxGeometry args={[22, 1, 1]} />
+        <boxGeometry args={[width, height, OBSTACLE_DEPTH]} />
         <meshStandardMaterial
           color="#FF0055"
           emissive="#FF0055"
@@ -469,10 +532,17 @@ function ArenaScene({
             <Gltf  receiveShadow rotation={[-Math.PI / 2, 0, 0]} scale={0.11} src="/fantasy_game_inn2-transformed.glb" />
           </RigidBody> */}
 
-        {/* Wir setzen 3 Stück mit unterschiedlichen Start-Positionen und Geschwindigkeiten */}
-        <MovingObstacle startZ={-35} speed={12} />
-        <MovingObstacle startZ={-15} speed={8} />
-        <MovingObstacle startZ={5} speed={15} />
+        {OBSTACLE_PRESETS.map((preset) => (
+          <MovingObstacle
+            key={preset.id}
+            startZ={preset.startZ}
+            speed={preset.speed}
+            width={preset.width}
+            height={preset.height}
+            centerX={preset.centerX}
+            phaseOffsetMs={preset.phaseOffsetMs}
+          />
+        ))}
 
         {status === "playing" && (
           <LocalPlayer onMove={onMove} onFall={onFall} />
@@ -511,18 +581,23 @@ export default function ArenaPage({
   }>({ players: [], obstacles: [], status: "waiting" });
   const [connected, setConnected] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [sceneReady, setSceneReady] = useState(false);
+  const [entryPhase, setEntryPhase] = useState<ArenaEntryPhase>("boot");
 
   useEffect(() => {
-    // Reset readiness whenever room changes so first paint is always guarded by an opaque boot layer.
-    setSceneReady(false);
+    setEntryPhase("boot");
 
-    // Safety valve: avoid indefinite black screen if onCreated never fires.
-    const fallbackTimer = setTimeout(() => {
-      setSceneReady(true);
-    }, 4000);
+    const phaseFrame = requestAnimationFrame(() => {
+      setEntryPhase("preloading");
+    });
 
-    return () => clearTimeout(fallbackTimer);
+    const timeoutHandle = setTimeout(() => {
+      setEntryPhase((prev) => (prev === "playing" ? prev : "load_error"));
+    }, 8000);
+
+    return () => {
+      cancelAnimationFrame(phaseFrame);
+      clearTimeout(timeoutHandle);
+    };
   }, [gameRoomId]);
 
   useEffect(() => {
@@ -572,13 +647,43 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
   };
 
   const handleCanvasCreated = () => {
-    // Wait two animation frames after Canvas creation to avoid exposing partial first-frame GPU/shader warmup.
+    if (entryPhase === "load_error") {
+      return;
+    }
+
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        setSceneReady(true);
+        setEntryPhase("ready_hold");
+        setTimeout(() => {
+          setEntryPhase((prev) => (prev === "ready_hold" ? "fade_out_overlay" : prev));
+        }, 300);
+        setTimeout(() => {
+          setEntryPhase((prev) =>
+            prev === "fade_out_overlay" || prev === "ready_hold" ? "playing" : prev,
+          );
+        }, 500);
       });
     });
   };
+
+  const handleRetryArenaLoad = () => {
+    setEntryPhase("preloading");
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setEntryPhase("ready_hold");
+        setTimeout(() => {
+          setEntryPhase((prev) => (prev === "ready_hold" ? "fade_out_overlay" : prev));
+        }, 300);
+        setTimeout(() => {
+          setEntryPhase((prev) =>
+            prev === "fade_out_overlay" || prev === "ready_hold" ? "playing" : prev,
+          );
+        }, 500);
+      });
+    });
+  };
+
+  const showEntryOverlay = entryPhase !== "playing";
 
   return (
     <main className="flex min-h-screen flex-col bg-[#05010a] text-white font-sans overflow-hidden relative">
@@ -631,7 +736,7 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
       {gameState.status === "waiting" && !gameRoomId.startsWith("solo-") && (
         <div
           id="waiting-overlay"
-          className={`absolute inset-0 z-20 flex flex-col items-center justify-center backdrop-blur-sm transition-colors duration-200 ${sceneReady ? "bg-[#05010a]/80" : "bg-[#05010a]"}`}
+          className={`absolute inset-0 z-20 flex flex-col items-center justify-center backdrop-blur-sm transition-colors duration-200 ${entryPhase === "playing" ? "bg-[#05010a]/80" : "bg-[#05010a]"}`}
         >
           <div className="w-20 h-20 border-4 border-brand-primary/20 border-t-brand-primary rounded-full animate-spin mb-6" />
           <h2 className="text-2xl font-heading font-bold mb-2">
@@ -704,8 +809,29 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
           </KeyboardControls>
         </Suspense>
 
-        {!sceneReady && (
-          <div className="pointer-events-none absolute inset-0 z-10 bg-[#05010a]" />
+        {showEntryOverlay && (
+          <div
+            className={`absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#05010a] transition-opacity duration-200 ${entryPhase === "fade_out_overlay" ? "opacity-0" : "opacity-100"}`}
+          >
+            {entryPhase === "load_error" ? (
+              <>
+                <h2 className="text-2xl font-heading font-bold mb-2">Failed to load arena</h2>
+                <p className="text-gray-400 mb-6">Retry loading the room scene.</p>
+                <button
+                  onClick={handleRetryArenaLoad}
+                  className="px-6 py-3 rounded-xl bg-brand-primary hover:bg-brand-primary/90 font-bold pointer-events-auto"
+                >
+                  Retry
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="w-20 h-20 border-4 border-brand-primary/20 border-t-brand-primary rounded-full animate-spin mb-6" />
+                <h2 className="text-2xl font-heading font-bold mb-2">Entering Arena...</h2>
+                <p className="text-gray-400">Preparing obstacles</p>
+              </>
+            )}
+          </div>
         )}
       </div>
 

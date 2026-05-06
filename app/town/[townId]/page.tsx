@@ -176,7 +176,6 @@ export default function TownPage({
   const [marketIntent, setMarketIntent] = useState<CentralManagementIntent | null>(null);
   const [showArenaModal, setShowArenaModal] = useState(false);
   const [matchmakingStatus, setMatchmakingStatus] = useState<"idle" | "searching" | "matched">("idle");
-  const [isTransitioningToArena, setIsTransitioningToArena] = useState(false);
 
   const hoverSuppressed = useMemo(
     () => !!selectedBuilding || showArenaModal || showCombinedView,
@@ -259,8 +258,6 @@ export default function TownPage({
   };
 
   useEffect(() => {
-    let arenaNavigationTimeout: NodeJS.Timeout | null = null;
-
     // Fetch dynamic building state
     const fetchUser = async () => {
       try {
@@ -309,20 +306,12 @@ export default function TownPage({
 
     socketInstance.on("match_found", ({ gameRoomId }) => {
       setMatchmakingStatus("matched");
-      // Order is intentional: arm an opaque transition before navigation so no town frame leaks on first cold arena paint.
-      setIsTransitioningToArena(true);
-      toast.success("Match Found! Entering Arena...");
-      arenaNavigationTimeout = setTimeout(() => {
-        router.push(`/arena/${gameRoomId}`);
-      }, 2000);
+      router.push(`/arena/${gameRoomId}`);
     });
 
     setSocket(socketInstance);
 
     return () => {
-      if (arenaNavigationTimeout) {
-        clearTimeout(arenaNavigationTimeout);
-      }
       socketInstance.disconnect();
     };
   }, [townId, router]);
@@ -365,10 +354,6 @@ export default function TownPage({
 
   return (
     <main className="flex min-h-screen flex-col items-center p-8 text-white font-sans overflow-hidden relative brand-bg-overlay">
-      {isTransitioningToArena && (
-        <div className="pointer-events-none absolute inset-0 z-[999] bg-black animate-in fade-in duration-200" />
-      )}
-
       <div className="z-10 w-full max-w-6xl flex justify-between items-center mb-8 glass-card p-6 shadow-xl">
         <div>
           <h1 className="text-3xl font-heading font-bold tracking-tight text-white flex items-center gap-3">
