@@ -9,6 +9,8 @@ import {
   PerspectiveCamera,
 } from "@react-three/drei";
 import { useEffect, useState, use, useMemo, useRef, useCallback } from "react";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import type { Camera } from "three";
 import { io, Socket } from "socket.io-client";
 import Link from "next/link";
 import Image from "next/image";
@@ -37,6 +39,54 @@ import { ARENA_BUILDING_ID, BANK_BUILDING_ID, HARDCODED_BUILDINGS } from "./town
 import type { BuildingData, DbBuildingState, TownStateData, UserWithCharacter } from "./town-types";
 import type { CentralManagementIntent, CentralManagementTab } from "@/lib/ui/centralManagementIntent";
 
+type WalletSummaryCategory = {
+  key: string;
+  label: string;
+  amount: number | null;
+  enabled: boolean;
+};
+
+type WalletSummaryViewModel = {
+  totalBalance: number | null;
+  income: number | null;
+  expenses: number | null;
+  currencyCode: string;
+  categories: WalletSummaryCategory[];
+  lastUpdatedAt: string | null;
+};
+
+const WALLET_CATEGORY_DEFAULTS: Array<{ key: string; label: string }> = [
+  { key: "trading", label: "Trading" },
+  { key: "quests", label: "Quests" },
+  { key: "rewards", label: "Rewards" },
+  { key: "fees", label: "Fees" },
+  { key: "other", label: "Other" },
+];
+
+const formatCurrencyAmount = (value: number | null, currencyCode: string): string => {
+  if (value === null || Number.isNaN(value)) return "—";
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: currencyCode,
+    maximumFractionDigits: 0,
+  }).format(value);
+};
+
+type TownCameraPanDebug = {
+  targetX: number;
+  minX: number;
+  maxX: number;
+  rawDeltaX: number;
+  appliedDeltaX: number;
+  clampHits: number;
+};
+
+const TOWN_CAMERA_PAN_CONFIG = {
+  dragSensitivity: 0.012,
+  cityMarginWorld: 2,
+  minSoftSpan: 1,
+};
+
 function Scene({
   buildings,
   isXRay,
@@ -49,6 +99,8 @@ function Scene({
   activeHoverBuildingId,
   onHoverBuildingChange,
   hoverSuppressed,
+  horizontalPanEnabled,
+  onPanDebugChange,
 }: {
   buildings: BuildingData[];
   isXRay: boolean;
@@ -61,7 +113,105 @@ function Scene({
   activeHoverBuildingId?: string | null;
   onHoverBuildingChange?: (id: string | null) => void;
   hoverSuppressed?: boolean;
+  horizontalPanEnabled?: boolean;
+  onPanDebugChange?: (debug: TownCameraPanDebug) => void;
 }) {
+  const controlsRef = useRef<OrbitControlsImpl | null>(null);
+  const clampHitsRef = useRef(0);
+  const panLastTargetXRef = useRef<number | null>(null);
+
+  const cityBounds = useMemo(() => {
+    if (!buildings.length) {
+      return { minX: -12, maxX: 12 };
+    }
+    const xs = buildings.map((building) => building.position[0]);
+    return { minX: Math.min(...xs), maxX: Math.max(...xs) };
+  }, [buildings]);
+
+  const getHorizontalFootprintHalfWidth = useCallback((camera: Camera) => {
+    const typedCamera = camera as Camera & {
+      isOrthographicCamera?: boolean;
+      isPerspectiveCamera?: boolean;
+      right?: number;
+      left?: number;
+      zoom?: number;
+      fov?: number;
+      aspect?: number;
+    };
+
+    if (typedCamera.isOrthographicCamera && typedCamera.right !== undefined && typedCamera.left !== undefined && typedCamera.zoom) {
+      return ((typedCamera.right - typedCamera.left) / typedCamera.zoom) * 0.5;
+    }
+
+    if (typedCamera.isPerspectiveCamera && typedCamera.fov !== undefined && typedCamera.aspect !== undefined) {
+      const viewDistance = Math.abs(camera.position.y);
+      const verticalHalfSpan = Math.tan((typedCamera.fov * Math.PI) / 360) * viewDistance;
+      return verticalHalfSpan * typedCamera.aspect;
+    }
+
+    return 0;
+  }, []);
+
+  const applyHorizontalPanClamp = useCallback(
+    (rawDeltaX = 0) => {
+      if (!horizontalPanEnabled || cameraMode !== "game") return;
+
+      const controls = controlsRef.current;
+      if (!controls) return;
+
+      const halfWidth = getHorizontalFootprintHalfWidth(controls.object);
+      const minBound = cityBounds.minX + TOWN_CAMERA_PAN_CONFIG.cityMarginWorld + halfWidth;
+      const maxBound = cityBounds.maxX - TOWN_CAMERA_PAN_CONFIG.cityMarginWorld - halfWidth;
+      const span = maxBound - minBound;
+      const hasPanSpan = span > TOWN_CAMERA_PAN_CONFIG.minSoftSpan;
+
+      const effectiveMinX = hasPanSpan ? minBound : (cityBounds.minX + cityBounds.maxX) / 2;
+      const effectiveMaxX = hasPanSpan ? maxBound : effectiveMinX;
+      const currentTargetX = controls.target.x;
+      const clampedTargetX = Math.min(effectiveMaxX, Math.max(effectiveMinX, currentTargetX));
+      const appliedDeltaX = clampedTargetX - currentTargetX;
+
+      if (Math.abs(appliedDeltaX) > 1e-6) {
+        clampHitsRef.current += 1;
+        controls.target.x = clampedTargetX;
+        controls.object.position.x += appliedDeltaX;
+      }
+
+      onPanDebugChange?.({
+        targetX: clampedTargetX,
+        minX: effectiveMinX,
+        maxX: effectiveMaxX,
+        rawDeltaX,
+        appliedDeltaX,
+        clampHits: clampHitsRef.current,
+      });
+    },
+    [cameraMode, cityBounds.maxX, cityBounds.minX, getHorizontalFootprintHalfWidth, horizontalPanEnabled, onPanDebugChange],
+  );
+
+  useEffect(() => {
+    if (!horizontalPanEnabled || cameraMode !== "game") return;
+
+    const controls = controlsRef.current;
+    if (!controls) return;
+
+    const onControlsChange = () => {
+      const lastX = panLastTargetXRef.current;
+      const nextX = controls.target.x;
+      const rawDeltaX = lastX === null ? 0 : nextX - lastX;
+      panLastTargetXRef.current = nextX;
+      applyHorizontalPanClamp(rawDeltaX);
+    };
+
+    controls.panSpeed = TOWN_CAMERA_PAN_CONFIG.dragSensitivity;
+    controls.addEventListener("change", onControlsChange);
+    applyHorizontalPanClamp(0);
+
+    return () => {
+      controls.removeEventListener("change", onControlsChange);
+    };
+  }, [applyHorizontalPanClamp, cameraMode, horizontalPanEnabled]);
+
   return (
     <>
       <DayNightCycle serverTime={serverTime} />
@@ -123,7 +273,8 @@ function Scene({
         far={1}
       />
       <OrbitControls
-        enablePan={cameraMode === "dev"}
+        ref={controlsRef}
+        enablePan={cameraMode === "dev" || (cameraMode === "game" && !!horizontalPanEnabled)}
         enableRotate={true}
         zoomSpeed={0.5}
         minZoom={cameraMode === "game" ? 80 : 0.1}
@@ -177,7 +328,9 @@ export default function TownPage({
   const [showArenaModal, setShowArenaModal] = useState(false);
   const [matchmakingStatus, setMatchmakingStatus] = useState<"idle" | "searching" | "matched">("idle");
   const [isTopNavMenuOpen, setIsTopNavMenuOpen] = useState(false);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const burgerButtonRef = useRef<HTMLButtonElement | null>(null);
+  const walletButtonRef = useRef<HTMLButtonElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const menuItemRefs = useRef<Array<HTMLButtonElement | HTMLAnchorElement | null>>([]);
 
@@ -237,6 +390,35 @@ export default function TownPage({
   const topNavFeatureFlag =
     process.env.NEXT_PUBLIC_HEADER_BURGER_NAV_V1 ?? process.env.NEXT_PUBLIC_TOPNAV_REFACTOR_V2 ?? "true";
   const isTopNavRefactorEnabled = topNavFeatureFlag !== "false";
+  const cameraPanFeatureFlag = process.env.NEXT_PUBLIC_TOWN_CAMERA_HORIZONTAL_PAN ?? "false";
+  const isTownCameraHorizontalPanEnabled = cameraPanFeatureFlag === "true";
+  const cameraPanDebugFeatureFlag = process.env.NEXT_PUBLIC_TOWN_CAMERA_HORIZONTAL_PAN_DEBUG ?? "false";
+  const isTownCameraPanDebugEnabled = cameraPanDebugFeatureFlag === "true";
+  const [townCameraPanDebug, setTownCameraPanDebug] = useState<TownCameraPanDebug>({
+    targetX: 0,
+    minX: 0,
+    maxX: 0,
+    rawDeltaX: 0,
+    appliedDeltaX: 0,
+    clampHits: 0,
+  });
+
+  useEffect(() => {
+    if (!isTownCameraHorizontalPanEnabled || !isTownCameraPanDebugEnabled) return;
+    if (townCameraPanDebug.clampHits === 0 || townCameraPanDebug.clampHits % 10 !== 0) return;
+    console.debug("[TownCameraPan]", {
+      targetX: Number(townCameraPanDebug.targetX.toFixed(3)),
+      minX: Number(townCameraPanDebug.minX.toFixed(3)),
+      maxX: Number(townCameraPanDebug.maxX.toFixed(3)),
+      rawDeltaX: Number(townCameraPanDebug.rawDeltaX.toFixed(3)),
+      appliedDeltaX: Number(townCameraPanDebug.appliedDeltaX.toFixed(3)),
+      clampHits: townCameraPanDebug.clampHits,
+    });
+  }, [isTownCameraHorizontalPanEnabled, isTownCameraPanDebugEnabled, townCameraPanDebug]);
+  const walletModalFeatureFlag = process.env.NEXT_PUBLIC_WALLET_MODAL_ENABLED ?? "true";
+  const isWalletModalEnabled = walletModalFeatureFlag !== "false";
+  const walletPositionFeatureFlag = process.env.NEXT_PUBLIC_HEADER_WALLET_POSITION_V2 ?? "true";
+  const isWalletPositionV2Enabled = walletPositionFeatureFlag !== "false";
 
   type HeaderNavItem = {
     id: string;
@@ -298,6 +480,22 @@ export default function TownPage({
       }))
       .filter((group) => group.items.length > 0);
   }, [headerNavItems]);
+
+  const walletSummary = useMemo<WalletSummaryViewModel>(() => {
+    const wallet = currentUser?.character?.wallet ?? null;
+    return {
+      totalBalance: wallet,
+      income: null,
+      expenses: null,
+      currencyCode: "USD",
+      categories: WALLET_CATEGORY_DEFAULTS.map((category) => ({
+        ...category,
+        amount: null,
+        enabled: true,
+      })),
+      lastUpdatedAt: null,
+    };
+  }, [currentUser]);
 
   const getNavAnalyticsContext = useCallback(() => {
     const viewport =
@@ -560,20 +758,26 @@ export default function TownPage({
                 </span>
               </button>
             </h1>
-            <div className="flex flex-wrap items-center gap-3 mt-2">
-              <p className="text-gray-400 text-sm">Coordinate your isometric empire</p>
-              {currentUser && currentUser.character && (
-                <div className="bg-brand-primary/20 px-3 py-1 rounded-full border border-brand-primary/50 flex items-center gap-2">
-                  <span className="text-brand-secondary font-bold text-sm">
-                    💰 ${currentUser.character.wallet.toLocaleString()}
-                  </span>
-                </div>
-              )}
-            </div>
+            {!isWalletPositionV2Enabled && currentUser?.character && (
+              <div className="mt-2">
+                <button
+                  ref={walletButtonRef}
+                  type="button"
+                  aria-label="Open wallet summary"
+                  onClick={() => {
+                    if (!isWalletModalEnabled) return;
+                    setIsWalletModalOpen(true);
+                  }}
+                  className="min-h-11 rounded-full border border-brand-primary/50 bg-brand-primary/20 px-3 py-1 text-brand-secondary font-bold text-sm hover:bg-brand-primary/30 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                >
+                  💰 {formatCurrencyAmount(walletSummary.totalBalance, walletSummary.currencyCode)}
+                </button>
+              </div>
+            )}
           </div>
 
           {isTopNavRefactorEnabled ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <nav aria-label="Town navigation" className="hidden lg:flex items-center gap-2">
                 {headerNavItems.map((item) => {
                   if (item.href) {
@@ -620,6 +824,22 @@ export default function TownPage({
                 <div className={`w-2 h-2 rounded-full ${connected ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
                 {connected ? "Live System" : "Offline"}
               </div>
+              {isWalletPositionV2Enabled && (
+                <button
+                  ref={walletButtonRef}
+                  type="button"
+                  aria-label="Open wallet summary"
+                  onClick={() => {
+                    if (!isWalletModalEnabled) return;
+                    setIsWalletModalOpen(true);
+                  }}
+                  className="min-h-11 min-w-11 rounded-full border border-brand-primary/50 bg-brand-primary/20 px-3 py-1 text-brand-secondary font-bold text-sm hover:bg-brand-primary/30 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                >
+                  {currentUser?.character
+                    ? `💰 ${formatCurrencyAmount(walletSummary.totalBalance, walletSummary.currencyCode)}`
+                    : "Wallet"}
+                </button>
+              )}
               <button
                 ref={burgerButtonRef}
                 type="button"
@@ -849,6 +1069,8 @@ export default function TownPage({
             activeHoverBuildingId={activeHoverBuildingId}
             onHoverBuildingChange={setActiveHoverBuildingId}
             hoverSuppressed={hoverSuppressed}
+            horizontalPanEnabled={isTownCameraHorizontalPanEnabled}
+            onPanDebugChange={setTownCameraPanDebug}
             onBuildingClick={(b) => {
               setActiveHoverBuildingId(null);
               if (b.id === ARENA_BUILDING_ID) {
@@ -907,6 +1129,17 @@ export default function TownPage({
         </Canvas>
 
         {/* Overlay HUD elements */}
+        {isTownCameraHorizontalPanEnabled && isTownCameraPanDebugEnabled && cameraMode === "dev" && (
+          <div className="absolute top-4 left-4 z-40 rounded-lg border border-white/20 bg-black/70 px-3 py-2 text-[11px] font-mono text-white backdrop-blur">
+            <div>Town Pan Debug</div>
+            <div>targetX: {townCameraPanDebug.targetX.toFixed(2)}</div>
+            <div>minX: {townCameraPanDebug.minX.toFixed(2)}</div>
+            <div>maxX: {townCameraPanDebug.maxX.toFixed(2)}</div>
+            <div>rawΔx: {townCameraPanDebug.rawDeltaX.toFixed(2)}</div>
+            <div>appliedΔx: {townCameraPanDebug.appliedDeltaX.toFixed(2)}</div>
+            <div>clampHits: {townCameraPanDebug.clampHits}</div>
+          </div>
+        )}
                 {freeMoveBuildingId && (
           <div className="absolute top-6 left-1/2 -translate-x-1/2 p-4 bg-yellow-500 text-black font-bold rounded-xl shadow-[0_0_20px_rgba(234,179,8,0.5)] z-50 animate-pulse text-center">
             Click anywhere on the ground to place the building
@@ -1067,6 +1300,66 @@ export default function TownPage({
           });
         }}
       />
+
+      <Dialog
+        open={isWalletModalOpen}
+        onOpenChange={(open) => {
+          setIsWalletModalOpen(open);
+          if (!open) {
+            requestAnimationFrame(() => {
+              walletButtonRef.current?.focus();
+            });
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[480px] bg-[#0F021A] text-white border-brand-primary/20 rounded-3xl shadow-[0_0_50px_rgba(189,0,255,0.15)]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-heading font-bold text-brand-secondary">Wallet</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Financial summary and category breakdown.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <div className="grid gap-2 rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs uppercase tracking-widest text-gray-400 font-bold">Total Balance</span>
+                <span className="text-lg font-bold text-white">
+                  {formatCurrencyAmount(walletSummary.totalBalance, walletSummary.currencyCode)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs uppercase tracking-widest text-gray-400 font-bold">Income</span>
+                <span className="text-sm font-semibold text-white">
+                  {formatCurrencyAmount(walletSummary.income, walletSummary.currencyCode)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs uppercase tracking-widest text-gray-400 font-bold">Expenses</span>
+                <span className="text-sm font-semibold text-white">
+                  {formatCurrencyAmount(walletSummary.expenses, walletSummary.currencyCode)}
+                </span>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-xs uppercase tracking-widest text-gray-400 font-bold">Categories</p>
+                <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Future breakdown</p>
+              </div>
+              <ul className="grid gap-2">
+                {walletSummary.categories.filter((category) => category.enabled).map((category) => (
+                  <li key={category.key} className="flex items-center justify-between rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+                    <span className="text-sm text-gray-200">{category.label}</span>
+                    <span className="text-sm font-semibold text-white">
+                      {formatCurrencyAmount(category.amount, walletSummary.currencyCode)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={!!selectedBuilding}
