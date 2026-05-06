@@ -4,7 +4,7 @@ import next from "next";
 import { Server } from "socket.io";
 import express from "express";
 import { PrismaClient } from "@prisma/client";
-import { COMPANY_PROFILES } from "@/lib/market/companyProfiles";
+import { COMPANY_PROFILES } from "./lib/market/companyProfiles";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";

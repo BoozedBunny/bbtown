@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "PORT=3004 nodemon --watch server.ts --exec \"node --loader ts-node/esm server.ts\"",
+    "dev": "PORT=3004 nodemon --watch server.ts --exec \"tsx server.ts\"",
     "build": "next build",
     "start": "PORT=3004 NODE_ENV=production node --loader ts-node/esm server.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -59,6 +59,7 @@
     "@types/express": "^5.0.6",
     "@types/recharts": "^1.8.29",
     "nodemon": "^3.1.14",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0"
   }
 }
