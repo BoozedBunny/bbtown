@@ -8,10 +8,15 @@ import { execSync } from "child_process";
 import { COMPANY_PROFILES } from "./lib/market/companyProfiles";
 import { runTreasuryDailySettlement } from "./lib/treasury/treasuryService";
 import { runLoanDelinquencySweep } from "./lib/treasury/loanService";
+import { PostMatchEntry, setGlobalToplist } from "./lib/arena/toplist";
+import { DEFAULT_ROUND_TRANSITION_CONFIG, getRoundPhaseStateAt } from "./lib/arena/roundPhases";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
 const port = parseInt(process.env.PORT || "3004", 10);
+
+const ROUND_DURATION_SECONDS = 30;
+const TOTAL_ROUNDS = 30;
 
 const prisma = new PrismaClient();
 
@@ -79,6 +84,15 @@ app.prepare().then(async () => {
     position: [number, number, number];
     rotation: number;
     anim: string;
+    spawnReason: "initial_join" | "respawn" | "landing_reset" | "zone_transfer";
+    spawnSequence: number;
+  }
+
+  type SpawnFinalizeReason = PlayerState["spawnReason"];
+
+  interface JoinArenaRoomPayload {
+    roomId: string;
+    cameraYaw?: number;
   }
 
   interface Obstacle {
@@ -96,10 +110,75 @@ app.prepare().then(async () => {
     status: "waiting" | "playing" | "finished";
     timer: number;
     startedAtMs?: number;
+    roundIndex?: number;
+    roundPhase?: string;
+    phaseStartTimeMs?: number;
+    phaseDurationMs?: number;
+    obstaclesEnabled?: boolean;
     intervalId?: NodeJS.Timeout;
+    nextSpawnSequence: number;
   }
 
   const games: Record<string, GameSession> = {};
+  const spawnOrientationAwayFromCameraEnabled =
+    process.env.SPAWN_ORIENTATION_AWAY_FROM_CAMERA !== "0";
+  const spawnSlotAllocatorEnabled = process.env.SPAWN_MP_SLOT_ALLOCATOR_V1 !== "0";
+  const spawnSpacing = Number.parseFloat(process.env.SPAWN_MP_SPACING_METERS ?? "1.5");
+
+  const normalizeAngle = (angle: number) => {
+    let normalized = angle % (Math.PI * 2);
+    if (normalized <= -Math.PI) normalized += Math.PI * 2;
+    if (normalized > Math.PI) normalized -= Math.PI * 2;
+    return normalized;
+  };
+
+  const isFiniteNumber = (value: unknown): value is number =>
+    typeof value === "number" && Number.isFinite(value);
+
+  const slotOffsetForIndex = (slotIndex: number) => {
+    if (slotIndex <= 0) return 0;
+    const magnitude = Math.ceil(slotIndex / 2);
+    const sign = slotIndex % 2 === 1 ? 1 : -1;
+    return sign * magnitude;
+  };
+
+  const getSpawnYaw = (cameraYaw?: number) => {
+    if (!spawnOrientationAwayFromCameraEnabled) {
+      return 0;
+    }
+    if (!isFiniteNumber(cameraYaw)) {
+      return Math.PI;
+    }
+    return normalizeAngle(cameraYaw + Math.PI);
+  };
+
+  const computeSpawnPosition = (slotIndex: number): [number, number, number] => {
+    if (!spawnSlotAllocatorEnabled) {
+      return [slotIndex === 0 ? -2 : 2, 0, 0];
+    }
+    const offset = slotOffsetForIndex(slotIndex) * spawnSpacing;
+    return [offset, 0, 0];
+  };
+
+  const buildSpawnPlayerState = (
+    socketId: string,
+    username: string,
+    slotIndex: number,
+    reason: SpawnFinalizeReason,
+    cameraYaw?: number,
+    forcedSequence?: number,
+  ): PlayerState => {
+    const sequence = forcedSequence ?? Date.now();
+    return {
+      id: socketId,
+      username,
+      position: computeSpawnPosition(slotIndex),
+      rotation: getSpawnYaw(cameraYaw),
+      anim: "Idle_1",
+      spawnReason: reason,
+      spawnSequence: sequence,
+    };
+  };
 
   const spawnObstacle = (game: GameSession) => {
     const id = `obs-${Math.random().toString(36).substring(2, 7)}`;
@@ -119,15 +198,24 @@ app.prepare().then(async () => {
     const game = games[roomId];
     if (!game || game.status !== "playing") return;
 
-    // Update obstacles
-    game.obstacles = game.obstacles.filter((obs) => {
-      obs.position[2] += obs.speed;
-      return Math.abs(obs.position[2]) <= 20;
-    });
+    const nowMs = Date.now();
+    const startedAtMs = game.startedAtMs ?? nowMs;
+    const phaseState = getRoundPhaseStateAt(nowMs, startedAtMs, DEFAULT_ROUND_TRANSITION_CONFIG);
+    game.roundIndex = phaseState.roundIndex;
+    game.roundPhase = phaseState.phase;
+    game.phaseStartTimeMs = phaseState.phaseStartTimeMs;
+    game.phaseDurationMs = phaseState.phaseDurationMs;
+    game.obstaclesEnabled = phaseState.obstaclesEnabled;
 
-    // Randomly spawn obstacles
-    if (Math.random() < 0.05) {
-      spawnObstacle(game);
+    if (phaseState.obstaclesEnabled) {
+      game.obstacles = game.obstacles.filter((obs) => {
+        obs.position[2] += obs.speed;
+        return Math.abs(obs.position[2]) <= 20;
+      });
+
+      if (Math.random() < 0.05) {
+        spawnObstacle(game);
+      }
     }
 
     io.to(roomId).emit("game_state", {
@@ -135,6 +223,11 @@ app.prepare().then(async () => {
       obstacles: game.obstacles,
       status: game.status,
       startedAtMs: game.startedAtMs,
+      roundIndex: game.roundIndex,
+      roundPhase: game.roundPhase,
+      phaseStartTimeMs: game.phaseStartTimeMs,
+      phaseDurationMs: game.phaseDurationMs,
+      obstaclesEnabled: game.obstaclesEnabled,
     });
   };
 
@@ -355,6 +448,7 @@ app.prepare().then(async () => {
           obstacles: [],
           status: "waiting",
           timer: 0,
+          nextSpawnSequence: 1,
         };
 
         console.log(
@@ -376,6 +470,7 @@ app.prepare().then(async () => {
         obstacles: [],
         status: "waiting",
         timer: 0,
+        nextSpawnSequence: 1,
       };
 
       console.log(
@@ -394,8 +489,11 @@ app.prepare().then(async () => {
       }
     });
 
-    socket.on("join_arena_room", ({ roomId }) => {
+    socket.on("join_arena_room", (payload: JoinArenaRoomPayload) => {
       if (!mockUser) return;
+
+      const roomId = payload?.roomId;
+      if (typeof roomId !== "string" || roomId.length === 0) return;
 
       // Auto-create room if it's a test room
       if (!games[roomId] && roomId.includes("test")) {
@@ -405,30 +503,44 @@ app.prepare().then(async () => {
           obstacles: [],
           status: "waiting",
           timer: 0,
+          nextSpawnSequence: 1,
         };
       }
 
       if (!games[roomId]) return;
 
       socket.join(roomId);
-      const playerCount = Object.keys(games[roomId].players).length;
+      const game = games[roomId];
+      const playerCount = Object.keys(game.players).length;
+      const sequence = game.nextSpawnSequence++;
       const isSolo = roomId.startsWith("solo-");
 
-      games[roomId].players[socket.id] = {
-        id: socket.id,
-        username: mockUser,
-        position: [isSolo ? 0 : playerCount === 0 ? -2 : 2, 0, 0],
-        rotation: 0,
-        anim: "Idle_1", // <-- NEU: Standard-Animation beim Spawnen
-      };
+      game.players[socket.id] = buildSpawnPlayerState(
+        socket.id,
+        mockUser,
+        playerCount,
+        "initial_join",
+        payload?.cameraYaw,
+        sequence,
+      );
 
       console.log(
-        `User ${mockUser} joined arena room ${roomId}. Players: ${Object.keys(games[roomId].players).length}`,
+        `User ${mockUser} joined arena room ${roomId}. Players: ${Object.keys(game.players).length}`,
       );
 
       if (isSolo || Object.keys(games[roomId].players).length === 2) {
         games[roomId].status = "playing";
         games[roomId].startedAtMs = Date.now();
+        const phaseState = getRoundPhaseStateAt(
+          games[roomId].startedAtMs,
+          games[roomId].startedAtMs,
+          DEFAULT_ROUND_TRANSITION_CONFIG,
+        );
+        games[roomId].roundIndex = phaseState.roundIndex;
+        games[roomId].roundPhase = phaseState.phase;
+        games[roomId].phaseStartTimeMs = phaseState.phaseStartTimeMs;
+        games[roomId].phaseDurationMs = phaseState.phaseDurationMs;
+        games[roomId].obstaclesEnabled = phaseState.obstaclesEnabled;
         console.log(`Game ${roomId} starting!`);
 
         const intervalId = setInterval(() => updateGame(roomId), 1000 / 30);
@@ -437,6 +549,11 @@ app.prepare().then(async () => {
         io.to(roomId).emit("game_start", {
           players: Object.values(games[roomId].players),
           startedAtMs: games[roomId].startedAtMs,
+          roundIndex: games[roomId].roundIndex,
+          roundPhase: games[roomId].roundPhase,
+          phaseStartTimeMs: games[roomId].phaseStartTimeMs,
+          phaseDurationMs: games[roomId].phaseDurationMs,
+          obstaclesEnabled: games[roomId].obstaclesEnabled,
         });
       }
     });
@@ -458,13 +575,34 @@ app.prepare().then(async () => {
         console.log(`Player ${mockUser} fell off in room ${roomId}`);
         games[roomId].status = "finished";
         const loser = mockUser;
-        const winner = Object.values(games[roomId].players).find(
-          (p) => p.id !== socket.id,
-        )?.username;
+        const game = games[roomId];
+        const winnerPlayer = Object.values(game.players).find((p) => p.id !== socket.id);
+        const winner = winnerPlayer?.username;
         const isSolo = roomId.startsWith("solo-");
         const reward = isSolo ? 0 : 1000;
+        const endedAt = Date.now();
+        const elapsedSeconds = Math.max(0, (endedAt - (game.startedAtMs ?? endedAt)) / 1000);
+        const roundsReached = Math.max(
+          0,
+          Math.min(TOTAL_ROUNDS, Math.floor(elapsedSeconds / ROUND_DURATION_SECONDS) + 1),
+        );
+
+        const toplistPayload: PostMatchEntry[] = Object.values(game.players).map((player) => {
+          const fell = player.id === socket.id;
+          return {
+            playerId: player.id,
+            displayName: player.username,
+            roundsReached,
+            eliminationOrder: fell ? 1 : null,
+            eliminatedAtMs: fell ? endedAt : null,
+          };
+        });
 
         try {
+          if (!isSolo) {
+            setGlobalToplist(toplistPayload);
+          }
+
           if (winner && !isSolo) {
             await prisma.character.updateMany({
               where: { user: { username: winner } },
@@ -473,13 +611,17 @@ app.prepare().then(async () => {
             console.log(`Granted ${reward} reward to winner: ${winner}`);
           }
         } catch (error) {
-          console.error("Failed to distribute arena reward:", error);
+          console.error("Failed to finalize arena results:", error);
         }
 
         io.to(roomId).emit("game_over", {
           winner: isSolo ? undefined : winner,
           loser,
           reward,
+          mode: isSolo ? "SP" : "MP",
+          endedAt,
+          roundsReached,
+          entries: toplistPayload,
         });
 
         if (games[roomId].intervalId) {

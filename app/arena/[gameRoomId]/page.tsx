@@ -14,6 +14,10 @@ import * as THREE from "three";
 import { Physics, RigidBody, useRapier } from "@react-three/rapier";
 import { Model as Player } from "@/components/Player";
 import { useRouter } from "next/navigation";
+import { DEFAULT_ROUND_TRANSITION_CONFIG, getRoundPhaseStateAt } from "@/lib/arena/roundPhases";
+import { PostMatchEntry, ToplistEntry, rankToplistEntries } from "@/lib/arena/toplist";
+
+type SpawnReason = "initial_join" | "respawn" | "landing_reset" | "zone_transfer";
 
 interface PlayerState {
   id: string;
@@ -21,6 +25,8 @@ interface PlayerState {
   position: [number, number, number];
   rotation: number;
   anim: string;
+  spawnReason?: SpawnReason;
+  spawnSequence?: number;
 }
 
 interface Obstacle {
@@ -48,9 +54,11 @@ const keyboardMap = [
 function LocalPlayer({
   onMove,
   onFall,
+  initialSpawn,
 }: {
   onMove: (pos: [number, number, number], rot: number, anim: string) => void;
   onFall: () => void;
+  initialSpawn?: Pick<PlayerState, "position" | "rotation" | "spawnSequence">;
 }) {
   const rigidBodyRef = useRef<any>(null);
   const modelRef = useRef<THREE.Group>(null);
@@ -73,6 +81,22 @@ function LocalPlayer({
   const yaw = useRef(0);
   const pitch = useRef(0.3);
   const radius = useRef(8);
+  const lastAppliedSpawnSequence = useRef<number>(-1);
+
+  useEffect(() => {
+    if (!rigidBodyRef.current || !modelRef.current || !initialSpawn) return;
+
+    const incomingSequence = initialSpawn.spawnSequence ?? 0;
+    if (incomingSequence <= lastAppliedSpawnSequence.current) return;
+
+    const [spawnX, spawnY, spawnZ] = initialSpawn.position;
+    rigidBodyRef.current.setTranslation({ x: spawnX, y: spawnY + 5, z: spawnZ }, true);
+    rigidBodyRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    modelRef.current.rotation.y = initialSpawn.rotation;
+    yaw.current = initialSpawn.rotation - Math.PI;
+
+    lastAppliedSpawnSequence.current = incomingSequence;
+  }, [initialSpawn]);
 
   // --- DAS WOW-IDLE SYSTEM ---
   useEffect(() => {
@@ -345,6 +369,16 @@ type ArenaEntryPhase =
   | "playing"
   | "load_error";
 
+type GameOverPayload = {
+  winner?: string;
+  loser?: string;
+  reward?: number;
+  mode?: "SP" | "MP";
+  endedAt?: number;
+  roundsReached?: number;
+  entries?: PostMatchEntry[];
+};
+
 type ObstaclePreset = {
   id: string;
   startZ: number;
@@ -487,22 +521,22 @@ function MovingObstacle({
 
 function ArenaScene({
   players,
-  obstacles,
   onMove,
   onFall,
   status,
   socketId,
   currentRound,
   isSuddenDeath,
+  obstaclesEnabled,
 }: {
   players: PlayerState[];
-  obstacles: Obstacle[];
   onMove: (pos: [number, number, number], rot: number, anim: string) => void;
   onFall: () => void;
   status: string;
   socketId: string | null;
   currentRound: number;
   isSuddenDeath: boolean;
+  obstaclesEnabled: boolean;
 }) {
   // Lade die Textur (R3F sucht automatisch im /public Ordner)
   const floorTexture = useTexture("/textures/rocky_trail_02_diff_4k.jpg");
@@ -532,6 +566,9 @@ function ArenaScene({
 
     return result;
   }, [currentRound]);
+
+  const localPlayerState =
+    socketId ? players.find((player) => player.id === socketId) : undefined;
 
   return (
     <>
@@ -593,7 +630,8 @@ function ArenaScene({
             <Gltf  receiveShadow rotation={[-Math.PI / 2, 0, 0]} scale={0.11} src="/fantasy_game_inn2-transformed.glb" />
           </RigidBody> */}
 
-        {activeObstaclePresets.map((preset) => (
+        {obstaclesEnabled &&
+          activeObstaclePresets.map((preset) => (
           <MovingObstacle
             key={`${preset.id}-wave-${preset.waveId}`}
             startZ={preset.startZ}
@@ -607,7 +645,19 @@ function ArenaScene({
         ))}
 
         {status === "playing" && (
-          <LocalPlayer onMove={onMove} onFall={onFall} />
+          <LocalPlayer
+            onMove={onMove}
+            onFall={onFall}
+            initialSpawn={
+              localPlayerState
+                ? {
+                    position: localPlayerState.position,
+                    rotation: localPlayerState.rotation,
+                    spawnSequence: localPlayerState.spawnSequence,
+                  }
+                : undefined
+            }
+          />
         )}
         {players
           .filter((p) => p.id !== socketId)
@@ -637,15 +687,20 @@ export default function ArenaPage({
     players: PlayerState[];
     obstacles: Obstacle[];
     status: "waiting" | "playing" | "finished";
-    winner?: string;
-    loser?: string;
-    reward?: number;
     startedAtMs?: number;
+    roundIndex?: number;
+    roundPhase?: string;
+    phaseStartTimeMs?: number;
+    phaseDurationMs?: number;
+    obstaclesEnabled?: boolean;
+    gameOver?: GameOverPayload;
   }>({ players: [], obstacles: [], status: "waiting" });
   const [connected, setConnected] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [entryPhase, setEntryPhase] = useState<ArenaEntryPhase>("boot");
   const [roundNowMs, setRoundNowMs] = useState(Date.now());
+  const [globalToplistRows, setGlobalToplistRows] = useState<ToplistEntry[]>([]);
+  const [toplistStatus, setToplistStatus] = useState<"idle" | "loading" | "ready" | "unavailable">("idle");
 
   useEffect(() => {
     if (gameState.status !== "playing") {
@@ -660,18 +715,88 @@ export default function ArenaPage({
   }, [gameState.status]);
 
   const startedAtMs = gameState.startedAtMs ?? roundNowMs;
-  const elapsedSeconds = Math.max(0, (roundNowMs - startedAtMs) / 1000);
-  const currentRound = clamp(
-    Math.floor(elapsedSeconds / ROUND_DURATION_SECONDS) + 1,
-    1,
-    TOTAL_ROUNDS,
-  );
-  const secondsIntoRound = elapsedSeconds % ROUND_DURATION_SECONDS;
+  const authoritativePhase =
+    gameState.roundPhase && typeof gameState.roundIndex === "number"
+      ? {
+          roundIndex: gameState.roundIndex,
+          phase: gameState.roundPhase,
+          phaseStartTimeMs: gameState.phaseStartTimeMs ?? startedAtMs,
+          phaseDurationMs: gameState.phaseDurationMs ?? DEFAULT_ROUND_TRANSITION_CONFIG.roundDurationMs,
+          obstaclesEnabled: gameState.obstaclesEnabled ?? true,
+        }
+      : getRoundPhaseStateAt(roundNowMs, startedAtMs, DEFAULT_ROUND_TRANSITION_CONFIG);
+  const currentRound = clamp(authoritativePhase.roundIndex, 1, TOTAL_ROUNDS);
+  const phaseElapsedMs = Math.max(0, roundNowMs - authoritativePhase.phaseStartTimeMs);
   const roundSecondsRemaining = Math.max(
     0,
-    Math.ceil(ROUND_DURATION_SECONDS - secondsIntoRound),
+    Math.ceil(
+      (authoritativePhase.phase === "ACTIVE_ROUND"
+        ? Math.max(0, authoritativePhase.phaseDurationMs - phaseElapsedMs)
+        : authoritativePhase.phaseDurationMs) / 1000,
+    ),
   );
   const isSuddenDeath = gameState.status === "playing" && currentRound >= TOTAL_ROUNDS;
+
+  const mode = gameState.gameOver?.mode ?? (gameRoomId.startsWith("solo-") ? "SP" : "MP");
+  const localPostMatchRows = rankToplistEntries(gameState.gameOver?.entries ?? []);
+  const roundsReached = gameState.gameOver?.roundsReached ?? currentRound;
+
+  useEffect(() => {
+    if (gameState.status !== "finished") {
+      return;
+    }
+
+    if (document.pointerLockElement) {
+      document.exitPointerLock();
+    }
+    document.body.style.cursor = "auto";
+
+    return () => {
+      document.body.style.cursor = "";
+    };
+  }, [gameState.status]);
+
+  useEffect(() => {
+    if (gameState.status !== "finished" || mode !== "MP") {
+      return;
+    }
+
+    let active = true;
+    const controller = new AbortController();
+
+    const fetchToplist = async () => {
+      setToplistStatus("loading");
+      try {
+        const timeout = setTimeout(() => controller.abort(), 2000);
+        const response = await fetch("/api/toplist/global?mode=mp&limit=50", {
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+          throw new Error(`Toplist request failed: ${response.status}`);
+        }
+
+        const payload = await response.json();
+        if (!active) return;
+
+        const entries = Array.isArray(payload.entries) ? payload.entries : [];
+        setGlobalToplistRows(entries);
+        setToplistStatus("ready");
+      } catch (error) {
+        if (!active) return;
+        console.warn("Toplist unavailable, falling back to local results", error);
+        setToplistStatus("unavailable");
+      }
+    };
+
+    fetchToplist();
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [gameState.status, mode]);
 
   useEffect(() => {
     setEntryPhase("boot");
@@ -696,7 +821,7 @@ export default function ArenaPage({
 
     s.on("connect", () => {
       setConnected(true);
-      s.emit("join_arena_room", { roomId: gameRoomId });
+      s.emit("join_arena_room", { roomId: gameRoomId, cameraYaw: 0 });
     });
 
     s.on("game_state", (state) => {
@@ -713,8 +838,12 @@ export default function ArenaPage({
       }));
     });
 
-    s.on("game_over", (data) => {
-      setGameState((prev) => ({ ...prev, status: "finished", ...data }));
+    s.on("game_over", (data: GameOverPayload) => {
+      setGameState((prev) => ({
+        ...prev,
+        status: "finished",
+        gameOver: data,
+      }));
     });
 
     s.on("opponent_left", () => {
@@ -803,7 +932,7 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
             <div className="bg-black/40 backdrop-blur-xl px-8 py-3 rounded-full border border-green-500/30 flex items-center gap-3">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
               <span className="text-xs font-bold uppercase tracking-[0.2em] text-green-400">
-                Match in Progress
+                {authoritativePhase.phase === "ACTIVE_ROUND" ? "Match in Progress" : "Breathing Window"}
               </span>
             </div>
             <div className={`px-6 py-2 rounded-xl border text-xs font-bold uppercase tracking-[0.2em] ${isSuddenDeath ? "bg-red-500/20 border-red-500/50 text-red-300" : "bg-black/40 border-brand-primary/40 text-brand-secondary"}`}>
@@ -835,6 +964,15 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
         </div>
       </div>
 
+      {gameState.status === "playing" && authoritativePhase.phase !== "ACTIVE_ROUND" && (
+        <div className="absolute top-28 left-1/2 z-20 -translate-x-1/2 pointer-events-none">
+          <div className="rounded-2xl border border-brand-secondary/50 bg-black/60 px-8 py-4 text-center shadow-[0_0_40px_rgba(255,184,0,0.25)] animate-pulse">
+            <p className="text-xs uppercase tracking-[0.3em] text-brand-secondary/80">Round</p>
+            <p className="text-4xl font-heading font-bold text-brand-secondary">{currentRound}</p>
+          </div>
+        </div>
+      )}
+
       {gameState.status === "waiting" && !gameRoomId.startsWith("solo-") && (
         <div
           id="waiting-overlay"
@@ -851,46 +989,83 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
       )}
 
       {gameState.status === "finished" && (
-        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#05010a]/90 backdrop-blur-md animate-in fade-in duration-500 text-center">
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#05010a]/90 backdrop-blur-md animate-in fade-in duration-500 text-center p-6">
           {!currentUser ? (
             <Loader2 className="w-12 h-12 text-brand-primary animate-spin" />
           ) : (
-            <>
-              <div className="w-24 h-24 bg-brand-secondary/20 rounded-3xl flex items-center justify-center mb-8 border border-brand-secondary/30 mx-auto">
-                {gameState.winner === currentUser.username ? (
-                  <Trophy className="w-12 h-12 text-brand-secondary" />
-                ) : (
-                  <Swords className="w-12 h-12 text-red-500" />
-                )}
+            <div className="w-full max-w-3xl rounded-3xl border border-white/15 bg-black/50 p-8 text-left">
+              <div className="mb-6 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-gray-400">
+                    {mode === "SP" ? "Run complete" : "Match complete"}
+                  </p>
+                  <h2 className="text-3xl font-heading font-bold text-white">
+                    Rounds reached: {roundsReached}
+                  </h2>
+                  {mode === "MP" && gameState.gameOver?.winner && (
+                    <p className="mt-1 text-sm text-gray-300">
+                      Winner: {gameState.gameOver.winner}
+                    </p>
+                  )}
+                </div>
+                <div className="w-16 h-16 bg-brand-secondary/20 rounded-2xl flex items-center justify-center border border-brand-secondary/30">
+                  <Trophy className="w-8 h-8 text-brand-secondary" />
+                </div>
               </div>
-              <h2
-                className={`text-5xl font-heading font-bold mb-2 ${gameState.winner === currentUser.username ? "text-brand-secondary" : "text-red-500"}`}
-              >
-                {gameState.winner === currentUser.username
-                  ? "VICTORY!"
-                  : "DEFEAT"}
-              </h2>
-              <div className="space-y-2 mb-8">
-                <p className="text-xl text-gray-400">
-                  {gameState.winner
-                    ? `${gameState.winner} won the battle!`
-                    : "The match has ended."}
-                </p>
-                {gameState.winner === currentUser.username && (
-                  <div className="bg-brand-secondary/20 px-4 py-2 rounded-full border border-brand-secondary/30 inline-block">
-                    <span className="text-brand-secondary font-bold text-lg">
-                      💰 +{gameState.reward?.toLocaleString() || 0} BBT Reward
-                    </span>
+
+              {mode === "SP" ? (
+                <p className="mb-6 text-gray-300">Keep going — every round improves your progression.</p>
+              ) : (
+                <>
+                  <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-brand-secondary">
+                    Global toplist baseline
+                  </p>
+                  {toplistStatus === "unavailable" && (
+                    <p className="mb-3 text-sm text-yellow-300">Toplist unavailable. Showing local match stats.</p>
+                  )}
+                  <div className="mb-6 overflow-hidden rounded-xl border border-white/10">
+                    <table className="w-full text-sm">
+                      <thead className="bg-white/5 text-left text-xs uppercase tracking-wider text-gray-400">
+                        <tr>
+                          <th className="px-4 py-3">Rank</th>
+                          <th className="px-4 py-3">Player</th>
+                          <th className="px-4 py-3">Rounds</th>
+                          <th className="px-4 py-3">Tie-break</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(toplistStatus === "ready" ? globalToplistRows : localPostMatchRows).map((row) => (
+                          <tr
+                            key={row.playerId}
+                            className={`${row.displayName === currentUser.username ? "bg-brand-primary/15" : "bg-transparent"} border-t border-white/10`}
+                          >
+                            <td className="px-4 py-2 font-semibold">#{row.rank}</td>
+                            <td className="px-4 py-2">{row.displayName}</td>
+                            <td className="px-4 py-2">{row.roundsReached}</td>
+                            <td className="px-4 py-2 text-gray-300">{row.tieBreakReason ?? "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                )}
-              </div>
+                </>
+              )}
+
+              {mode === "MP" && gameState.gameOver?.winner === currentUser.username && (
+                <div className="mb-6 inline-block rounded-full border border-brand-secondary/40 bg-brand-secondary/20 px-4 py-2">
+                  <span className="text-brand-secondary font-bold">
+                    +{gameState.gameOver.reward?.toLocaleString() || 0} BBT reward
+                  </span>
+                </div>
+              )}
+
               <button
                 onClick={() => router.push("/")}
-                className="px-12 py-4 bg-brand-primary hover:bg-brand-primary/90 rounded-2xl font-bold text-lg transition-all shadow-[0_0_30px_rgba(189,0,255,0.3)] hover:scale-105 active:scale-95 pointer-events-auto"
+                className="px-8 py-3 bg-brand-primary hover:bg-brand-primary/90 rounded-2xl font-bold transition-all shadow-[0_0_30px_rgba(189,0,255,0.3)] hover:scale-105 active:scale-95 pointer-events-auto"
               >
                 Back to Simulation
               </button>
-            </>
+            </div>
           )}
         </div>
       )}
@@ -901,13 +1076,13 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
             <Canvas shadows onCreated={handleCanvasCreated}>
               <ArenaScene
                 players={gameState.players}
-                obstacles={gameState.obstacles}
                 onMove={handleMove}
                 onFall={handleFall}
                 status={gameState.status}
                 socketId={socket?.id || null}
                 currentRound={currentRound}
                 isSuddenDeath={isSuddenDeath}
+                obstaclesEnabled={authoritativePhase.obstaclesEnabled}
               />
             </Canvas>
           </KeyboardControls>
