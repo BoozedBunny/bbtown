@@ -16,14 +16,19 @@ model User {
 }
 
 model Character {
-  id              String          @id @default(uuid())
+  id              String              @id @default(uuid())
   name            String
   appearanceColor String
-  wallet          Int             @default(1000)
-  userId          String          @unique
+  wallet          Int                 @default(1000)
+  loanStatus      CharacterLoanStatus @default(NONE)
+  loanLockedUntil DateTime?
+  userId          String              @unique
   buildings       BuildingState[]
-  user            User            @relation(fields: [userId], references: [id])
+  user            User                @relation(fields: [userId], references: [id])
   portfolio       PortfolioItem[]
+  loans           CharacterLoan[]
+  loanRepayments  LoanRepayment[]
+  loanOperations  LoanOperation[]
 }
 
 model BuildingState {
@@ -38,9 +43,12 @@ model BuildingState {
 }
 
 model Town {
-  id          Int    @id @default(autoincrement())
-  name        String
-  bankBalance Int    @default(0)
+  id                   Int                  @id @default(autoincrement())
+  name                 String
+  bankBalance          Int                  @default(0)
+  treasurySnapshots    TreasuryDaySnapshot[]
+  treasuryLedgerEntries TreasuryLedgerEntry[]
+  characterLoans       CharacterLoan[]
 }
 
 model GameState {
@@ -77,4 +85,124 @@ model PortfolioItem {
   character   Character @relation(fields: [characterId], references: [id])
 
   @@unique([characterId, stockId])
+}
+
+enum CharacterLoanStatus {
+  NONE
+  ACTIVE
+  DELINQUENT
+}
+
+enum TreasuryLedgerKind {
+  BUILDING_SALE_INFLOW
+  LOAN_PRINCIPAL_OUTFLOW
+  LOAN_REPAYMENT_PRINCIPAL_INFLOW
+  LOAN_INTEREST_INFLOW
+  LOAN_FEE_INFLOW
+  DAILY_VARIATION
+  ADMIN_ADJUSTMENT
+}
+
+enum LoanStatus {
+  ACTIVE
+  DELINQUENT
+  PAID
+  DEFAULTED
+  FORGIVEN
+}
+
+enum LoanPaymentSource {
+  MANUAL
+  AUTO_SWEEP
+  FORCED_LIQUIDATION
+}
+
+enum LoanOperationType {
+  ISSUE
+  REPAY
+}
+
+model TreasuryLedgerEntry {
+  id            String           @id @default(uuid())
+  townId        Int
+  kind          TreasuryLedgerKind
+  amount        Int
+  referenceType String
+  referenceId   String
+  metadataJson  String?
+  createdAt     DateTime         @default(now())
+
+  town Town @relation(fields: [townId], references: [id])
+
+  @@index([townId, createdAt])
+  @@index([referenceType, referenceId])
+}
+
+model TreasuryDaySnapshot {
+  id              String   @id @default(uuid())
+  townId          Int
+  dateKey         String
+  openingBalance  Int
+  variationAmount Int
+  loanNetAmount   Int      @default(0)
+  otherNetAmount  Int      @default(0)
+  closingBalance  Int
+  processedAt     DateTime @default(now())
+
+  town Town @relation(fields: [townId], references: [id])
+
+  @@unique([townId, dateKey])
+}
+
+model CharacterLoan {
+  id                         String      @id @default(uuid())
+  characterId                String
+  townId                     Int
+  status                     LoanStatus  @default(ACTIVE)
+  principalOrigin            Int
+  remainingPrincipal         Int
+  aprBps                     Int
+  dailyInterestBps           Int
+  lateFeesAccrued            Int         @default(0)
+  issuedAt                   DateTime    @default(now())
+  dueAt                      DateTime
+  lastInterestAccrualDateKey String
+  missedPaymentDays          Int         @default(0)
+  nextDueDateKey             String
+  version                    Int         @default(0)
+
+  character Character       @relation(fields: [characterId], references: [id])
+  town      Town            @relation(fields: [townId], references: [id])
+  repayments LoanRepayment[]
+  operations LoanOperation[]
+
+  @@index([characterId, status])
+}
+
+model LoanRepayment {
+  id              String            @id @default(uuid())
+  loanId          String
+  characterId     String
+  amountPaid      Int
+  appliedFees     Int
+  appliedInterest Int
+  appliedPrincipal Int
+  paymentSource   LoanPaymentSource
+  createdAt       DateTime          @default(now())
+
+  loan      CharacterLoan @relation(fields: [loanId], references: [id])
+  character Character     @relation(fields: [characterId], references: [id])
+}
+
+model LoanOperation {
+  id             String            @id @default(uuid())
+  idempotencyKey String            @unique
+  operationType  LoanOperationType
+  responseJson   String
+  characterId    String
+  loanId         String?
+  createdAt      DateTime          @default(now())
+
+  character Character      @relation(fields: [characterId], references: [id])
+  loan      CharacterLoan? @relation(fields: [loanId], references: [id])
 }

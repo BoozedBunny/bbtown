@@ -8,12 +8,12 @@ import {
   OrthographicCamera,
   PerspectiveCamera,
 } from "@react-three/drei";
-import { useEffect, useState, use, useMemo } from "react";
+import { useEffect, useState, use, useMemo, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Swords, Trophy, Loader2, X } from "lucide-react";
+import { Swords, Trophy, Loader2, X, Menu } from "lucide-react";
 import { ModelBuilding } from "@/components/ModelBuilding";
 import { ModelX } from "@/components/ModelX";
 import { TexturedGround } from "@/components/TexturedGround";
@@ -176,6 +176,53 @@ export default function TownPage({
   const [marketIntent, setMarketIntent] = useState<CentralManagementIntent | null>(null);
   const [showArenaModal, setShowArenaModal] = useState(false);
   const [matchmakingStatus, setMatchmakingStatus] = useState<"idle" | "searching" | "matched">("idle");
+  const [isTopNavMenuOpen, setIsTopNavMenuOpen] = useState(false);
+  const burgerButtonRef = useRef<HTMLButtonElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const menuItemRefs = useRef<Array<HTMLButtonElement | HTMLAnchorElement | null>>([]);
+
+  const emitNavEvent = useCallback(
+    (eventName: "nav_menu_opened" | "nav_menu_closed" | "nav_item_clicked", payload?: Record<string, string>) => {
+      if (typeof window === "undefined") return;
+      window.dispatchEvent(new CustomEvent(eventName, { detail: payload ?? {} }));
+    },
+    [],
+  );
+
+  const closeTopNavMenu = useCallback(
+    (
+      reason:
+        | "escape"
+        | "outside_click"
+        | "item_click"
+        | "toggle"
+        | "close_button"
+        | "route_change"
+        | "blur",
+      returnFocus = false,
+    ) => {
+      setIsTopNavMenuOpen((prev) => {
+        if (!prev) return prev;
+        emitNavEvent("nav_menu_closed", {
+          viewport:
+            typeof window === "undefined" ? "unknown" : window.innerWidth < 1024 ? "mobile" : "desktop",
+          page: pathname,
+          auth_state: "unknown",
+          reason,
+        });
+        return false;
+      });
+      if (returnFocus) {
+        requestAnimationFrame(() => {
+          burgerButtonRef.current?.focus();
+        });
+      }
+    },
+    [emitNavEvent, pathname],
+  );
+
+  const runtimeMode: "game" | "dev" = cameraMode;
+  const canViewGeoPosition = runtimeMode === "dev";
 
   const hoverSuppressed = useMemo(
     () => !!selectedBuilding || showArenaModal || showCombinedView,
@@ -187,6 +234,80 @@ export default function TownPage({
     forSale: false,
   });
   const [currentUser, setCurrentUser] = useState<UserWithCharacter | null>(null);
+  const topNavFeatureFlag =
+    process.env.NEXT_PUBLIC_HEADER_BURGER_NAV_V1 ?? process.env.NEXT_PUBLIC_TOPNAV_REFACTOR_V2 ?? "true";
+  const isTopNavRefactorEnabled = topNavFeatureFlag !== "false";
+
+  type HeaderNavItem = {
+    id: string;
+    label: string;
+    group: "core" | "economy" | "community" | "account";
+    priority: number;
+    onSelect?: () => void;
+    href?: string;
+  };
+
+  const headerNavItems = useMemo<HeaderNavItem[]>(
+    () => [
+      {
+        id: "xray",
+        label: isXRay ? "X-Ray Active" : "X-Ray View",
+        group: "core",
+        priority: 10,
+        onSelect: () => setIsXRay((prev) => !prev),
+      },
+      {
+        id: "camera",
+        label: cameraMode === "game" ? "Dev Mode" : "Game Mode",
+        group: "core",
+        priority: 20,
+        onSelect: () => setCameraMode((prev) => (prev === "game" ? "dev" : "game")),
+      },
+      {
+        id: "news",
+        label: "News",
+        group: "community",
+        priority: 30,
+        href: `/town/${townId}/news`,
+      },
+      {
+        id: "back-lobby",
+        label: "Back to Lobby",
+        group: "account",
+        priority: 40,
+        href: "/lobby",
+      },
+    ],
+    [cameraMode, isXRay, townId],
+  );
+
+  const groupedHeaderNavItems = useMemo(() => {
+    const groups: Array<{ key: HeaderNavItem["group"]; label: string }> = [
+      { key: "core", label: "Core" },
+      { key: "economy", label: "Economy" },
+      { key: "community", label: "Community" },
+      { key: "account", label: "Account" },
+    ];
+
+    return groups
+      .map((group) => ({
+        ...group,
+        items: headerNavItems
+          .filter((item) => item.group === group.key)
+          .sort((a, b) => a.priority - b.priority),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [headerNavItems]);
+
+  const getNavAnalyticsContext = useCallback(() => {
+    const viewport =
+      typeof window === "undefined" ? "unknown" : window.innerWidth < 1024 ? "mobile" : "desktop";
+    return {
+      viewport,
+      page: pathname,
+      auth_state: currentUser ? "authenticated" : "anonymous",
+    };
+  }, [currentUser, pathname]);
 
   const updateCentralManagementQuery = (tab: CentralManagementTab, symbol?: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -217,8 +338,66 @@ export default function TownPage({
   };
 
   useEffect(() => {
+    if (!isTopNavRefactorEnabled || !isTopNavMenuOpen) return;
+
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (dropdownRef.current?.contains(target) || burgerButtonRef.current?.contains(target)) {
+        return;
+      }
+      closeTopNavMenu("outside_click");
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      closeTopNavMenu("escape", true);
+    };
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [closeTopNavMenu, isTopNavMenuOpen, isTopNavRefactorEnabled]);
+
+  useEffect(() => {
+    if (!isTopNavRefactorEnabled || !isTopNavMenuOpen) return;
+    const menuElement = dropdownRef.current;
+    if (!menuElement) return;
+
+    const focusableElements = menuElement.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    if (!focusableElements.length) return;
+
+    focusableElements[0].focus();
+  }, [isTopNavMenuOpen, isTopNavRefactorEnabled]);
+
+  useEffect(() => {
+    if (!isTopNavRefactorEnabled) return;
+    closeTopNavMenu("route_change");
+  }, [pathname, searchParams, isTopNavRefactorEnabled, closeTopNavMenu]);
+
+  useEffect(() => {
+    if (!isTopNavRefactorEnabled) return;
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+    const syncMode = (event: MediaQueryListEvent | MediaQueryList) => {
+      if (!event.matches) return;
+      closeTopNavMenu("blur");
+    };
+
+    syncMode(mediaQuery);
+    mediaQuery.addEventListener("change", syncMode);
+    return () => {
+      mediaQuery.removeEventListener("change", syncMode);
+    };
+  }, [closeTopNavMenu, isTopNavRefactorEnabled]);
+
+  useEffect(() => {
     const cm = searchParams.get("cm");
-    if (cm !== "market" && cm !== "treasury") return;
+    if (cm !== "market" && cm !== "treasury" && cm !== "news") return;
 
     const symbol = searchParams.get("symbol");
     const intent: CentralManagementIntent = {
@@ -354,54 +533,132 @@ export default function TownPage({
 
   return (
     <main className="flex min-h-screen flex-col items-center p-8 text-white font-sans overflow-hidden relative brand-bg-overlay">
-      <div className="z-10 w-full max-w-6xl flex justify-between items-center mb-8 glass-card p-6 shadow-xl">
-        <div>
-          <h1 className="text-3xl font-heading font-bold tracking-tight text-white flex items-center gap-3">
-            <button
-              className="flex items-center gap-3 hover:opacity-80 transition-opacity text-left focus:outline-none focus:ring-2 focus:ring-brand-primary rounded-lg p-1 -m-1"
-              onClick={() =>
-                openCentralManagement({
-                  tab: "treasury",
-                  source: "manual",
-                })
-              }
-              aria-label="Open Town Central Management"
-            >
-              <div className="relative w-8 h-8">
-                <Image
-                  src="/logo.png"
-                  alt="BB"
-                  fill
-                  className="object-contain"
-                />
-              </div>
-              <span>
-                BoozedBunnyTown{" "}
-                <span className="text-brand-secondary">#{townId}</span>
-              </span>
-            </button>
-          </h1>
-          <div className="flex gap-4">
-            <p className="text-gray-400 text-sm mt-1">
-              Coordinate your isometric empire
-            </p>
-            {currentUser && currentUser.character && (
-              <div className="bg-brand-primary/20 px-3 py-1 rounded-full border border-brand-primary/50 flex items-center gap-2">
-                <span className="text-brand-secondary font-bold text-sm">
-                  💰 ${currentUser.character.wallet.toLocaleString()}
+      <div className="z-10 w-full max-w-6xl mb-8 glass-card p-4 md:p-6 shadow-xl relative">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="font-heading font-bold tracking-tight text-white flex items-center gap-3">
+              <button
+                className="flex items-center gap-3 hover:opacity-80 transition-opacity text-left focus:outline-none focus:ring-2 focus:ring-brand-primary rounded-lg p-1 -m-1"
+                onClick={() =>
+                  openCentralManagement({
+                    tab: "treasury",
+                    source: "manual",
+                  })
+                }
+                aria-label="Open Town Central Management"
+              >
+                <div className="relative" style={{ width: "clamp(48px, 5.2vw, 78px)", height: "clamp(48px, 5.2vw, 78px)" }}>
+                  <Image
+                    src="/logo.png"
+                    alt="BB"
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+                <span className="text-[clamp(1.1rem,2vw,1.85rem)] leading-tight">
+                  BoozedBunnyTown <span className="text-brand-secondary">#{townId}</span>
                 </span>
-              </div>
-            )}
+              </button>
+            </h1>
+            <div className="flex flex-wrap items-center gap-3 mt-2">
+              <p className="text-gray-400 text-sm">Coordinate your isometric empire</p>
+              {currentUser && currentUser.character && (
+                <div className="bg-brand-primary/20 px-3 py-1 rounded-full border border-brand-primary/50 flex items-center gap-2">
+                  <span className="text-brand-secondary font-bold text-sm">
+                    💰 ${currentUser.character.wallet.toLocaleString()}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-6">
-          <Button
-            variant="ghost"
-            onClick={() => setIsXRay(!isXRay)}
-            className={`text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full transition-all border ${isXRay ? "bg-brand-primary/20 border-brand-primary text-brand-primary" : "border-white/10 text-gray-400 hover:text-white hover:bg-white/5"}`}
-          >
-            {isXRay ? "X-Ray Active" : "X-Ray View"}
-          </Button>
+
+          {isTopNavRefactorEnabled ? (
+            <div className="flex items-center gap-3">
+              <nav aria-label="Town navigation" className="hidden lg:flex items-center gap-2">
+                {headerNavItems.map((item) => {
+                  if (item.href) {
+                    return (
+                      <Link
+                        key={item.id}
+                        href={item.href}
+                        onClick={() => {
+                          emitNavEvent("nav_item_clicked", {
+                            ...getNavAnalyticsContext(),
+                            item_key: item.id,
+                            href: item.href ?? "",
+                            position: String(headerNavItems.findIndex((menuItem) => menuItem.id === item.id) + 1),
+                          });
+                        }}
+                        className="min-h-11 rounded-lg px-3 text-sm font-semibold text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary inline-flex items-center"
+                      >
+                        <span className="max-w-full truncate">{item.label}</span>
+                      </Link>
+                    );
+                  }
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        emitNavEvent("nav_item_clicked", {
+                          ...getNavAnalyticsContext(),
+                          item_key: item.id,
+                          href: item.href ?? "",
+                          position: String(headerNavItems.findIndex((menuItem) => menuItem.id === item.id) + 1),
+                        });
+                        item.onSelect?.();
+                      }}
+                      className="min-h-11 rounded-lg px-3 text-sm font-semibold text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    >
+                      <span className="max-w-full block truncate">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+              <div className={`hidden lg:flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] ${connected ? "text-green-400" : "text-red-400"}`}>
+                <div className={`w-2 h-2 rounded-full ${connected ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
+                {connected ? "Live System" : "Offline"}
+              </div>
+              <button
+                ref={burgerButtonRef}
+                type="button"
+                onClick={() => {
+                  if (isTopNavMenuOpen) {
+                    closeTopNavMenu("toggle");
+                    return;
+                  }
+                  emitNavEvent("nav_menu_opened", getNavAnalyticsContext());
+                  setIsTopNavMenuOpen(true);
+                }}
+                aria-label={isTopNavMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+                aria-expanded={isTopNavMenuOpen}
+                aria-controls="top-nav-menu"
+                onKeyDown={(event) => {
+                  if (event.key !== "ArrowDown") return;
+                  event.preventDefault();
+                  if (!isTopNavMenuOpen) {
+                    emitNavEvent("nav_menu_opened", getNavAnalyticsContext());
+                    setIsTopNavMenuOpen(true);
+                    return;
+                  }
+                  const firstItem = menuItemRefs.current.find(Boolean);
+                  firstItem?.focus();
+                }}
+                className="lg:hidden min-h-11 min-w-11 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary inline-flex items-center justify-center"
+              >
+                {isTopNavMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-6">
+              <Button
+                variant="ghost"
+                onClick={() => setIsXRay(!isXRay)}
+                className={`text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full transition-all border ${isXRay ? "bg-brand-primary/20 border-brand-primary text-brand-primary" : "border-white/10 text-gray-400 hover:text-white hover:bg-white/5"}`}
+              >
+                {isXRay ? "X-Ray Active" : "X-Ray View"}
+              </Button>
           <Button
             variant={cameraMode === "dev" ? "default" : "outline"}
             onClick={() =>
@@ -411,25 +668,159 @@ export default function TownPage({
           >
             {cameraMode === "game" ? "Dev Mode" : "Game Mode"}
           </Button>
-          <div className="flex flex-col items-end">
-            <div
-              className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] ${connected ? "text-green-400" : "text-red-400"}`}
-            >
-              <div
-                className={`w-2 h-2 rounded-full ${connected ? "bg-green-400 animate-pulse" : "bg-red-400"}`}
-              />
-              {connected ? "Live System" : "Offline"}
+          <Button
+            variant="outline"
+            onClick={() =>
+              openCentralManagement({
+                tab: "news",
+                source: "news",
+              })
+            }
+            className="text-xs border-white/10 text-gray-300 hover:text-white hover:bg-white/10"
+          >
+            News
+          </Button>
+              <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] ${connected ? "text-green-400" : "text-red-400"}`}>
+                <div className={`w-2 h-2 rounded-full ${connected ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
+                {connected ? "Live System" : "Offline"}
+              </div>
+              <Link href="/lobby">
+                <Button
+                  variant="ghost"
+                  className="text-xs hover:text-brand-secondary transition-colors text-gray-400 uppercase tracking-widest font-bold"
+                >
+                  Back to Lobby
+                </Button>
+              </Link>
             </div>
-          </div>
-          <Link href="/lobby">
-            <Button
-              variant="ghost"
-              className="text-xs hover:text-brand-secondary transition-colors text-gray-400 uppercase tracking-widest font-bold"
-            >
-              Back to Lobby
-            </Button>
-          </Link>
+          )}
         </div>
+
+        {isTopNavRefactorEnabled && isTopNavMenuOpen && (
+          <div
+            id="top-nav-menu"
+            ref={dropdownRef}
+            aria-label="Town navigation menu"
+            className="fixed left-4 right-4 top-4 z-[60] max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl border border-white/15 bg-[#0B0714]/95 backdrop-blur-xl p-3 shadow-2xl md:left-auto md:right-4 md:top-[calc(100%+0.75rem)] md:w-[min(28rem,calc(100vw-2rem))]"
+          >
+            <div className="mb-2 flex items-center justify-between px-2">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">Navigation</p>
+              <button
+                type="button"
+                onClick={() => closeTopNavMenu("close_button", true)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                aria-label="Close navigation menu"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <nav aria-label="Town navigation">
+              <ul
+                className="flex flex-col gap-1"
+                onKeyDown={(event) => {
+                  const items = menuItemRefs.current.filter(Boolean) as Array<HTMLButtonElement | HTMLAnchorElement>;
+                  if (!items.length) return;
+                  const currentIndex = items.findIndex((item) => item === document.activeElement);
+
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    closeTopNavMenu("escape", true);
+                    return;
+                  }
+
+                  if (event.key === "Tab" && !event.shiftKey && currentIndex === items.length - 1) {
+                    closeTopNavMenu("blur");
+                    return;
+                  }
+
+                  if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+                  event.preventDefault();
+
+                  if (event.key === "Home") {
+                    items[0]?.focus();
+                    return;
+                  }
+                  if (event.key === "End") {
+                    items[items.length - 1]?.focus();
+                    return;
+                  }
+                  const delta = event.key === "ArrowDown" ? 1 : -1;
+                  const nextIndex = currentIndex < 0 ? 0 : (currentIndex + delta + items.length) % items.length;
+                  items[nextIndex]?.focus();
+                }}
+              >
+                {groupedHeaderNavItems.map((group) => (
+                  <li key={group.key} className="mt-2 first:mt-0">
+                    <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
+                      {group.label}
+                    </p>
+                    <ul className="flex flex-col gap-1">
+                      {group.items.map((item) => {
+                        if (item.href) {
+                          return (
+                            <li key={item.id}>
+                              <Link
+                                ref={(el) => {
+                                  const currentIndex = headerNavItems.findIndex((menuItem) => menuItem.id === item.id);
+                                  menuItemRefs.current[currentIndex] = el;
+                                }}
+                                title={item.label}
+                                href={item.href}
+                                onClick={() => {
+                                  emitNavEvent("nav_item_clicked", {
+                                    ...getNavAnalyticsContext(),
+                                    item_key: item.id,
+                                    href: item.href ?? "",
+                                    position: String(headerNavItems.findIndex((menuItem) => menuItem.id === item.id) + 1),
+                                  });
+                                  closeTopNavMenu("item_click");
+                                }}
+                                className="w-full min-h-11 rounded-lg px-3 text-left text-sm font-semibold text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary inline-flex items-center"
+                              >
+                                <span className="max-w-full truncate">{item.label}</span>
+                              </Link>
+                            </li>
+                          );
+                        }
+                        return (
+                          <li key={item.id}>
+                            <button
+                              ref={(el) => {
+                                const currentIndex = headerNavItems.findIndex((menuItem) => menuItem.id === item.id);
+                                menuItemRefs.current[currentIndex] = el;
+                              }}
+                              title={item.label}
+                              type="button"
+                              onClick={() => {
+                                emitNavEvent("nav_item_clicked", {
+                                    ...getNavAnalyticsContext(),
+                                    item_key: item.id,
+                                    href: item.href ?? "",
+                                    position: String(headerNavItems.findIndex((menuItem) => menuItem.id === item.id) + 1),
+                                  });
+                                item.onSelect?.();
+                                closeTopNavMenu("item_click", true);
+                              }}
+                              className="w-full min-h-11 rounded-lg px-3 text-left text-sm font-semibold text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                            >
+                              <span className="max-w-full block truncate">{item.label}</span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </li>
+                ))}
+                <li className="mt-2 border-t border-white/10 pt-3">
+                  <div className={`flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] px-3 ${connected ? "text-green-400" : "text-red-400"}`}>
+                    <div className={`w-2 h-2 rounded-full ${connected ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
+                    {connected ? "Live System" : "Offline"}
+                  </div>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        )}
       </div>
 
       <div className="relative w-full h-[75vh] border border-white/10 rounded-3xl overflow-hidden bg-[#05010a] shadow-[0_0_50px_rgba(0,0,0,0.5)]">
@@ -861,16 +1252,18 @@ export default function TownPage({
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
-                        Geo-Position
-                      </span>
-                      <p className="font-mono text-xs text-brand-primary">
-                        {selectedBuilding?.position
-                          ?.map((v) => v.toFixed(1))
-                          .join(", ")}
-                      </p>
-                    </div>
+                    {canViewGeoPosition && (
+                      <div className="space-y-1">
+                        <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
+                          Geo-Position
+                        </span>
+                        <p className="font-mono text-xs text-brand-primary">
+                          {selectedBuilding?.position
+                            ?.map((v) => v.toFixed(1))
+                            .join(", ")}
+                        </p>
+                      </div>
+                    )}
                     {selectedBuilding?.employees !== undefined && (
                       <div className="space-y-1">
                         <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
@@ -961,6 +1354,7 @@ export default function TownPage({
           setShowCombinedView(true);
         }}
         townData={townData}
+        townId={townId}
         intent={marketIntent}
         onIntentConsumed={() => setMarketIntent(null)}
       />
