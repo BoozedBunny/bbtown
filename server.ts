@@ -59,6 +59,7 @@ app.prepare().then(async () => {
     obstacles: Obstacle[];
     status: "waiting" | "playing" | "finished";
     timer: number;
+    startedAtMs?: number;
     intervalId?: NodeJS.Timeout;
   }
 
@@ -97,6 +98,7 @@ app.prepare().then(async () => {
       players: Object.values(game.players),
       obstacles: game.obstacles,
       status: game.status,
+      startedAtMs: game.startedAtMs,
     });
   };
 
@@ -381,6 +383,7 @@ app.prepare().then(async () => {
 
       if (isSolo || Object.keys(games[roomId].players).length === 2) {
         games[roomId].status = "playing";
+        games[roomId].startedAtMs = Date.now();
         console.log(`Game ${roomId} starting!`);
 
         const intervalId = setInterval(() => updateGame(roomId), 1000 / 30);
@@ -388,6 +391,7 @@ app.prepare().then(async () => {
 
         io.to(roomId).emit("game_start", {
           players: Object.values(games[roomId].players),
+          startedAtMs: games[roomId].startedAtMs,
         });
       }
     });

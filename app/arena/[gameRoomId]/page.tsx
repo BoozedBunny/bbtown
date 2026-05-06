@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState, useRef, Suspense } from "react";
+import { use, useEffect, useState, useRef, Suspense, useMemo } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
   KeyboardControls,
@@ -390,6 +390,36 @@ const OBSTACLE_PRESETS: ObstaclePreset[] = [
   },
 ];
 
+const ROUND_DURATION_SECONDS = 30;
+const TOTAL_ROUNDS = 30;
+const ROUND_SPEED_MULTIPLIER_MAX = 2.8;
+const PRESSURE_PHASE_REDUCTION_MAX = 0.7;
+const ROUND_CURVE_EXPONENT = 1.35;
+
+const clamp = (value: number, min: number, max: number) =>
+  Math.max(min, Math.min(max, value));
+
+const getRoundProgress = (round: number) => {
+  const normalized = (round - 1) / (TOTAL_ROUNDS - 1);
+  return clamp(Math.pow(clamp(normalized, 0, 1), ROUND_CURVE_EXPONENT), 0, 1);
+};
+
+const getSpeedMultiplierForRound = (round: number) => {
+  const progress = getRoundProgress(round);
+  return 1 + progress * (ROUND_SPEED_MULTIPLIER_MAX - 1);
+};
+
+const getPhaseScaleForRound = (round: number) => {
+  const progress = getRoundProgress(round);
+  return 1 - progress * PRESSURE_PHASE_REDUCTION_MAX;
+};
+
+const getPressureWaveCountForRound = (round: number) => {
+  if (round >= 24) return 3;
+  if (round >= 12) return 2;
+  return 1;
+};
+
 function MovingObstacle({
   startZ,
   speed,
@@ -397,6 +427,7 @@ function MovingObstacle({
   height,
   centerX,
   phaseOffsetMs = 0,
+  round,
 }: {
   startZ: number;
   speed: number;
@@ -404,20 +435,25 @@ function MovingObstacle({
   height: number;
   centerX: number;
   phaseOffsetMs?: number;
+  round: number;
 }) {
   const rbRef = useRef<any>(null);
   const elapsedMsRef = useRef(0);
+  const speedMultiplier = getSpeedMultiplierForRound(round);
+  const phaseScale = getPhaseScaleForRound(round);
+  const scaledSpeed = speed * speedMultiplier;
+  const scaledPhaseOffsetMs = phaseOffsetMs * phaseScale;
 
   useFrame((_, delta) => {
     if (!rbRef.current) return;
 
     elapsedMsRef.current += delta * 1000;
-    if (elapsedMsRef.current < phaseOffsetMs) {
+    if (elapsedMsRef.current < scaledPhaseOffsetMs) {
       return;
     }
 
     const currentPos = rbRef.current.translation();
-    let newZ = currentPos.z + speed * delta;
+    let newZ = currentPos.z + scaledSpeed * delta;
 
     if (newZ > OBSTACLE_Z_MAX) {
       newZ = OBSTACLE_Z_MIN;
@@ -456,6 +492,8 @@ function ArenaScene({
   onFall,
   status,
   socketId,
+  currentRound,
+  isSuddenDeath,
 }: {
   players: PlayerState[];
   obstacles: Obstacle[];
@@ -463,6 +501,8 @@ function ArenaScene({
   onFall: () => void;
   status: string;
   socketId: string | null;
+  currentRound: number;
+  isSuddenDeath: boolean;
 }) {
   // Lade die Textur (R3F sucht automatisch im /public Ordner)
   const floorTexture = useTexture("/textures/rocky_trail_02_diff_4k.jpg");
@@ -474,6 +514,25 @@ function ArenaScene({
   // Bei 20 Breite und 70 Länge ist ein Verhältnis wie 4 zu 14 ein guter Startwert.
   // Wenn die Steine zu groß aussehen, erhöhe diese Zahlen!
   floorTexture.repeat.set(4, 14);
+
+  const activeObstaclePresets = useMemo(() => {
+    const waveCount = getPressureWaveCountForRound(currentRound);
+    const waveSpacingMs = 900;
+    const result: Array<ObstaclePreset & { waveId: number }> = [];
+
+    for (let wave = 0; wave < waveCount; wave += 1) {
+      for (const preset of OBSTACLE_PRESETS) {
+        result.push({
+          ...preset,
+          waveId: wave,
+          phaseOffsetMs: preset.phaseOffsetMs + wave * waveSpacingMs,
+        });
+      }
+    }
+
+    return result;
+  }, [currentRound]);
+
   return (
     <>
       <ambientLight intensity={0.5} />
@@ -520,27 +579,30 @@ function ArenaScene({
           </mesh>
         </RigidBody> */}
 
-        <RigidBody type="fixed">
-          <mesh receiveShadow position={[0, -3.5, 0]}>
-            <boxGeometry args={[20, 5, 70]} />
-            {/* Hier kommt die Textur drauf! */}
-            <meshStandardMaterial map={floorTexture} />
-          </mesh>
-        </RigidBody>
+        {!isSuddenDeath && (
+          <RigidBody type="fixed">
+            <mesh receiveShadow position={[0, -3.5, 0]}>
+              <boxGeometry args={[20, 5, 70]} />
+              {/* Hier kommt die Textur drauf! */}
+              <meshStandardMaterial map={floorTexture} />
+            </mesh>
+          </RigidBody>
+        )}
 
         {/*  <RigidBody type="fixed" colliders="trimesh">
             <Gltf  receiveShadow rotation={[-Math.PI / 2, 0, 0]} scale={0.11} src="/fantasy_game_inn2-transformed.glb" />
           </RigidBody> */}
 
-        {OBSTACLE_PRESETS.map((preset) => (
+        {activeObstaclePresets.map((preset) => (
           <MovingObstacle
-            key={preset.id}
+            key={`${preset.id}-wave-${preset.waveId}`}
             startZ={preset.startZ}
             speed={preset.speed}
             width={preset.width}
             height={preset.height}
             centerX={preset.centerX}
             phaseOffsetMs={preset.phaseOffsetMs}
+            round={currentRound}
           />
         ))}
 
@@ -578,10 +640,38 @@ export default function ArenaPage({
     winner?: string;
     loser?: string;
     reward?: number;
+    startedAtMs?: number;
   }>({ players: [], obstacles: [], status: "waiting" });
   const [connected, setConnected] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [entryPhase, setEntryPhase] = useState<ArenaEntryPhase>("boot");
+  const [roundNowMs, setRoundNowMs] = useState(Date.now());
+
+  useEffect(() => {
+    if (gameState.status !== "playing") {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setRoundNowMs(Date.now());
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, [gameState.status]);
+
+  const startedAtMs = gameState.startedAtMs ?? roundNowMs;
+  const elapsedSeconds = Math.max(0, (roundNowMs - startedAtMs) / 1000);
+  const currentRound = clamp(
+    Math.floor(elapsedSeconds / ROUND_DURATION_SECONDS) + 1,
+    1,
+    TOTAL_ROUNDS,
+  );
+  const secondsIntoRound = elapsedSeconds % ROUND_DURATION_SECONDS;
+  const roundSecondsRemaining = Math.max(
+    0,
+    Math.ceil(ROUND_DURATION_SECONDS - secondsIntoRound),
+  );
+  const isSuddenDeath = gameState.status === "playing" && currentRound >= TOTAL_ROUNDS;
 
   useEffect(() => {
     setEntryPhase("boot");
@@ -613,8 +703,14 @@ export default function ArenaPage({
       setGameState((prev) => ({ ...prev, ...state }));
     });
 
-    s.on("game_start", ({ players }) => {
-      setGameState((prev) => ({ ...prev, status: "playing", players }));
+    s.on("game_start", ({ players, startedAtMs }) => {
+      setRoundNowMs(Date.now());
+      setGameState((prev) => ({
+        ...prev,
+        status: "playing",
+        players,
+        startedAtMs: typeof startedAtMs === "number" ? startedAtMs : Date.now(),
+      }));
     });
 
     s.on("game_over", (data) => {
@@ -703,11 +799,17 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
         </div>
 
         {gameState.status === "playing" && (
-          <div className="bg-black/40 backdrop-blur-xl px-8 py-3 rounded-full border border-green-500/30 flex items-center gap-3">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-xs font-bold uppercase tracking-[0.2em] text-green-400">
-              Match in Progress
-            </span>
+          <div className="flex flex-col items-center gap-2">
+            <div className="bg-black/40 backdrop-blur-xl px-8 py-3 rounded-full border border-green-500/30 flex items-center gap-3">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-xs font-bold uppercase tracking-[0.2em] text-green-400">
+                Match in Progress
+              </span>
+            </div>
+            <div className={`px-6 py-2 rounded-xl border text-xs font-bold uppercase tracking-[0.2em] ${isSuddenDeath ? "bg-red-500/20 border-red-500/50 text-red-300" : "bg-black/40 border-brand-primary/40 text-brand-secondary"}`}>
+              Round {currentRound}/{TOTAL_ROUNDS} • {roundSecondsRemaining}s
+              {isSuddenDeath ? " • Floor Drop" : ""}
+            </div>
           </div>
         )}
 
@@ -804,6 +906,8 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
                 onFall={handleFall}
                 status={gameState.status}
                 socketId={socket?.id || null}
+                currentRound={currentRound}
+                isSuddenDeath={isSuddenDeath}
               />
             </Canvas>
           </KeyboardControls>
