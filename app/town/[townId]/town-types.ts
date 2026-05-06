@@ -11,6 +11,7 @@ export interface BuildingData {
   employees?: number;
   title?: string;
   forSale?: boolean;
+  scale?: number | [number, number, number],
 }
 
 export interface DbBuildingState {

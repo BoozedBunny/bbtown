@@ -166,10 +166,11 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "21",
-    position: [1.72, 0.57, -2.16],
+    position: [1.72, 1, -2.16],
     rotationY: 0,
     glb: "/models/arena-v2.glb",
     type: "Commercial",
     color: "#BD00FF",
+    scale: 2,
   },
 ];

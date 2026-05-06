@@ -93,6 +93,7 @@ function Scene({
             onClick={() => {
               if (!freeMoveBuildingId) onBuildingClick(b);
             }}
+            scale={b.scale || 1}
           />
         );
       })}

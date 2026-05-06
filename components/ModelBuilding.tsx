@@ -38,6 +38,7 @@ type ModelBuildingProps = {
   activeHoverBuildingId?: string | null;
   onHoverBuildingChange?: (id: string | null) => void;
   hoverSuppressed?: boolean;
+  scale?: number | [number, number, number], // Erlaubt gleichmäßige (number) oder achsenspezifische Skalierung (Array)
 };
 
 export function ModelBuilding({
@@ -50,6 +51,7 @@ export function ModelBuilding({
   activeHoverBuildingId,
   onHoverBuildingChange,
   hoverSuppressed = false,
+  scale = 1, // Neuer Parameter für die Größe (Standard: 1)
 }: ModelBuildingProps) {
   const { scene } = useGLTF(url);
   const [hoverVisible, setHoverVisible] = useState(false);
@@ -293,6 +295,7 @@ export function ModelBuilding({
         object={clonedScene}
         onPointerOver={handlePointerEnter}
         onPointerOut={handlePointerLeave}
+        scale={scale}
       />
 
       {hoverVisible && isExternallyActive && (
