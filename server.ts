@@ -4,6 +4,7 @@ import next from "next";
 import { Server } from "socket.io";
 import express from "express";
 import { PrismaClient } from "@prisma/client";
+import { execSync } from "child_process";
 import { COMPANY_PROFILES } from "./lib/market/companyProfiles";
 import { runTreasuryDailySettlement } from "./lib/treasury/treasuryService";
 import { runLoanDelinquencySweep } from "./lib/treasury/loanService";
@@ -14,10 +15,43 @@ const port = parseInt(process.env.PORT || "3004", 10);
 
 const prisma = new PrismaClient();
 
+type SqliteTableInfoRow = {
+  name: string;
+};
+
+async function getCharacterColumns(): Promise<Set<string>> {
+  const rows = await prisma.$queryRawUnsafe<SqliteTableInfoRow[]>("PRAGMA table_info('Character')");
+  return new Set(rows.map((row) => row.name));
+}
+
+async function ensureCharacterLoanSchemaReady() {
+  const requiredColumns = ["loanStatus", "loanLockedUntil"] as const;
+  const existingColumns = await getCharacterColumns();
+  const missingColumns = requiredColumns.filter((column) => !existingColumns.has(column));
+
+  if (missingColumns.length === 0) return;
+
+  console.warn(
+    `[SchemaGuard] Character table missing columns (${missingColumns.join(", ")}). Running one-time prisma db push to repair schema drift.`,
+  );
+
+  execSync("npx prisma db push", { stdio: "inherit" });
+
+  const postPushColumns = await getCharacterColumns();
+  const stillMissing = requiredColumns.filter((column) => !postPushColumns.has(column));
+  if (stillMissing.length > 0) {
+    throw new Error(`[SchemaGuard] Prisma schema sync failed. Still missing Character columns: ${stillMissing.join(", ")}`);
+  }
+
+  console.log("[SchemaGuard] Character loan columns restored successfully.");
+}
+
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
 app.prepare().then(async () => {
+  await ensureCharacterLoanSchemaReady();
+
   // Initialize exchange company universe from shared profile config.
   for (const stock of COMPANY_PROFILES) {
     await prisma.stock.upsert({
