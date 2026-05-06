@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ArrowDownCircle, ArrowLeft, ArrowUpCircle, ShoppingBag, Wallet } from "lucide-react";
 import { toast } from "sonner";
+import type { CentralManagementIntent, CentralManagementTab } from "@/lib/ui/centralManagementIntent";
 
 type Stock = {
   id: string;
@@ -56,15 +57,15 @@ export function CombinedMarketView({
   open,
   setOpen,
   townData,
-  preselectedSymbol,
-  onPreselectedSymbolConsumed,
+  intent,
+  onIntentConsumed,
 }: {
   socket: Socket | null;
   open: boolean;
   setOpen: (open: boolean) => void;
   townData: any;
-  preselectedSymbol?: string | null;
-  onPreselectedSymbolConsumed?: () => void;
+  intent?: CentralManagementIntent | null;
+  onIntentConsumed?: () => void;
 }) {
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
@@ -72,6 +73,7 @@ export function CombinedMarketView({
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [wallet, setWallet] = useState(0);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [activeTab, setActiveTab] = useState<CentralManagementTab>("treasury");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -135,15 +137,33 @@ export function CombinedMarketView({
   }, [selectedStock]);
 
   useEffect(() => {
-    if (!open || !preselectedSymbol || stocks.length === 0) return;
-    const match = stocks.find((stock) => stock.symbol === preselectedSymbol);
+    if (!open || !intent) return;
+
+    setActiveTab(intent.tab);
+
+    if (intent.tab === "treasury") {
+      onIntentConsumed?.();
+      return;
+    }
+
+    const normalizedSymbol = intent.symbol?.trim().toUpperCase();
+    if (!normalizedSymbol) {
+      setSelectedStock(null);
+      onIntentConsumed?.();
+      return;
+    }
+
+    if (stocks.length === 0) return;
+
+    const match = stocks.find((stock) => stock.symbol.toUpperCase() === normalizedSymbol);
     if (match) {
       setSelectedStock(match);
     } else {
-      toast.error("Symbol unavailable");
+      setSelectedStock(null);
+      toast.warning(`${normalizedSymbol} is no longer listed.`);
     }
-    onPreselectedSymbolConsumed?.();
-  }, [open, preselectedSymbol, stocks, onPreselectedSymbolConsumed]);
+    onIntentConsumed?.();
+  }, [open, intent, stocks, onIntentConsumed]);
 
   const buy = (symbol: string, quantity: number) => socket?.emit("buy_stock", { symbol, quantity });
   const sell = (symbol: string, quantity: number) => socket?.emit("sell_stock", { symbol, quantity });
@@ -158,7 +178,7 @@ export function CombinedMarketView({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="sm:max-w-[880px] h-[720px] bg-[#0f021a] text-white border-white/10 rounded-2xl shadow-2xl p-0 overflow-hidden overflow-x-clip flex flex-col">
-        <Tabs defaultValue="treasury" className="w-full h-full flex flex-col overflow-x-clip">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as CentralManagementTab)} className="w-full h-full flex flex-col overflow-x-clip">
           <DialogHeader className="p-6 pb-0 flex flex-row justify-between items-center">
             <DialogTitle className="text-2xl font-heading font-bold text-brand-secondary flex items-center gap-2">
               <div className="w-8 h-8 bg-brand-primary rounded-lg rotate-12" />
