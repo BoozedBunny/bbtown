@@ -7,21 +7,21 @@ async function main() {
 
   // Create dummy users with characters
   const player1 = await prisma.user.upsert({
-    where: { username: 'bunny' },
+    where: { username: 'Player1' },
     update: {
       character: {
         update: {
-          name: 'bunny',
+          name: 'Player1',
           avatar: 'bunny',
           wallet: 5000,
         }
       }
     },
     create: {
-      username: 'bunny',
+      username: 'Player1',
       character: {
         create: {
-          name: 'bunny',
+          name: 'Player1',
           appearanceColor: '#BD00FF',
           avatar: 'bunny',
           wallet: 5000,
@@ -33,21 +33,21 @@ async function main() {
   console.log('User created/updated:', player1.username)
 
   const player2 = await prisma.user.upsert({
-    where: { username: 'cowie' },
+    where: { username: 'Player2' },
     update: {
       character: {
         update: {
-          name: 'cowie',
+          name: 'Player2',
           avatar: 'cowie',
           wallet: 2000,
         }
       }
     },
     create: {
-      username: 'cowie',
+      username: 'Player2',
       character: {
         create: {
-          name: 'cowie',
+          name: 'Player2',
           appearanceColor: '#FFB800',
           avatar: 'cowie',
           wallet: 2000,
