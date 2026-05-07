@@ -5,6 +5,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
   KeyboardControls,
   Sky,
+  Gltf,
   useKeyboardControls,
   useTexture,
 } from "@react-three/drei";
@@ -14,10 +15,21 @@ import * as THREE from "three";
 import { Physics, RigidBody, useRapier } from "@react-three/rapier";
 import { Model as Player } from "@/components/Player";
 import { useRouter } from "next/navigation";
-import { DEFAULT_ROUND_TRANSITION_CONFIG, getRoundPhaseStateAt } from "@/lib/arena/roundPhases";
-import { PostMatchEntry, ToplistEntry, rankToplistEntries } from "@/lib/arena/toplist";
+import {
+  DEFAULT_ROUND_TRANSITION_CONFIG,
+  getRoundPhaseStateAt,
+} from "@/lib/arena/roundPhases";
+import {
+  PostMatchEntry,
+  ToplistEntry,
+  rankToplistEntries,
+} from "@/lib/arena/toplist";
 
-type SpawnReason = "initial_join" | "respawn" | "landing_reset" | "zone_transfer";
+type SpawnReason =
+  | "initial_join"
+  | "respawn"
+  | "landing_reset"
+  | "zone_transfer";
 
 interface PlayerState {
   id: string;
@@ -90,7 +102,10 @@ function LocalPlayer({
     if (incomingSequence <= lastAppliedSpawnSequence.current) return;
 
     const [spawnX, spawnY, spawnZ] = initialSpawn.position;
-    rigidBodyRef.current.setTranslation({ x: spawnX, y: spawnY + 5, z: spawnZ }, true);
+    rigidBodyRef.current.setTranslation(
+      { x: spawnX, y: spawnY + 5, z: spawnZ },
+      true,
+    );
     rigidBodyRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
     modelRef.current.rotation.y = initialSpawn.rotation;
     yaw.current = initialSpawn.rotation - Math.PI;
@@ -500,7 +515,7 @@ function MovingObstacle({
     });
   });
 
-    // Textur laden (Pfad bezieht sich auf den public-Ordner)
+  // Textur laden (Pfad bezieht sich auf den public-Ordner)
   const texture = useTexture("/textures/planked_wood.webp");
 
   // Optional: Textur-Wiederholung konfigurieren, falls die Box groß ist
@@ -508,7 +523,7 @@ function MovingObstacle({
   texture.repeat.set(1, 1);
 
   return (
-<RigidBody
+    <RigidBody
       ref={rbRef}
       type="kinematicPosition"
       colliders="cuboid"
@@ -516,11 +531,11 @@ function MovingObstacle({
     >
       <mesh castShadow receiveShadow>
         <boxGeometry args={[width, height, OBSTACLE_DEPTH]} />
-        <meshStandardMaterial 
-          map={texture} 
-          // Falls du den rötlichen Schimmer behalten willst, 
+        <meshStandardMaterial
+          map={texture}
+          // Falls du den rötlichen Schimmer behalten willst,
           // kannst du 'color' zusätzlich zur Textur setzen.
-          // color="#FF0055" 
+          // color="#FF0055"
         />
       </mesh>
     </RigidBody>
@@ -548,6 +563,7 @@ function ArenaScene({
 }) {
   // Lade die Textur (R3F sucht automatisch im /public Ordner)
   const floorTexture = useTexture("/textures/rocky_trail_02_diff_4k.jpg");
+  const grandStandTexture = useTexture("/textures/ground_v2.webp");
 
   // Bringe der Textur bei, dass sie sich wiederholen darf
   floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
@@ -575,8 +591,9 @@ function ArenaScene({
     return result;
   }, [currentRound]);
 
-  const localPlayerState =
-    socketId ? players.find((player) => player.id === socketId) : undefined;
+  const localPlayerState = socketId
+    ? players.find((player) => player.id === socketId)
+    : undefined;
 
   return (
     <>
@@ -598,59 +615,44 @@ function ArenaScene({
         inclination={0}
         azimuth={0.25}
       />
+      <Gltf
+        position={[0, 20, 0]}
+        receiveShadow
+        scale={120}
+        src="/models/arena_inside.glb"
+      />
+
+      <mesh receiveShadow position={[0, -5.5, 0]}>
+        <boxGeometry args={[140, 1, 170]} />
+        {/* Hier kommt die Textur drauf! */}
+        <meshStandardMaterial map={floorTexture} />
+      </mesh>
 
       {/* 1. DEBUG MODUS AKTIVIERT! Zeigt alle Physik-Boxen als rote Linien an */}
       <Physics gravity={[0, -9.81, 0]} timeStep="vary" /* debug */>
-        {/* 2. NUR OPTIK: Das Gltf hat KEINEN RigidBody mehr drum herum! */}
-        {/* <Gltf 
-          castShadow 
-          receiveShadow 
-          rotation={[-Math.PI / 2, 0, 0]} 
-          scale={0.11} 
-          src="/fantasy_game_inn2-transformed.glb" 
-          position={[0, -0.5, 0]}
-        /> */}
-
-        {/* 3. DER ECHTE BODEN: Ein unsichtbarer, flacher Block */}
-        {/* <RigidBody 
-          type="fixed" 
-          position={[0, -1, 0]} 
-          restitution={0} 
-          friction={1}
-        >
-          <mesh>
-            <boxGeometry args={[50, 1, 50]} />
-            <meshBasicMaterial color="#BD00FF" wireframe={true} transparent opacity={0.2} />
-          </mesh>
-        </RigidBody> */}
-
         {!isSuddenDeath && (
           <RigidBody type="fixed">
             <mesh receiveShadow position={[0, -3.5, 0]}>
               <boxGeometry args={[20, 5, 70]} />
               {/* Hier kommt die Textur drauf! */}
-              <meshStandardMaterial map={floorTexture} />
+              <meshStandardMaterial map={grandStandTexture} />
             </mesh>
           </RigidBody>
         )}
 
-        {/*  <RigidBody type="fixed" colliders="trimesh">
-            <Gltf  receiveShadow rotation={[-Math.PI / 2, 0, 0]} scale={0.11} src="/fantasy_game_inn2-transformed.glb" />
-          </RigidBody> */}
-
         {obstaclesEnabled &&
           activeObstaclePresets.map((preset) => (
-          <MovingObstacle
-            key={`${preset.id}-wave-${preset.waveId}`}
-            startZ={preset.startZ}
-            speed={preset.speed}
-            width={preset.width}
-            height={preset.height}
-            centerX={preset.centerX}
-            phaseOffsetMs={preset.phaseOffsetMs}
-            round={currentRound}
-          />
-        ))}
+            <MovingObstacle
+              key={`${preset.id}-wave-${preset.waveId}`}
+              startZ={preset.startZ}
+              speed={preset.speed}
+              width={preset.width}
+              height={preset.height}
+              centerX={preset.centerX}
+              phaseOffsetMs={preset.phaseOffsetMs}
+              round={currentRound}
+            />
+          ))}
 
         {status === "playing" && (
           <LocalPlayer
@@ -707,8 +709,12 @@ export default function ArenaPage({
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [entryPhase, setEntryPhase] = useState<ArenaEntryPhase>("boot");
   const [roundNowMs, setRoundNowMs] = useState(Date.now());
-  const [globalToplistRows, setGlobalToplistRows] = useState<ToplistEntry[]>([]);
-  const [toplistStatus, setToplistStatus] = useState<"idle" | "loading" | "ready" | "unavailable">("idle");
+  const [globalToplistRows, setGlobalToplistRows] = useState<ToplistEntry[]>(
+    [],
+  );
+  const [toplistStatus, setToplistStatus] = useState<
+    "idle" | "loading" | "ready" | "unavailable"
+  >("idle");
 
   useEffect(() => {
     if (gameState.status !== "playing") {
@@ -729,12 +735,21 @@ export default function ArenaPage({
           roundIndex: gameState.roundIndex,
           phase: gameState.roundPhase,
           phaseStartTimeMs: gameState.phaseStartTimeMs ?? startedAtMs,
-          phaseDurationMs: gameState.phaseDurationMs ?? DEFAULT_ROUND_TRANSITION_CONFIG.roundDurationMs,
+          phaseDurationMs:
+            gameState.phaseDurationMs ??
+            DEFAULT_ROUND_TRANSITION_CONFIG.roundDurationMs,
           obstaclesEnabled: gameState.obstaclesEnabled ?? true,
         }
-      : getRoundPhaseStateAt(roundNowMs, startedAtMs, DEFAULT_ROUND_TRANSITION_CONFIG);
+      : getRoundPhaseStateAt(
+          roundNowMs,
+          startedAtMs,
+          DEFAULT_ROUND_TRANSITION_CONFIG,
+        );
   const currentRound = clamp(authoritativePhase.roundIndex, 1, TOTAL_ROUNDS);
-  const phaseElapsedMs = Math.max(0, roundNowMs - authoritativePhase.phaseStartTimeMs);
+  const phaseElapsedMs = Math.max(
+    0,
+    roundNowMs - authoritativePhase.phaseStartTimeMs,
+  );
   const roundSecondsRemaining = Math.max(
     0,
     Math.ceil(
@@ -743,10 +758,14 @@ export default function ArenaPage({
         : authoritativePhase.phaseDurationMs) / 1000,
     ),
   );
-  const isSuddenDeath = gameState.status === "playing" && currentRound >= TOTAL_ROUNDS;
+  const isSuddenDeath =
+    gameState.status === "playing" && currentRound >= TOTAL_ROUNDS;
 
-  const mode = gameState.gameOver?.mode ?? (gameRoomId.startsWith("solo-") ? "SP" : "MP");
-  const localPostMatchRows = rankToplistEntries(gameState.gameOver?.entries ?? []);
+  const mode =
+    gameState.gameOver?.mode ?? (gameRoomId.startsWith("solo-") ? "SP" : "MP");
+  const localPostMatchRows = rankToplistEntries(
+    gameState.gameOver?.entries ?? [],
+  );
   const roundsReached = gameState.gameOver?.roundsReached ?? currentRound;
 
   useEffect(() => {
@@ -793,7 +812,10 @@ export default function ArenaPage({
         setToplistStatus("ready");
       } catch (error) {
         if (!active) return;
-        console.warn("Toplist unavailable, falling back to local results", error);
+        console.warn(
+          "Toplist unavailable, falling back to local results",
+          error,
+        );
         setToplistStatus("unavailable");
       }
     };
@@ -869,8 +891,17 @@ export default function ArenaPage({
     };
   }, [gameRoomId]);
 
-const handleMove = (position: [number, number, number], rotation: number, anim: string) => {
-    socket?.emit("player_move", { roomId: gameRoomId, position, rotation, anim });
+  const handleMove = (
+    position: [number, number, number],
+    rotation: number,
+    anim: string,
+  ) => {
+    socket?.emit("player_move", {
+      roomId: gameRoomId,
+      position,
+      rotation,
+      anim,
+    });
   };
 
   const handleFall = () => {
@@ -888,11 +919,15 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
       requestAnimationFrame(() => {
         setEntryPhase("ready_hold");
         setTimeout(() => {
-          setEntryPhase((prev) => (prev === "ready_hold" ? "fade_out_overlay" : prev));
+          setEntryPhase((prev) =>
+            prev === "ready_hold" ? "fade_out_overlay" : prev,
+          );
         }, 300);
         setTimeout(() => {
           setEntryPhase((prev) =>
-            prev === "fade_out_overlay" || prev === "ready_hold" ? "playing" : prev,
+            prev === "fade_out_overlay" || prev === "ready_hold"
+              ? "playing"
+              : prev,
           );
         }, 500);
       });
@@ -905,11 +940,15 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
       requestAnimationFrame(() => {
         setEntryPhase("ready_hold");
         setTimeout(() => {
-          setEntryPhase((prev) => (prev === "ready_hold" ? "fade_out_overlay" : prev));
+          setEntryPhase((prev) =>
+            prev === "ready_hold" ? "fade_out_overlay" : prev,
+          );
         }, 300);
         setTimeout(() => {
           setEntryPhase((prev) =>
-            prev === "fade_out_overlay" || prev === "ready_hold" ? "playing" : prev,
+            prev === "fade_out_overlay" || prev === "ready_hold"
+              ? "playing"
+              : prev,
           );
         }, 500);
       });
@@ -933,8 +972,10 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
                   Sector ID
                 </h2>
                 <p className="font-mono text-white font-black text-lg leading-none">
-                  {gameRoomId.split('-')[0].toUpperCase()}
-                  <span className="text-brand-primary opacity-50">-{gameRoomId.split('-')[1] || 'X'}</span>
+                  {gameRoomId.split("-")[0].toUpperCase()}
+                  <span className="text-brand-primary opacity-50">
+                    -{gameRoomId.split("-")[1] || "X"}
+                  </span>
                 </p>
               </div>
             </div>
@@ -946,25 +987,42 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
             <div className="relative">
               <div className="absolute inset-0 bg-brand-secondary/5 blur-lg" />
               <div className="bg-black/40 backdrop-blur-xl px-10 py-2 border-y border-brand-secondary/30 relative">
-                 <div className="absolute left-0 top-0 w-2 h-full bg-brand-secondary" />
-                 <div className="absolute right-0 top-0 w-2 h-full bg-brand-secondary" />
-                 <span className="text-[10px] font-black uppercase tracking-[0.4em] text-brand-secondary animate-pulse">
-                   {authoritativePhase.phase === "ACTIVE_ROUND" ? "SYSTEM_ACTIVE" : "RECALIBRATING"}
-                 </span>
+                <div className="absolute left-0 top-0 w-2 h-full bg-brand-secondary" />
+                <div className="absolute right-0 top-0 w-2 h-full bg-brand-secondary" />
+                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-brand-secondary animate-pulse">
+                  {authoritativePhase.phase === "ACTIVE_ROUND"
+                    ? "SYSTEM_ACTIVE"
+                    : "RECALIBRATING"}
+                </span>
               </div>
             </div>
 
             <div className="flex gap-1">
-               <div className={`cyber-skew ${isSuddenDeath ? 'bg-red-600/80' : 'bg-brand-primary/80'} px-8 py-3 relative`}>
-                  <p className="text-[10px] font-bold uppercase text-white/70 tracking-widest text-center">Cycle</p>
-                  <p className="text-2xl font-black text-white leading-none">{currentRound}<span className="text-xs opacity-50 ml-1">/ {TOTAL_ROUNDS}</span></p>
-               </div>
-               <div className="cyber-skew bg-white/10 backdrop-blur-md px-8 py-3 border-r border-white/20">
-                  <p className="text-[10px] font-bold uppercase text-white/50 tracking-widest text-center">Time</p>
-                  <p className="text-2xl font-mono font-black text-brand-secondary leading-none">
-                    {String(Math.floor(roundSecondsRemaining / 60)).padStart(2, '0')}:{String(roundSecondsRemaining % 60).padStart(2, '0')}
-                  </p>
-               </div>
+              <div
+                className={`cyber-skew ${isSuddenDeath ? "bg-red-600/80" : "bg-brand-primary/80"} px-8 py-3 relative`}
+              >
+                <p className="text-[10px] font-bold uppercase text-white/70 tracking-widest text-center">
+                  Cycle
+                </p>
+                <p className="text-2xl font-black text-white leading-none">
+                  {currentRound}
+                  <span className="text-xs opacity-50 ml-1">
+                    / {TOTAL_ROUNDS}
+                  </span>
+                </p>
+              </div>
+              <div className="cyber-skew bg-white/10 backdrop-blur-md px-8 py-3 border-r border-white/20">
+                <p className="text-[10px] font-bold uppercase text-white/50 tracking-widest text-center">
+                  Time
+                </p>
+                <p className="text-2xl font-mono font-black text-brand-secondary leading-none">
+                  {String(Math.floor(roundSecondsRemaining / 60)).padStart(
+                    2,
+                    "0",
+                  )}
+                  :{String(roundSecondsRemaining % 60).padStart(2, "0")}
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -974,8 +1032,15 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
             <div className="flex items-center gap-3">
               <Users className="w-4 h-4 text-brand-primary" />
               <div>
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">Nodes</p>
-                <p className="text-sm font-black font-mono">0{gameState.players.length}<span className="opacity-30">/0{gameRoomId.startsWith("solo-") ? "1" : "2"}</span></p>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
+                  Nodes
+                </p>
+                <p className="text-sm font-black font-mono">
+                  0{gameState.players.length}
+                  <span className="opacity-30">
+                    /0{gameRoomId.startsWith("solo-") ? "1" : "2"}
+                  </span>
+                </p>
               </div>
             </div>
           </div>
@@ -985,39 +1050,49 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
           >
             <div className="absolute inset-0 bg-red-500/20 blur group-hover:bg-red-500/40 transition-all" />
             <div className="cyber-skew bg-red-950/40 border border-red-500/50 px-6 py-4 transition-all group-hover:translate-x-1 group-hover:-translate-y-1">
-               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500">Abort_Mission</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500">
+                Abort_Mission
+              </span>
             </div>
           </button>
         </div>
       </div>
 
-      {gameState.status === "playing" && authoritativePhase.phase !== "ACTIVE_ROUND" && (
-        <div className="absolute inset-x-0 top-1/3 z-20 pointer-events-none">
-          <div className="relative h-32 w-full flex items-center justify-center overflow-hidden">
-             <div className="absolute inset-0 bg-brand-primary/10 backdrop-blur-sm skew-y-1" />
-             <div className="absolute inset-y-0 left-0 w-24 bg-brand-primary" />
-             <div className="absolute inset-y-0 right-0 w-24 bg-brand-primary" />
+      {gameState.status === "playing" &&
+        authoritativePhase.phase !== "ACTIVE_ROUND" && (
+          <div className="absolute inset-x-0 top-1/3 z-20 pointer-events-none">
+            <div className="relative h-32 w-full flex items-center justify-center overflow-hidden">
+              <div className="absolute inset-0 bg-brand-primary/10 backdrop-blur-sm skew-y-1" />
+              <div className="absolute inset-y-0 left-0 w-24 bg-brand-primary" />
+              <div className="absolute inset-y-0 right-0 w-24 bg-brand-primary" />
 
-             <div className="relative flex flex-col items-center">
+              <div className="relative flex flex-col items-center">
                 <div className="flex items-center gap-8">
-                   <div className="h-[2px] w-32 bg-gradient-to-r from-transparent to-brand-primary" />
-                   <span className="text-xs font-black uppercase tracking-[0.8em] text-brand-primary">Prepare for link</span>
-                   <div className="h-[2px] w-32 bg-gradient-to-l from-transparent to-brand-primary" />
+                  <div className="h-[2px] w-32 bg-gradient-to-r from-transparent to-brand-primary" />
+                  <span className="text-xs font-black uppercase tracking-[0.8em] text-brand-primary">
+                    Prepare for link
+                  </span>
+                  <div className="h-[2px] w-32 bg-gradient-to-l from-transparent to-brand-primary" />
                 </div>
-                <h1 className="text-7xl font-heading font-black text-white italic tracking-tighter cyber-glitch-text" data-text={`CYCLE_0${currentRound}`}>
+                <h1
+                  className="text-7xl font-heading font-black text-white italic tracking-tighter cyber-glitch-text"
+                  data-text={`CYCLE_0${currentRound}`}
+                >
                   CYCLE_0{currentRound}
                 </h1>
                 <div className="flex items-center gap-2 mt-2">
-                   <div className="w-2 h-2 bg-brand-secondary animate-ping" />
-                   <span className="text-[10px] font-mono font-bold text-brand-secondary uppercase">Broadcasting Obstacle Data...</span>
+                  <div className="w-2 h-2 bg-brand-secondary animate-ping" />
+                  <span className="text-[10px] font-mono font-bold text-brand-secondary uppercase">
+                    Broadcasting Obstacle Data...
+                  </span>
                 </div>
-             </div>
+              </div>
 
-             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[120%] h-px bg-white/20 animate-pulse" />
-             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[120%] h-px bg-white/20 animate-pulse" />
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[120%] h-px bg-white/20 animate-pulse" />
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[120%] h-px bg-white/20 animate-pulse" />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {gameState.status === "waiting" && !gameRoomId.startsWith("solo-") && (
         <div
@@ -1031,10 +1106,15 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
                   <Users className="w-6 h-6 text-brand-primary" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-heading font-bold tracking-tighter cyber-glitch-text" data-text="AWAITING OPPONENT">
+                  <h2
+                    className="text-2xl font-heading font-bold tracking-tighter cyber-glitch-text"
+                    data-text="AWAITING OPPONENT"
+                  >
                     AWAITING OPPONENT
                   </h2>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-brand-primary/60 font-bold">Establishing Secure Link...</p>
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-brand-primary/60 font-bold">
+                    Establishing Secure Link...
+                  </p>
                 </div>
               </div>
 
@@ -1058,116 +1138,162 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
           {!currentUser ? (
             <div className="flex flex-col items-center gap-4">
               <div className="w-16 h-16 border-t-2 border-brand-primary rounded-full animate-spin" />
-              <p className="text-xs font-black uppercase tracking-[0.4em] text-brand-primary">Finalizing Session...</p>
+              <p className="text-xs font-black uppercase tracking-[0.4em] text-brand-primary">
+                Finalizing Session...
+              </p>
             </div>
           ) : (
             <div className="w-full max-w-4xl relative">
               <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-full flex flex-col items-center">
-                 <h1 className="text-8xl font-heading font-black italic tracking-tighter opacity-10 absolute top-0">DEBRIEFING</h1>
-                 <div className="cyber-glitch-text text-5xl font-heading font-black tracking-tighter text-white mt-12 mb-4" data-text={mode === "SP" ? "SESSION COMPLETE" : "MISSION_END"}>
-                   {mode === "SP" ? "SESSION COMPLETE" : "MISSION_END"}
-                 </div>
-                 <div className="w-32 h-1 bg-brand-primary" />
+                <h1 className="text-8xl font-heading font-black italic tracking-tighter opacity-10 absolute top-0">
+                  DEBRIEFING
+                </h1>
+                <div
+                  className="cyber-glitch-text text-5xl font-heading font-black tracking-tighter text-white mt-12 mb-4"
+                  data-text={mode === "SP" ? "SESSION COMPLETE" : "MISSION_END"}
+                >
+                  {mode === "SP" ? "SESSION COMPLETE" : "MISSION_END"}
+                </div>
+                <div className="w-32 h-1 bg-brand-primary" />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
-                 <div className="cyber-border bg-black/60 p-6 flex flex-col items-center justify-center min-h-[160px]">
-                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Efficiency</p>
-                    <p className="text-5xl font-heading font-black text-white italic">{roundsReached}</p>
-                    <p className="text-[10px] font-bold text-brand-primary uppercase mt-1">Cycles Completed</p>
-                 </div>
+                <div className="cyber-border bg-black/60 p-6 flex flex-col items-center justify-center min-h-[160px]">
+                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">
+                    Efficiency
+                  </p>
+                  <p className="text-5xl font-heading font-black text-white italic">
+                    {roundsReached}
+                  </p>
+                  <p className="text-[10px] font-bold text-brand-primary uppercase mt-1">
+                    Cycles Completed
+                  </p>
+                </div>
 
-                 <div className="md:col-span-2 cyber-border bg-brand-primary/5 p-6 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10">
-                       <Trophy className="w-32 h-32 text-brand-primary" />
-                    </div>
+                <div className="md:col-span-2 cyber-border bg-brand-primary/5 p-6 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-10">
+                    <Trophy className="w-32 h-32 text-brand-primary" />
+                  </div>
 
-                    <div className="relative z-10">
-                       <p className="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em] mb-4">Mission Performance</p>
+                  <div className="relative z-10">
+                    <p className="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em] mb-4">
+                      Mission Performance
+                    </p>
 
-                       {mode === "MP" ? (
-                         <div className="space-y-4">
-                            <div className="flex justify-between items-end border-b border-white/10 pb-2">
-                               <span className="text-xs font-bold text-gray-400 uppercase">Primary Node</span>
-                               <span className="text-xl font-black text-white">{currentUser.username}</span>
+                    {mode === "MP" ? (
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-end border-b border-white/10 pb-2">
+                          <span className="text-xs font-bold text-gray-400 uppercase">
+                            Primary Node
+                          </span>
+                          <span className="text-xl font-black text-white">
+                            {currentUser.username}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-end border-b border-white/10 pb-2">
+                          <span className="text-xs font-bold text-gray-400 uppercase">
+                            Operational Status
+                          </span>
+                          <span
+                            className={`text-xl font-black ${gameState.gameOver?.winner === currentUser.username ? "text-green-500" : "text-red-500"}`}
+                          >
+                            {gameState.gameOver?.winner === currentUser.username
+                              ? "STILL STANDING"
+                              : "NEURAL TERMINATED"}
+                          </span>
+                        </div>
+                        {gameState.gameOver?.winner ===
+                          currentUser.username && (
+                          <div className="pt-2">
+                            <div className="inline-block bg-brand-secondary/20 border border-brand-secondary/40 px-4 py-2 skew-x-[-15deg]">
+                              <span className="text-brand-secondary font-black text-sm tracking-tighter">
+                                +
+                                {gameState.gameOver.reward?.toLocaleString() ||
+                                  0}{" "}
+                                BBT CREDITS ISSUED
+                              </span>
                             </div>
-                            <div className="flex justify-between items-end border-b border-white/10 pb-2">
-                               <span className="text-xs font-bold text-gray-400 uppercase">Operational Status</span>
-                               <span className={`text-xl font-black ${gameState.gameOver?.winner === currentUser.username ? 'text-green-500' : 'text-red-500'}`}>
-                                 {gameState.gameOver?.winner === currentUser.username ? 'STILL STANDING' : 'NEURAL TERMINATED'}
-                               </span>
-                            </div>
-                            {gameState.gameOver?.winner === currentUser.username && (
-                               <div className="pt-2">
-                                  <div className="inline-block bg-brand-secondary/20 border border-brand-secondary/40 px-4 py-2 skew-x-[-15deg]">
-                                     <span className="text-brand-secondary font-black text-sm tracking-tighter">
-                                       +{gameState.gameOver.reward?.toLocaleString() || 0} BBT CREDITS ISSUED
-                                     </span>
-                                  </div>
-                               </div>
-                            )}
-                         </div>
-                       ) : (
-                         <div className="space-y-2">
-                            <p className="text-gray-300 text-sm leading-relaxed max-w-md">
-                               Neural synchronization sustained for {roundsReached} cycles. Performance data uploaded to the central grid. Keep training to increase your BBT yield potential.
-                            </p>
-                            <div className="h-px w-full bg-white/5 mt-4" />
-                            <div className="flex gap-4 mt-4 text-[10px] font-mono text-gray-500">
-                               <span>RANK: B+</span>
-                               <span>STABILITY: 98.4%</span>
-                               <span>YIELD: N/A (TRAINING)</span>
-                            </div>
-                         </div>
-                       )}
-                    </div>
-                 </div>
-
-                 {mode === "MP" && (
-                   <div className="md:col-span-3 cyber-border bg-black/40 mt-2 overflow-hidden">
-                      <div className="bg-brand-primary/20 px-6 py-2 border-b border-brand-primary/30 flex justify-between items-center">
-                         <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary">Global Leaderboard Extract</span>
-                         {toplistStatus === "loading" && <div className="w-2 h-2 bg-brand-primary animate-ping" />}
+                          </div>
+                        )}
                       </div>
-                      <div className="max-h-[240px] overflow-y-auto">
-                        <table className="w-full text-[10px]">
-                          <thead className="bg-white/5 text-left text-gray-500 uppercase">
-                            <tr>
-                              <th className="px-6 py-3">Pos</th>
-                              <th className="px-6 py-3">Subject</th>
-                              <th className="px-6 py-3">Cycles</th>
-                              <th className="px-6 py-3">Ref</th>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-gray-300 text-sm leading-relaxed max-w-md">
+                          Neural synchronization sustained for {roundsReached}{" "}
+                          cycles. Performance data uploaded to the central grid.
+                          Keep training to increase your BBT yield potential.
+                        </p>
+                        <div className="h-px w-full bg-white/5 mt-4" />
+                        <div className="flex gap-4 mt-4 text-[10px] font-mono text-gray-500">
+                          <span>RANK: B+</span>
+                          <span>STABILITY: 98.4%</span>
+                          <span>YIELD: N/A (TRAINING)</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {mode === "MP" && (
+                  <div className="md:col-span-3 cyber-border bg-black/40 mt-2 overflow-hidden">
+                    <div className="bg-brand-primary/20 px-6 py-2 border-b border-brand-primary/30 flex justify-between items-center">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary">
+                        Global Leaderboard Extract
+                      </span>
+                      {toplistStatus === "loading" && (
+                        <div className="w-2 h-2 bg-brand-primary animate-ping" />
+                      )}
+                    </div>
+                    <div className="max-h-[240px] overflow-y-auto">
+                      <table className="w-full text-[10px]">
+                        <thead className="bg-white/5 text-left text-gray-500 uppercase">
+                          <tr>
+                            <th className="px-6 py-3">Pos</th>
+                            <th className="px-6 py-3">Subject</th>
+                            <th className="px-6 py-3">Cycles</th>
+                            <th className="px-6 py-3">Ref</th>
+                          </tr>
+                        </thead>
+                        <tbody className="font-mono">
+                          {(toplistStatus === "ready"
+                            ? globalToplistRows
+                            : localPostMatchRows
+                          ).map((row) => (
+                            <tr
+                              key={row.playerId}
+                              className={`${row.displayName === currentUser.username ? "bg-brand-primary/20 text-white" : "text-gray-400"} border-t border-white/5`}
+                            >
+                              <td className="px-6 py-2 font-black italic">
+                                #{String(row.rank).padStart(2, "0")}
+                              </td>
+                              <td className="px-6 py-2 font-bold uppercase">
+                                {row.displayName}
+                              </td>
+                              <td className="px-6 py-2">{row.roundsReached}</td>
+                              <td className="px-6 py-2 opacity-50">
+                                {row.tieBreakReason?.slice(0, 10) ?? "STABLE"}
+                              </td>
                             </tr>
-                          </thead>
-                          <tbody className="font-mono">
-                            {(toplistStatus === "ready" ? globalToplistRows : localPostMatchRows).map((row) => (
-                              <tr
-                                key={row.playerId}
-                                className={`${row.displayName === currentUser.username ? "bg-brand-primary/20 text-white" : "text-gray-400"} border-t border-white/5`}
-                              >
-                                <td className="px-6 py-2 font-black italic">#{String(row.rank).padStart(2, '0')}</td>
-                                <td className="px-6 py-2 font-bold uppercase">{row.displayName}</td>
-                                <td className="px-6 py-2">{row.roundsReached}</td>
-                                <td className="px-6 py-2 opacity-50">{row.tieBreakReason?.slice(0, 10) ?? "STABLE"}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                   </div>
-                 )}
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="mt-12 flex justify-center gap-6">
-                 <button
-                   onClick={() => router.push("/")}
-                   className="group relative pointer-events-auto"
-                 >
-                   <div className="absolute inset-0 bg-brand-primary/30 blur group-hover:bg-brand-primary/50 transition-all" />
-                   <div className="cyber-skew bg-brand-primary px-12 py-4 relative transition-transform group-active:scale-95">
-                      <span className="text-xs font-black uppercase tracking-[0.3em] text-white">Return to Simulation</span>
-                   </div>
-                 </button>
+                <button
+                  onClick={() => router.push("/")}
+                  className="group relative pointer-events-auto"
+                >
+                  <div className="absolute inset-0 bg-brand-primary/30 blur group-hover:bg-brand-primary/50 transition-all" />
+                  <div className="cyber-skew bg-brand-primary px-12 py-4 relative transition-transform group-active:scale-95">
+                    <span className="text-xs font-black uppercase tracking-[0.3em] text-white">
+                      Return to Simulation
+                    </span>
+                  </div>
+                </button>
               </div>
             </div>
           )}
@@ -1198,8 +1324,12 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
           >
             {entryPhase === "load_error" ? (
               <div className="cyber-border bg-black/60 p-10 max-w-sm text-center">
-                <h2 className="text-2xl font-heading font-bold mb-2 text-red-500">SYSTEM FAILURE</h2>
-                <p className="text-gray-400 mb-6 text-sm">COULD NOT SYNCHRONIZE ARENA PARAMETERS</p>
+                <h2 className="text-2xl font-heading font-bold mb-2 text-red-500">
+                  SYSTEM FAILURE
+                </h2>
+                <p className="text-gray-400 mb-6 text-sm">
+                  COULD NOT SYNCHRONIZE ARENA PARAMETERS
+                </p>
                 <button
                   onClick={handleRetryArenaLoad}
                   className="w-full py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-500 font-bold uppercase tracking-widest transition-all pointer-events-auto"
@@ -1210,18 +1340,23 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
             ) : (
               <div className="relative flex flex-col items-center">
                 <div className="mb-8 relative">
-                   <div className="w-32 h-32 border border-brand-primary/30 rounded-full animate-[spin_10s_linear_infinite]" />
-                   <div className="absolute inset-0 border-t-2 border-brand-primary rounded-full animate-spin" />
-                   <div className="absolute inset-4 border border-brand-secondary/20 rounded-full animate-[spin_5s_linear_infinite_reverse]" />
-                   <Swords className="absolute inset-0 m-auto w-10 h-10 text-brand-primary animate-pulse" />
+                  <div className="w-32 h-32 border border-brand-primary/30 rounded-full animate-[spin_10s_linear_infinite]" />
+                  <div className="absolute inset-0 border-t-2 border-brand-primary rounded-full animate-spin" />
+                  <div className="absolute inset-4 border border-brand-secondary/20 rounded-full animate-[spin_5s_linear_infinite_reverse]" />
+                  <Swords className="absolute inset-0 m-auto w-10 h-10 text-brand-primary animate-pulse" />
                 </div>
-                <h2 className="text-4xl font-heading font-black tracking-tighter mb-2 cyber-glitch-text" data-text="INITIALIZING">
+                <h2
+                  className="text-4xl font-heading font-black tracking-tighter mb-2 cyber-glitch-text"
+                  data-text="INITIALIZING"
+                >
                   INITIALIZING
                 </h2>
                 <div className="w-64 h-[2px] bg-white/5 relative overflow-hidden">
                   <div className="absolute inset-0 bg-brand-secondary animate-[cyber-loading_1.5s_infinite]" />
                 </div>
-                <p className="mt-4 text-[10px] uppercase tracking-[0.5em] text-gray-500 font-bold">Loading Neural Assets</p>
+                <p className="mt-4 text-[10px] uppercase tracking-[0.5em] text-gray-500 font-bold">
+                  Loading Neural Assets
+                </p>
               </div>
             )}
           </div>
@@ -1242,19 +1377,27 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
           </div>
           <div className="h-4 w-px bg-white/10" />
           <div className="flex items-center gap-2">
-             <div className="px-3 py-1 bg-brand-primary/20 border border-brand-primary/40 text-[10px] font-black text-brand-primary skew-x-[-10deg]">SPACE</div>
-             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Neural Jump</span>
+            <div className="px-3 py-1 bg-brand-primary/20 border border-brand-primary/40 text-[10px] font-black text-brand-primary skew-x-[-10deg]">
+              SPACE
+            </div>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+              Neural Jump
+            </span>
           </div>
           <div className="h-4 w-px bg-white/10" />
           <div className="flex items-center gap-2">
-             <div className="px-3 py-1 bg-brand-secondary/20 border border-brand-secondary/40 text-[10px] font-black text-brand-secondary skew-x-[-10deg]">SHIFT</div>
-             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Overdrive</span>
+            <div className="px-3 py-1 bg-brand-secondary/20 border border-brand-secondary/40 text-[10px] font-black text-brand-secondary skew-x-[-10deg]">
+              SHIFT
+            </div>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+              Overdrive
+            </span>
           </div>
         </div>
         <div className="flex gap-2 opacity-30">
-           {[...Array(5)].map((_, i) => (
-             <div key={i} className="w-12 h-[2px] bg-brand-primary" />
-           ))}
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="w-12 h-[2px] bg-brand-primary" />
+          ))}
         </div>
       </div>
     </main>
