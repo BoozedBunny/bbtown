@@ -116,6 +116,16 @@
     @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl;
   }
 
+  .cyber-panel {
+    @apply bg-[#0F021A]/90 backdrop-blur-md border border-brand-primary/30 relative overflow-hidden;
+    box-shadow: 0 0 20px rgba(189, 0, 255, 0.1), inset 0 0 15px rgba(189, 0, 255, 0.05);
+  }
+
+  .cyber-panel::after {
+    content: "";
+    @apply absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-brand-primary/50 to-transparent;
+  }
+
   .brand-gradient-text {
     @apply bg-gradient-to-r from-brand-primary to-brand-secondary bg-clip-text text-transparent;
   }

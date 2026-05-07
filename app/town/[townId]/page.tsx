@@ -734,7 +734,7 @@ export default function TownPage({
 
   return (
     <main className="flex min-h-screen flex-col items-center p-8 text-white font-sans overflow-hidden relative brand-bg-overlay">
-      <div className="z-10 w-full max-w-6xl mb-8 glass-card p-4 md:p-6 shadow-xl relative">
+      <div className="z-10 w-full max-w-6xl mb-8 cyber-panel p-4 md:p-6 shadow-xl relative border-t-4 border-t-brand-primary">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h1 className="font-heading font-bold tracking-tight text-white flex items-center gap-3">
@@ -753,10 +753,10 @@ export default function TownPage({
                     src="/logo.png"
                     alt="BB"
                     fill
-                    className="object-contain"
+                    className="object-contain drop-shadow-[0_0_10px_rgba(189,0,255,0.5)]"
                   />
                 </div>
-                <span className="text-[clamp(1.1rem,2vw,1.85rem)] leading-tight">
+                <span className="text-[clamp(1.1rem,2vw,1.85rem)] leading-tight font-black italic tracking-tighter cyber-glitch-text" data-text={`BoozedBunnyTown #${townId}`}>
                   BoozedBunnyTown <span className="text-brand-secondary">#{townId}</span>
                 </span>
               </button>
@@ -771,9 +771,14 @@ export default function TownPage({
                     if (!isWalletModalEnabled) return;
                     setIsWalletModalOpen(true);
                   }}
-                  className="min-h-11 rounded-full border border-brand-primary/50 bg-brand-primary/20 px-3 py-1 text-brand-secondary font-bold text-sm hover:bg-brand-primary/30 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  className="group relative min-h-11 inline-block"
                 >
-                  💰 {formatCurrencyAmount(walletSummary.totalBalance, walletSummary.currencyCode)}
+                  <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
+                  <div className="cyber-skew bg-brand-primary/20 border border-brand-primary/50 px-4 py-1 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1">
+                    <span className="text-sm font-black uppercase tracking-[0.2em] text-brand-secondary">
+                      💰 {formatCurrencyAmount(walletSummary.totalBalance, walletSummary.currencyCode)}
+                    </span>
+                  </div>
                 </button>
               </div>
             )}
@@ -796,7 +801,7 @@ export default function TownPage({
                             position: String(headerNavItems.findIndex((menuItem) => menuItem.id === item.id) + 1),
                           });
                         }}
-                        className="min-h-11 rounded-lg px-3 text-sm font-semibold text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary inline-flex items-center"
+                        className="min-h-11 rounded-lg px-3 text-[10px] font-black uppercase tracking-[0.2em] text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary inline-flex items-center"
                       >
                         <span className="max-w-full truncate">{item.label}</span>
                       </Link>
@@ -816,14 +821,14 @@ export default function TownPage({
                         });
                         item.onSelect?.();
                       }}
-                      className="min-h-11 rounded-lg px-3 text-sm font-semibold text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                      className="min-h-11 rounded-lg px-3 text-[10px] font-black uppercase tracking-[0.2em] text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary"
                     >
                       <span className="max-w-full block truncate">{item.label}</span>
                     </button>
                   );
                 })}
               </nav>
-              <div className={`hidden lg:flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] ${connected ? "text-green-400" : "text-red-400"}`}>
+              <div className={`hidden lg:flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] ${connected ? "text-green-400" : "text-red-400"}`}>
                 <div className={`w-2 h-2 rounded-full ${connected ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
                 {connected ? "Live System" : "Offline"}
               </div>
@@ -836,11 +841,16 @@ export default function TownPage({
                     if (!isWalletModalEnabled) return;
                     setIsWalletModalOpen(true);
                   }}
-                  className="min-h-11 min-w-11 rounded-full border border-brand-primary/50 bg-brand-primary/20 px-3 py-1 text-brand-secondary font-bold text-sm hover:bg-brand-primary/30 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  className="group relative min-h-11 inline-block"
                 >
-                  {currentUser?.character
-                    ? `💰 ${formatCurrencyAmount(walletSummary.totalBalance, walletSummary.currencyCode)}`
-                    : "Wallet"}
+                  <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
+                  <div className="cyber-skew bg-brand-primary/20 border border-brand-primary/50 px-4 py-2 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1">
+                    <span className="text-sm font-black uppercase tracking-[0.2em] text-brand-secondary">
+                      {currentUser?.character
+                        ? `💰 ${formatCurrencyAmount(walletSummary.totalBalance, walletSummary.currencyCode)}`
+                        : "Wallet"}
+                    </span>
+                  </div>
                 </button>
               )}
               <button
@@ -1046,7 +1056,7 @@ export default function TownPage({
         )}
       </div>
 
-      <div className="relative w-full h-[75vh] border border-white/10 rounded-3xl overflow-hidden bg-[#05010a] shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+      <div className="relative w-full h-[75vh] border-2 border-brand-primary/30 rounded-none overflow-hidden bg-[#05010a] shadow-[0_0_50px_rgba(189,0,255,0.2)]">
         <Canvas shadows>
           {cameraMode === "game" ? (
             <OrthographicCamera
@@ -1315,52 +1325,64 @@ export default function TownPage({
           }
         }}
       >
-        <DialogContent className="sm:max-w-[480px] bg-[#0F021A] text-white border-brand-primary/20 rounded-3xl shadow-[0_0_50px_rgba(189,0,255,0.15)]">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-heading font-bold text-brand-secondary">Wallet</DialogTitle>
-            <DialogDescription className="text-gray-400">
-              Financial summary and category breakdown.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4">
-            <div className="grid gap-2 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs uppercase tracking-widest text-gray-400 font-bold">Total Balance</span>
-                <span className="text-lg font-bold text-white">
-                  {formatCurrencyAmount(walletSummary.totalBalance, walletSummary.currencyCode)}
-                </span>
+        <DialogContent className="sm:max-w-[480px] cyber-panel text-white border-t-4 border-t-brand-secondary rounded-none shadow-[0_0_50px_rgba(255,184,0,0.15)] p-0 overflow-hidden">
+          <div className="p-8 space-y-6">
+            <DialogHeader>
+              <DialogTitle className="text-3xl font-heading font-black italic tracking-tighter text-brand-secondary cyber-glitch-text" data-text="NEURAL_WALLET">
+                NEURAL_WALLET
+              </DialogTitle>
+              <DialogDescription className="text-gray-500 font-mono text-[10px] uppercase tracking-[0.3em]">
+                Financial Summary // Authorization Confirmed
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4">
+              <div className="grid gap-3 p-6 bg-black/40 border border-white/5 cyber-skew">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-black">Total_Balance</span>
+                  <span className="text-3xl font-black italic tracking-tighter text-white">
+                    {formatCurrencyAmount(walletSummary.totalBalance, walletSummary.currencyCode)}
+                  </span>
+                </div>
+                <div className="h-px bg-white/5 w-full" />
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-black">Net_Inflow</span>
+                  <span className="text-sm font-mono font-bold text-green-400">
+                    {formatCurrencyAmount(walletSummary.income, walletSummary.currencyCode)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-black">Net_Outflow</span>
+                  <span className="text-sm font-mono font-bold text-brand-tertiary">
+                    {formatCurrencyAmount(walletSummary.expenses, walletSummary.currencyCode)}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs uppercase tracking-widest text-gray-400 font-bold">Income</span>
-                <span className="text-sm font-semibold text-white">
-                  {formatCurrencyAmount(walletSummary.income, walletSummary.currencyCode)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs uppercase tracking-widest text-gray-400 font-bold">Expenses</span>
-                <span className="text-sm font-semibold text-white">
-                  {formatCurrencyAmount(walletSummary.expenses, walletSummary.currencyCode)}
-                </span>
-              </div>
-            </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-xs uppercase tracking-widest text-gray-400 font-bold">Categories</p>
-                <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold">Future breakdown</p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between px-2">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-brand-primary font-black">Sector_Breakdown</p>
+                  <p className="text-[8px] uppercase tracking-[0.2em] text-gray-600 font-black">Sub_Ledger_v1.2</p>
+                </div>
+                <ul className="grid gap-2">
+                  {walletSummary.categories.filter((category) => category.enabled).map((category) => (
+                    <li key={category.key} className="flex items-center justify-between bg-white/5 border border-white/5 px-4 py-3 cyber-skew group hover:bg-brand-primary/5 hover:border-brand-primary/30 transition-all">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-white transition-colors">{category.label}</span>
+                      <span className="text-sm font-mono font-bold text-white">
+                        {formatCurrencyAmount(category.amount, walletSummary.currencyCode)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="grid gap-2">
-                {walletSummary.categories.filter((category) => category.enabled).map((category) => (
-                  <li key={category.key} className="flex items-center justify-between rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-                    <span className="text-sm text-gray-200">{category.label}</span>
-                    <span className="text-sm font-semibold text-white">
-                      {formatCurrencyAmount(category.amount, walletSummary.currencyCode)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
             </div>
+            <Button
+              onClick={() => setIsWalletModalOpen(false)}
+              className="w-full h-12 bg-white/5 hover:bg-white/10 text-white font-black uppercase tracking-widest text-xs border border-white/10 rounded-none cyber-skew"
+            >
+              Close_Interface
+            </Button>
           </div>
+          <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] z-40 bg-[length:100%_2px,3px_100%] opacity-50" />
         </DialogContent>
       </Dialog>
 
@@ -1377,265 +1399,282 @@ export default function TownPage({
           }
         }}
       >
-        <DialogContent className="sm:max-w-[425px] bg-[#11041d] text-white border-white/10 rounded-2xl shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-heading font-bold text-brand-secondary">
-              {selectedBuilding?.title || selectedBuilding?.type}
-            </DialogTitle>
-            <DialogDescription className="text-gray-400">
-              {selectedBuilding?.id === BANK_BUILDING_ID
-                ? "Town Infrastructure"
-                : "Real Estate Information"}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-6 py-4">
-            {/* BANK VIEW */}
-            {selectedBuilding?.id === BANK_BUILDING_ID && (
-              <div className="p-6 bg-brand-primary/10 rounded-2xl border border-brand-primary/20 text-center space-y-4">
-                <h3 className="text-xl font-bold text-white">
-                  Bank of BoozedBunnyTown
-                </h3>
-                <p className="text-sm text-gray-400">
-                  Securing the financial future of our citizens.
-                </p>
-                <div className="p-4 bg-black/40 rounded-xl">
-                  <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest block mb-1">
-                    Town Treasury
-                  </span>
-                  <span className="text-3xl font-bold text-brand-secondary">
-                    ${townData?.bankBalance?.toLocaleString() || 0}
-                  </span>
-                </div>
-                <Button
-                  onClick={() => {
-                    setSelectedBuilding(null);
-                    openCentralManagement({
-                      tab: "treasury",
-                      source: "bank",
-                    });
-                  }}
-                  className="w-full bg-brand-primary hover:bg-brand-primary/80 mt-4"
-                >
-                  View Central Management
-                </Button>
-              </div>
-            )}
-
-            {/* OWNER MANAGEMENT VIEW */}
-            {selectedBuilding?.id !== "4" &&
-              currentUser &&
-              selectedBuilding?.ownerId === currentUser.character.id && (
-                <div className="space-y-4 p-4 bg-white/5 rounded-xl border border-white/10">
-                  <h3 className="text-sm uppercase font-bold text-gray-400 tracking-widest mb-4">
-                    Manage Property
-                  </h3>
-                  <div className="space-y-3">
-                    <div>
-                      <label htmlFor="property-title" className="text-xs text-gray-400 block mb-1">
-                        Property Title
-                      </label>
-                      <input
-                        id="property-title"
-                        type="text"
-                        value={editForm.title}
-                        onChange={(e) =>
-                          setEditForm({ ...editForm, title: e.target.value })
-                        }
-                        className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-primary"
-                        placeholder="e.g. My Awesome Shop"
-                      />
-                    </div>
-                    <div className="flex gap-4">
-                      <div className="flex-1">
-                        <label htmlFor="property-price" className="text-xs text-gray-400 block mb-1">
-                          Sale Price ($)
-                        </label>
-                        <input
-                          id="property-price"
-                          type="number"
-                          value={editForm.price}
-                          onChange={(e) =>
-                            setEditForm({
-                              ...editForm,
-                              price: parseInt(e.target.value) || 0,
-                            })
-                          }
-                          className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-primary"
-                        />
-                      </div>
-                      <div className="flex items-end">
-                        <label htmlFor="property-for-sale" className="flex items-center gap-2 cursor-pointer mb-2">
-                          <input
-                            id="property-for-sale"
-                            type="checkbox"
-                            checked={editForm.forSale}
-                            onChange={(e) =>
-                              setEditForm({
-                                ...editForm,
-                                forSale: e.target.checked,
-                              })
-                            }
-                            className="accent-brand-primary w-4 h-4"
-                          />
-                          <span className="text-sm font-medium">For Sale</span>
-                        </label>
-                      </div>
-                    </div>
-                    <Button
-                      disabled={isProcessing}
-                      onClick={async () => {
-                        setIsProcessing(true);
-                        try {
-                          await updateBuildingSettings(
-                            selectedBuilding.id,
-                            editForm.title,
-                            editForm.price,
-                            editForm.forSale,
-                          );
-                          const res = await fetch(`/api/town/${townId}/state`);
-                          if (res.ok) {
-                            const data = await res.json();
-                            setDbBuildingStates(data.buildings || []);
-                            setTownData(data.town || null);
-                          }
-                          if (socket) socket.emit("buy_building", { townId }); // Piggyback on this event to refresh
-                          toast.success("Property updated!");
-                        } catch (e: any) {
-                          toast.error(e.message);
-                        } finally {
-                          setIsProcessing(false);
-                        }
-                      }}
-                      className="w-full bg-brand-primary hover:bg-brand-primary/80 disabled:opacity-50"
-                    >
-                      {isProcessing ? "Saving..." : "Save Changes"}
-                    </Button>
+        <DialogContent className="sm:max-w-[425px] cyber-panel text-white border-t-4 border-t-brand-primary rounded-none shadow-[0_0_50px_rgba(189,0,255,0.15)] p-0 overflow-hidden">
+          <div className="p-8 space-y-6">
+            <DialogHeader>
+              <DialogTitle className="text-3xl font-heading font-black italic tracking-tighter text-brand-secondary cyber-glitch-text" data-text={selectedBuilding?.title || selectedBuilding?.type}>
+                {selectedBuilding?.title || selectedBuilding?.type}
+              </DialogTitle>
+              <DialogDescription className="text-gray-500 font-mono text-[10px] uppercase tracking-[0.3em]">
+                {selectedBuilding?.id === BANK_BUILDING_ID
+                  ? "District Infrastructure // Asset node"
+                  : "Real Estate Registry // Property Data"}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-6">
+              {/* BANK VIEW */}
+              {selectedBuilding?.id === BANK_BUILDING_ID && (
+                <div className="p-6 bg-brand-primary/5 border border-brand-primary/20 space-y-6 cyber-skew relative group overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-brand-primary/50 to-transparent" />
+                  <div className="text-center space-y-2">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary">
+                      Bank_of_BoozedBunnyTown
+                    </h3>
+                    <p className="text-[9px] text-gray-500 font-mono">
+                      Neural Financial Governance
+                    </p>
                   </div>
+                  <div className="p-4 bg-black/60 border border-white/5 text-center">
+                    <span className="text-[8px] uppercase font-black text-gray-600 tracking-[0.4em] block mb-1">
+                      MUNICIPAL_TREASURY_RESERVE
+                    </span>
+                    <span className="text-4xl font-black italic tracking-tighter text-brand-secondary">
+                      ${townData?.bankBalance?.toLocaleString() || 0}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedBuilding(null);
+                      openCentralManagement({
+                        tab: "treasury",
+                        source: "bank",
+                      });
+                    }}
+                    className="group relative w-full block"
+                  >
+                    <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
+                    <div className="cyber-skew bg-brand-primary px-4 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
+                      <span className="text-xs font-black uppercase tracking-[0.2em] text-white">ACCESS_CENTRAL_COMMAND</span>
+                    </div>
+                  </button>
                 </div>
               )}
 
-            {/* NORMAL VIEW (NOT BANK, NOT OWNER) */}
-            {selectedBuilding?.id !== "4" &&
-              (!currentUser ||
-                selectedBuilding?.ownerId !== currentUser.character?.id) && (
-                <>
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
-                        Ownership
-                      </span>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-xs font-bold">
-                          {selectedBuilding?.owner?.charAt(0) || "U"}
+              {/* OWNER MANAGEMENT VIEW */}
+              {selectedBuilding?.id !== "4" &&
+                currentUser &&
+                selectedBuilding?.ownerId === currentUser.character.id && (
+                  <div className="space-y-4 p-6 bg-white/5 border border-white/10 cyber-skew">
+                    <h3 className="text-[10px] uppercase font-black text-brand-primary tracking-[0.2em] mb-4">
+                      Property_Administration
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <label htmlFor="property-title" className="text-[9px] font-mono text-gray-500 uppercase tracking-widest block">
+                          Registry_Identifier
+                        </label>
+                        <input
+                          id="property-title"
+                          type="text"
+                          value={editForm.title}
+                          onChange={(e) =>
+                            setEditForm({ ...editForm, title: e.target.value })
+                          }
+                          className="w-full bg-black/60 border border-white/10 px-4 py-2 text-sm text-white focus:outline-none focus:border-brand-primary font-mono"
+                          placeholder="e.g. My Awesome Shop"
+                        />
+                      </div>
+                      <div className="flex gap-4">
+                        <div className="flex-1 space-y-1">
+                          <label htmlFor="property-price" className="text-[9px] font-mono text-gray-500 uppercase tracking-widest block">
+                            Market_Valuation ($)
+                          </label>
+                          <input
+                            id="property-price"
+                            type="number"
+                            value={editForm.price}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                price: parseInt(e.target.value) || 0,
+                              })
+                            }
+                            className="w-full bg-black/60 border border-white/10 px-4 py-2 text-sm text-white focus:outline-none focus:border-brand-primary font-mono"
+                          />
                         </div>
-                        <span className="text-lg font-medium">
-                          {selectedBuilding?.owner}
-                        </span>
+                        <div className="flex items-end pb-1">
+                          <label htmlFor="property-for-sale" className="flex items-center gap-2 cursor-pointer group">
+                            <input
+                              id="property-for-sale"
+                              type="checkbox"
+                              checked={editForm.forSale}
+                              onChange={(e) =>
+                                setEditForm({
+                                  ...editForm,
+                                  forSale: e.target.checked,
+                                })
+                              }
+                              className="accent-brand-primary w-4 h-4 bg-black border-white/10"
+                            />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 group-hover:text-brand-primary transition-colors">List_For_Sale</span>
+                          </label>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
-                        Status
-                      </span>
-                      <p
-                        className={`text-sm font-bold mt-1 px-2 py-1 rounded-md ${selectedBuilding?.forSale ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}
-                      >
-                        {selectedBuilding?.forSale
-                          ? `FOR SALE ($${selectedBuilding.price?.toLocaleString()})`
-                          : "NOT FOR SALE"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    {canViewGeoPosition && (
-                      <div className="space-y-1">
-                        <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
-                          Geo-Position
-                        </span>
-                        <p className="font-mono text-xs text-brand-primary">
-                          {selectedBuilding?.position
-                            ?.map((v) => v.toFixed(1))
-                            .join(", ")}
-                        </p>
-                      </div>
-                    )}
-                    {selectedBuilding?.employees !== undefined && (
-                      <div className="space-y-1">
-                        <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
-                          Staffing
-                        </span>
-                        <p className="text-xs font-medium">
-                          {selectedBuilding.employees} Employees
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {selectedBuilding?.forSale &&
-                    currentUser &&
-                    selectedBuilding.price && (
-                      <Button
-                        disabled={isProcessing || currentUser.character.wallet < selectedBuilding.price}
+                      <button
+                        disabled={isProcessing}
                         onClick={async () => {
                           setIsProcessing(true);
                           try {
-                            await buyBuilding(selectedBuilding.id);
-                            const u = await getCurrentUser();
-                            setCurrentUser(u);
-                            const res = await fetch(
-                              `/api/town/${townId}/state`,
+                            await updateBuildingSettings(
+                              selectedBuilding.id,
+                              editForm.title,
+                              editForm.price,
+                              editForm.forSale,
                             );
+                            const res = await fetch(`/api/town/${townId}/state`);
                             if (res.ok) {
                               const data = await res.json();
                               setDbBuildingStates(data.buildings || []);
                               setTownData(data.town || null);
                             }
-                            if (socket)
-                              socket.emit("buy_building", {
-                                townId,
-                                buildingId: selectedBuilding.id,
-                              });
-                            toast.success(
-                              `Successfully bought ${selectedBuilding.title || selectedBuilding.type}!`,
-                            );
-                            setSelectedBuilding(null);
+                            if (socket) socket.emit("buy_building", { townId }); // Piggyback on this event to refresh
+                            toast.success("Property updated!");
                           } catch (e: any) {
                             toast.error(e.message);
                           } finally {
                             setIsProcessing(false);
                           }
                         }}
-                        className="w-full bg-brand-primary hover:bg-brand-primary/80 font-bold disabled:opacity-50"
+                        className="group relative w-full block disabled:opacity-50"
                       >
-                        {isProcessing ? "Processing..." :
-                         currentUser.character.wallet < selectedBuilding.price ?
-                         "Insufficient Funds" :
-                         `Buy Property for $${selectedBuilding.price.toLocaleString()}`}
-                      </Button>
-                    )}
-                </>
+                        <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
+                        <div className="cyber-skew bg-brand-primary px-4 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
+                          <span className="text-xs font-black uppercase tracking-[0.2em] text-white">{isProcessing ? "Processing..." : "Commit_Changes"}</span>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+              {/* NORMAL VIEW (NOT BANK, NOT OWNER) */}
+              {selectedBuilding?.id !== "4" &&
+                (!currentUser ||
+                  selectedBuilding?.ownerId !== currentUser.character?.id) && (
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-2">
+                        <span className="text-[10px] uppercase font-black text-gray-600 tracking-[0.3em]">
+                          OWNER_SIGNAL
+                        </span>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 border border-brand-primary/50 bg-brand-primary/10 flex items-center justify-center text-sm font-black italic text-brand-primary cyber-skew">
+                            {selectedBuilding?.owner?.charAt(0) || "U"}
+                          </div>
+                          <span className="text-xl font-black italic tracking-tighter uppercase">
+                            {selectedBuilding?.owner}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] uppercase font-black text-gray-600 tracking-[0.3em]">
+                          STATUS
+                        </span>
+                        <p
+                          className={`text-[10px] font-black tracking-widest mt-2 px-3 py-1.5 border cyber-skew ${selectedBuilding?.forSale ? "border-green-500/50 bg-green-500/10 text-green-400" : "border-brand-tertiary/50 bg-brand-tertiary/10 text-brand-tertiary"}`}
+                        >
+                          {selectedBuilding?.forSale
+                            ? `AVAIL_MARKET ($${selectedBuilding.price?.toLocaleString()})`
+                            : "RESTRICTED_ACCESS"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      {canViewGeoPosition && (
+                        <div className="p-3 bg-white/5 border border-white/5">
+                          <span className="text-[8px] uppercase font-black text-gray-500 tracking-[0.4em] block mb-1">
+                            GEO_COORDS
+                          </span>
+                          <p className="font-mono text-[10px] text-brand-primary font-bold">
+                            {selectedBuilding?.position
+                              ?.map((v) => v.toFixed(1))
+                              .join(" : ")}
+                          </p>
+                        </div>
+                      )}
+                      {selectedBuilding?.employees !== undefined && (
+                        <div className="p-3 bg-white/5 border border-white/5">
+                          <span className="text-[8px] uppercase font-black text-gray-500 tracking-[0.4em] block mb-1">
+                            UNIT_STAFFING
+                          </span>
+                          <p className="text-[10px] font-black uppercase text-white">
+                            {selectedBuilding.employees} Neural Units
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {selectedBuilding?.forSale &&
+                      currentUser &&
+                      selectedBuilding.price && (
+                        <button
+                          disabled={isProcessing || currentUser.character.wallet < selectedBuilding.price}
+                          onClick={async () => {
+                            setIsProcessing(true);
+                            try {
+                              await buyBuilding(selectedBuilding.id);
+                              const u = await getCurrentUser();
+                              setCurrentUser(u);
+                              const res = await fetch(
+                                `/api/town/${townId}/state`,
+                              );
+                              if (res.ok) {
+                                const data = await res.json();
+                                setDbBuildingStates(data.buildings || []);
+                                setTownData(data.town || null);
+                              }
+                              if (socket)
+                                socket.emit("buy_building", {
+                                  townId,
+                                  buildingId: selectedBuilding.id,
+                                });
+                              toast.success(
+                                `Successfully bought ${selectedBuilding.title || selectedBuilding.type}!`,
+                              );
+                              setSelectedBuilding(null);
+                            } catch (e: any) {
+                              toast.error(e.message);
+                            } finally {
+                              setIsProcessing(false);
+                            }
+                          }}
+                          className="group relative w-full block disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
+                          <div className="cyber-skew bg-brand-primary px-4 py-5 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
+                            <span className="text-sm font-black uppercase tracking-[0.2em] text-white">
+                              {isProcessing ? "Transacting..." :
+                               currentUser.character.wallet < selectedBuilding.price ?
+                               "Insufficient_Liquidity" :
+                               `Acquire_Asset // $${selectedBuilding.price.toLocaleString()}`}
+                            </span>
+                          </div>
+                        </button>
+                      )}
+                  </div>
+                )}
+
+              {cameraMode === "dev" && (
+                <Button
+                  onClick={() => {
+                    setMovingBuilding(selectedBuilding);
+                    setSelectedBuilding(null);
+                  }}
+                  className="w-full h-10 bg-brand-secondary/10 hover:bg-brand-secondary/20 text-brand-secondary border border-brand-secondary/30 font-black uppercase tracking-widest text-[10px] rounded-none cyber-skew"
+                >
+                  🏗️ Deploy_Transform_Engine
+                </Button>
               )}
 
-            {cameraMode === "dev" && (
               <Button
-                onClick={() => {
-                  setMovingBuilding(selectedBuilding);
-                  setSelectedBuilding(null);
-                }}
-                className="w-full mt-4 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 font-bold"
+                onClick={() => setSelectedBuilding(null)}
+                className="w-full h-10 bg-white/5 hover:bg-white/10 text-gray-500 hover:text-white border border-white/10 rounded-none cyber-skew font-black uppercase tracking-widest text-[10px]"
               >
-                🏗️ Move House (Dev Only)
+                Close_Registry
               </Button>
-            )}
-
-            <Button
-              onClick={() => setSelectedBuilding(null)}
-              className="w-full bg-white/5 hover:bg-white/10 border border-white/10"
-            >
-              Close
-            </Button>
+            </div>
           </div>
+          <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] z-40 bg-[length:100%_2px,3px_100%] opacity-50" />
         </DialogContent>
       </Dialog>
 
@@ -1676,122 +1715,133 @@ export default function TownPage({
           }
         }}
       >
-        <DialogContent className="sm:max-w-[425px] bg-[#0F021A] text-white border-brand-primary/20 rounded-3xl shadow-[0_0_50px_rgba(189,0,255,0.15)] overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-primary animate-gradient-x" />
+        <DialogContent className="sm:max-w-[425px] cyber-panel text-white border-t-4 border-t-brand-primary rounded-none shadow-[0_0_50px_rgba(189,0,255,0.15)] p-0 overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-primary animate-scanline z-50" />
 
-          <DialogHeader className="pt-6">
-            <div className="mx-auto w-16 h-16 bg-brand-primary/10 rounded-2xl flex items-center justify-center mb-4 border border-brand-primary/20">
-              <Swords className="w-8 h-8 text-brand-primary" />
+          <div className="p-8">
+            <DialogHeader className="pt-6">
+              <div className="mx-auto w-20 h-20 bg-brand-primary/10 border border-brand-primary/30 flex items-center justify-center mb-6 cyber-skew group">
+                <Swords className="w-10 h-10 text-brand-primary group-hover:scale-110 transition-transform" />
+              </div>
+              <DialogTitle className="text-3xl font-heading font-black italic tracking-tighter text-center cyber-glitch-text" data-text="THE_BATTLE_ARENA">
+                THE_BATTLE_ARENA
+              </DialogTitle>
+              <DialogDescription className="text-center text-gray-500 font-mono text-[10px] uppercase tracking-[0.2em] mt-2">
+                {matchmakingStatus === "idle" && "Combat Authorization: Pending // Target Selection Required"}
+                {matchmakingStatus === "searching" && "Neural Synchronization: Active // Finding Opponent"}
+                {matchmakingStatus === "matched" && "Signal Locked // Initializing Combat Grid"}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-8">
+              {matchmakingStatus === "idle" && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-white/5 border border-white/5 cyber-skew flex flex-col items-center text-center group hover:border-brand-secondary/30 transition-colors">
+                      <Trophy className="w-6 h-6 text-brand-secondary mb-2 group-hover:scale-110 transition-transform" />
+                      <span className="text-[8px] uppercase font-black text-gray-600 tracking-[0.3em]">POTENTIAL_WIN</span>
+                      <span className="text-sm font-black italic text-brand-secondary">1,000 BBT</span>
+                    </div>
+                    <div className="p-4 bg-white/5 border border-white/5 cyber-skew flex flex-col items-center text-center group hover:border-brand-primary/30 transition-colors">
+                      <div className="w-6 h-6 flex items-center justify-center mb-2">
+                        <span className="text-brand-primary font-black italic">1v1</span>
+                      </div>
+                      <span className="text-[8px] uppercase font-black text-gray-600 tracking-[0.3em]">PROTO_MODE</span>
+                      <span className="text-sm font-black italic text-white">SURVIVOR</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setMatchmakingStatus("matched");
+                      socket?.emit("join_singleplayer_arena");
+                    }}
+                    className="group relative w-full block"
+                  >
+                    <div className="absolute inset-0 bg-white/5 blur group-hover:bg-white/10 transition-all" />
+                    <div className="cyber-skew bg-white/5 border border-white/10 px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
+                       <span className="text-xs font-black uppercase tracking-[0.2em] text-gray-400 group-hover:text-white transition-colors">SIMULATION_MODE (SOLO)</span>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setMatchmakingStatus("searching");
+                      socket?.emit("join_arena");
+                    }}
+                    className="group relative w-full block"
+                  >
+                    <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
+                    <div className="cyber-skew bg-brand-primary px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
+                       <span className="text-sm font-black uppercase tracking-[0.2em] text-white">INITIALIZE_COMBAT_SEQUENCE</span>
+                    </div>
+                  </button>
+                </div>
+              )}
+
+              {matchmakingStatus === "searching" && (
+                <div className="flex flex-col items-center justify-center py-4 space-y-8">
+                  <div className="relative">
+                    <div className="w-32 h-32 border-2 border-brand-primary/20 rounded-none cyber-skew animate-ping absolute" />
+                    <div className="w-32 h-32 border-t-2 border-brand-primary rounded-none cyber-skew animate-spin" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Loader2 className="w-10 h-10 text-brand-primary animate-pulse" />
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="flex items-center gap-6">
+                      <div className="w-10 h-10 border border-brand-primary bg-brand-primary/20 flex items-center justify-center cyber-skew">
+                        <span className="text-brand-primary font-black italic text-xs">YOU</span>
+                      </div>
+                      <div className="w-16 h-1 bg-white/5 relative overflow-hidden">
+                        <div className="absolute inset-0 bg-brand-primary animate-scanline" />
+                      </div>
+                      <div className="w-10 h-10 border border-white/10 bg-white/5 flex items-center justify-center cyber-skew">
+                        <span className="text-gray-600 font-black italic text-xs">?</span>
+                      </div>
+                    </div>
+                    <p className="text-brand-primary font-mono text-[10px] font-black uppercase tracking-[0.4em] animate-pulse">SEARCHING_ACTIVE_NODES...</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      socket?.emit("leave_arena");
+                      setMatchmakingStatus("idle");
+                    }}
+                    className="text-[10px] font-black uppercase tracking-widest text-gray-600 hover:text-brand-tertiary transition-colors"
+                  >
+                    [ ABORT_SIGNAL ]
+                  </button>
+                </div>
+              )}
+
+              {matchmakingStatus === "matched" && (
+                <div className="flex flex-col items-center justify-center py-4 space-y-8 animate-in zoom-in-95 duration-500">
+                  <div className="flex items-center gap-12">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-20 h-20 bg-brand-primary border-2 border-white/20 flex items-center justify-center shadow-[0_0_30px_rgba(189,0,255,0.4)] cyber-skew">
+                        <span className="text-white font-black italic text-2xl">YOU</span>
+                      </div>
+                    </div>
+                    <div className="text-4xl font-black italic text-brand-secondary tracking-tighter animate-pulse">VS</div>
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-20 h-20 bg-brand-secondary border-2 border-white/20 flex items-center justify-center shadow-[0_0_30px_rgba(255,184,0,0.4)] cyber-skew">
+                        <span className="text-black font-black italic text-2xl">OPP</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-green-500/10 border border-green-500/30 px-8 py-4 cyber-skew relative overflow-hidden">
+                    <div className="absolute inset-0 bg-green-500/5 animate-pulse" />
+                    <p className="text-green-400 font-black uppercase tracking-[0.3em] text-sm flex items-center gap-3">
+                      <span className="w-2 h-2 bg-green-400 rounded-full animate-ping" />
+                      NEURAL_LINK_ESTABLISHED
+                    </p>
+                  </div>
+                  <p className="text-gray-600 text-[10px] uppercase font-black tracking-[0.5em] animate-pulse">TELEPORTING_IN_2.0s</p>
+                </div>
+              )}
             </div>
-            <DialogTitle className="text-3xl font-heading font-bold text-center bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-              The Battle Arena
-            </DialogTitle>
-            <DialogDescription className="text-center text-gray-400">
-              {matchmakingStatus === "idle" && "Challenge other players in a 1v1 Wipeout-style showdown."}
-              {matchmakingStatus === "searching" && "Finding a worthy opponent..."}
-              {matchmakingStatus === "matched" && "Opponent Found! Preparing for battle."}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="py-8">
-            {matchmakingStatus === "idle" && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col items-center text-center">
-                    <Trophy className="w-6 h-6 text-brand-secondary mb-2" />
-                    <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Rewards</span>
-                    <span className="text-sm font-bold text-brand-secondary">1,000 BBT</span>
-                  </div>
-                  <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col items-center text-center">
-                    <div className="w-6 h-6 flex items-center justify-center mb-2">
-                      <span className="text-brand-primary font-bold">1v1</span>
-                    </div>
-                    <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Mode</span>
-                    <span className="text-sm font-bold">Survivor</span>
-                  </div>
-                </div>
-                <Button
-                  onClick={() => {
-                    setMatchmakingStatus("matched");
-                    socket?.emit("join_singleplayer_arena");
-                  }}
-                  className="w-full h-14 bg-white/5 hover:bg-white/10 text-white font-bold text-lg rounded-2xl border border-white/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  Enter Singleplayer
-                </Button>
-                <Button
-                  onClick={() => {
-                    setMatchmakingStatus("searching");
-                    socket?.emit("join_arena");
-                  }}
-                  className="w-full h-14 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-lg rounded-2xl shadow-[0_0_20px_rgba(189,0,255,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  Enter the Battle
-                </Button>
-              </div>
-            )}
-
-            {matchmakingStatus === "searching" && (
-              <div className="flex flex-col items-center justify-center py-4 space-y-6">
-                <div className="relative">
-                  <div className="w-24 h-24 border-4 border-brand-primary/20 rounded-full animate-ping absolute" />
-                  <div className="w-24 h-24 border-t-4 border-brand-primary rounded-full animate-spin" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 text-brand-primary animate-pulse" />
-                  </div>
-                </div>
-                <div className="flex flex-col items-center gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-brand-primary/20 rounded-full flex items-center justify-center">
-                      <span className="text-brand-primary font-bold text-xs">YOU</span>
-                    </div>
-                    <div className="w-8 h-1 bg-white/10 rounded-full overflow-hidden">
-                      <div className="h-full bg-brand-primary animate-loading-bar" />
-                    </div>
-                    <div className="w-8 h-8 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
-                      <span className="text-gray-600 font-bold text-xs">?</span>
-                    </div>
-                  </div>
-                  <p className="text-brand-primary font-mono text-sm animate-pulse">SEARCHING QUEUE...</p>
-                </div>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    socket?.emit("leave_arena");
-                    setMatchmakingStatus("idle");
-                  }}
-                  className="text-gray-500 hover:text-white hover:bg-white/5 rounded-xl"
-                >
-                  Cancel Matchmaking
-                </Button>
-              </div>
-            )}
-
-            {matchmakingStatus === "matched" && (
-              <div className="flex flex-col items-center justify-center py-4 space-y-6 animate-in zoom-in-95 duration-300">
-                <div className="flex items-center gap-8">
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="w-16 h-16 bg-brand-primary rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(189,0,255,0.4)]">
-                      <span className="text-white font-bold text-xl">YOU</span>
-                    </div>
-                  </div>
-                  <div className="text-2xl font-black text-brand-secondary italic">VS</div>
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="w-16 h-16 bg-brand-secondary rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(255,184,0,0.4)]">
-                      <span className="text-white font-bold text-xl">OPP</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-green-500/10 border border-green-500/20 px-6 py-3 rounded-2xl">
-                  <p className="text-green-400 font-bold flex items-center gap-2">
-                    <span className="w-2 h-2 bg-green-400 rounded-full animate-ping" />
-                    MATCH CONFIRMED
-                  </p>
-                </div>
-                <p className="text-gray-500 text-xs uppercase tracking-widest font-bold">Teleporting in 2s...</p>
-              </div>
-            )}
           </div>
+          <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] z-40 bg-[length:100%_2px,3px_100%] opacity-50" />
         </DialogContent>
       </Dialog>
     </main>

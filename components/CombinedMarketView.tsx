@@ -289,51 +289,67 @@ export function CombinedMarketView({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-[880px] h-[720px] bg-[#0f021a] text-white border-white/10 rounded-2xl shadow-2xl p-0 overflow-hidden overflow-x-clip flex flex-col">
+      <DialogContent className="sm:max-w-[880px] h-[720px] cyber-panel text-white p-0 overflow-hidden overflow-x-clip flex flex-col border-none">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-primary animate-scanline" />
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as CentralManagementTab)} className="w-full h-full flex flex-col overflow-x-clip">
-          <DialogHeader className="p-6 pb-0 flex flex-row justify-between items-center">
-            <DialogTitle className="text-2xl font-heading font-bold text-brand-secondary flex items-center gap-2">
-              <div className="w-8 h-8 bg-brand-primary rounded-lg rotate-12" />
-              BoozedBunnyTown Central
+          <DialogHeader className="p-6 pb-0 flex flex-row justify-between items-center relative z-10">
+            <DialogTitle className="text-2xl font-heading font-black italic tracking-tighter text-white cyber-glitch-text" data-text="BB_CENTRAL_COMMAND">
+              BB_CENTRAL_COMMAND
             </DialogTitle>
-            <TabsList className="bg-white/5 border border-white/10 p-1">
-              <TabsTrigger value="treasury" className="data-[state=active]:bg-brand-primary/20 data-[state=active]:text-brand-primary">Treasury</TabsTrigger>
-              <TabsTrigger value="market" className="data-[state=active]:bg-brand-primary/20 data-[state=active]:text-brand-primary">Market</TabsTrigger>
-              <TabsTrigger value="news" className="data-[state=active]:bg-brand-primary/20 data-[state=active]:text-brand-primary">News</TabsTrigger>
+            <TabsList className="bg-black/40 border border-white/10 p-1 cyber-skew">
+              <TabsTrigger value="treasury" className="data-[state=active]:bg-brand-primary data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest">Treasury</TabsTrigger>
+              <TabsTrigger value="market" className="data-[state=active]:bg-brand-primary data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest">Market</TabsTrigger>
+              <TabsTrigger value="news" className="data-[state=active]:bg-brand-primary data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest">News</TabsTrigger>
             </TabsList>
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto overflow-x-clip p-6">
             <TabsContent value="treasury" className="mt-0 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-6 bg-brand-primary/10 rounded-3xl border border-brand-primary/20 text-center space-y-4">
-                  <div className="mx-auto w-16 h-16 bg-brand-primary/20 rounded-2xl flex items-center justify-center border border-brand-primary/30"><Wallet className="w-8 h-8 text-brand-secondary" /></div>
-                  <h3 className="text-xl font-bold text-white">City Treasury</h3>
-                  <div className="text-4xl font-bold text-brand-secondary">${(treasurySummary?.bankBalance ?? townData?.bankBalance ?? 0).toLocaleString()}</div>
-                  <div className="text-xs text-gray-400">Today variation: {(treasurySummary?.todaySnapshot?.variationAmount ?? 0) >= 0 ? "+" : ""}{treasurySummary?.todaySnapshot?.variationAmount ?? 0}</div>
+                <div className="p-6 cyber-border bg-black/40 text-center space-y-4">
+                  <div className="mx-auto w-16 h-16 bg-brand-primary/20 flex items-center justify-center border border-brand-primary/30"><Wallet className="w-8 h-8 text-brand-secondary" /></div>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary">City Treasury</h3>
+                  <div className="text-5xl font-black italic tracking-tighter text-white">${(treasurySummary?.bankBalance ?? townData?.bankBalance ?? 0).toLocaleString()}</div>
+                  <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Today variation: {(treasurySummary?.todaySnapshot?.variationAmount ?? 0) >= 0 ? "+" : ""}{treasurySummary?.todaySnapshot?.variationAmount ?? 0}</div>
                 </div>
-                <div className="p-6 bg-white/5 rounded-3xl border border-white/10 space-y-3">
-                  <div className="text-xs uppercase tracking-widest text-gray-400 font-bold">Borrow Panel</div>
+                <div className="p-6 bg-white/5 border border-white/10 space-y-3">
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary">Borrow_Node</div>
                   {!loanState ? (
-                    <>
-                      <input value={loanPrincipalInput} onChange={(e) => setLoanPrincipalInput(Number(e.target.value) || 0)} type="number" min={500} className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2" />
-                      <Button onClick={handleIssueLoan} disabled={loanBusy} className="w-full bg-brand-secondary text-black hover:bg-brand-secondary/80 font-bold">Request Loan</Button>
-                    </>
+                    <div className="space-y-4">
+                      <div className="relative">
+                        <input value={loanPrincipalInput} onChange={(e) => setLoanPrincipalInput(Number(e.target.value) || 0)} type="number" min={500} className="w-full bg-black/40 border-2 border-white/10 px-4 py-2 text-white font-mono focus:border-brand-primary focus:outline-none" />
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] text-gray-500 font-mono">CREDITS</div>
+                      </div>
+                      <button onClick={handleIssueLoan} disabled={loanBusy} className="group relative w-full">
+                         <div className="absolute inset-0 bg-brand-secondary/20 blur group-hover:bg-brand-secondary/40 transition-all" />
+                         <div className="cyber-skew bg-brand-secondary px-4 py-3 relative transition-transform group-active:scale-95 text-center">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-black">Initiate_Credit_Line</span>
+                         </div>
+                      </button>
+                    </div>
                   ) : (
-                    <div className="space-y-3">
-                      <div className="text-sm">Status: <span className="font-bold">{loanState.status}</span></div>
-                      <div className="text-sm">Principal remaining: ${loanState.remainingPrincipal.toLocaleString()}</div>
-                      <div className="text-sm">Late fees: ${loanState.lateFeesAccrued.toLocaleString()}</div>
-                      <div className="text-sm">Due: {loanState.nextDueDateKey}</div>
-                      <input value={repayAmountInput} onChange={(e) => setRepayAmountInput(Number(e.target.value) || 0)} type="number" min={100} className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2" />
-                      <Button onClick={handleRepayLoan} disabled={loanBusy} className="w-full bg-brand-primary hover:bg-brand-primary/80 font-bold">Repay</Button>
+                    <div className="space-y-3 font-mono text-xs">
+                      <div className="flex justify-between border-b border-white/5 pb-1"><span className="text-gray-500">STATUS:</span> <span className="font-bold text-brand-secondary">{loanState.status}</span></div>
+                      <div className="flex justify-between border-b border-white/5 pb-1"><span className="text-gray-500">PRINCIPAL:</span> <span className="font-bold text-white">${loanState.remainingPrincipal.toLocaleString()}</span></div>
+                      <div className="flex justify-between border-b border-white/5 pb-1"><span className="text-gray-500">FEES:</span> <span className="font-bold text-brand-tertiary">${loanState.lateFeesAccrued.toLocaleString()}</span></div>
+                      <div className="flex justify-between border-b border-white/5 pb-1"><span className="text-gray-500">DUE_DATE:</span> <span className="font-bold text-white">{loanState.nextDueDateKey}</span></div>
+                      <div className="pt-2">
+                        <input value={repayAmountInput} onChange={(e) => setRepayAmountInput(Number(e.target.value) || 0)} type="number" min={100} className="w-full bg-black/40 border border-white/10 px-3 py-2 text-white mb-2" />
+                        <button onClick={handleRepayLoan} disabled={loanBusy} className="group relative w-full">
+                           <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
+                           <div className="cyber-skew bg-brand-primary px-4 py-3 relative transition-transform group-active:scale-95 text-center">
+                              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Execute_Repayment</span>
+                           </div>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
-                <div className="text-xs uppercase tracking-widest text-gray-400 font-bold mb-2">Treasury History (Last 7 Days)</div>
+              <div className="p-4 bg-black/40 border border-white/10 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-2 text-[8px] text-brand-primary font-mono opacity-50">HISTORICAL_DATA</div>
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 mb-4">Treasury_Ledger_v1.0</div>
                 <div className="space-y-1 text-sm text-gray-300">
                   {(treasurySummary?.last7Days ?? []).map((day) => (
                     <div key={day.dateKey} className="flex justify-between">
@@ -359,17 +375,18 @@ export function CombinedMarketView({
                       const isUp = diff >= 0;
                       const owned = portfolio.find((p) => p.stockId === stock.id)?.quantity || 0;
                       return (
-                        <button key={stock.id} onClick={() => setSelectedStock(stock)} className="flex justify-between items-center p-4 bg-white/5 rounded-xl border border-white/10 hover:border-brand-primary/50 hover:bg-brand-primary/5 transition-all group text-left">
+                        <button key={stock.id} onClick={() => setSelectedStock(stock)} className="flex justify-between items-center p-4 bg-black/40 border border-white/10 hover:border-brand-primary/50 hover:bg-brand-primary/5 transition-all group text-left relative overflow-hidden">
+                          <div className={`absolute left-0 top-0 w-1 h-full ${isUp ? "bg-brand-secondary" : "bg-brand-tertiary"}`} />
                           <div className="flex items-center gap-4">
-                            <div className={`p-2 rounded-lg ${isUp ? "bg-brand-secondary/10" : "bg-brand-tertiary/10"}`}>{isUp ? <ArrowUpCircle className="text-brand-secondary" /> : <ArrowDownCircle className="text-brand-tertiary" />}</div>
+                            <div className={`p-2 ${isUp ? "text-brand-secondary" : "text-brand-tertiary"}`}>{isUp ? <ArrowUpCircle /> : <ArrowDownCircle />}</div>
                             <div>
-                              <div className="font-bold text-lg group-hover:text-brand-primary transition-colors flex items-center gap-2">{stock.symbol}{owned > 0 && <span className="text-[10px] bg-brand-primary/20 text-brand-primary px-2 py-0.5 rounded-full border border-brand-primary/30 font-bold">{owned} Owned</span>}</div>
-                              <div className="text-xs text-gray-400">{stock.name} • {(stock.sector ?? "General")}</div>
+                              <div className="font-black text-xl italic tracking-tighter group-hover:text-brand-primary transition-colors flex items-center gap-2">{stock.symbol}{owned > 0 && <span className="text-[8px] bg-brand-primary/20 text-brand-primary px-2 py-0.5 border border-brand-primary/30 font-black uppercase tracking-widest">{owned}_NODES</span>}</div>
+                              <div className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">{stock.name} • {(stock.sector ?? "Sector_N/A")}</div>
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="font-mono text-xl font-bold">${stock.price.toFixed(2)}</div>
-                            <div className={`text-xs font-bold ${isUp ? "text-brand-secondary" : "text-brand-tertiary"}`}>{isUp ? "▲" : "▼"} {Math.abs(diff).toFixed(2)} ({stock.previousPrice > 0 ? ((Math.abs(diff) / stock.previousPrice) * 100).toFixed(2) : 0}%)</div>
+                            <div className="font-mono text-2xl font-black text-white tracking-tighter">${stock.price.toFixed(2)}</div>
+                            <div className={`text-[10px] font-black tracking-widest ${isUp ? "text-brand-secondary" : "text-brand-tertiary"}`}>{isUp ? "INDEX_UP" : "INDEX_DOWN"} {Math.abs(diff).toFixed(2)}</div>
                           </div>
                         </button>
                       );
@@ -430,8 +447,18 @@ export function CombinedMarketView({
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
-                    <Button onClick={() => buy(selectedStock.symbol, 1)} className="bg-brand-secondary hover:bg-brand-secondary/80 text-black font-bold h-12 rounded-xl">BUY SHARES</Button>
-                    <Button onClick={() => sell(selectedStock.symbol, 1)} disabled={currentHolding === 0} className="bg-brand-tertiary hover:bg-brand-tertiary/80 text-white font-bold h-12 rounded-xl disabled:opacity-30">SELL SHARES</Button>
+                    <button onClick={() => buy(selectedStock.symbol, 1)} className="group relative w-full">
+                       <div className="absolute inset-0 bg-brand-secondary/20 blur group-hover:bg-brand-secondary/40 transition-all" />
+                       <div className="cyber-skew bg-brand-secondary px-4 py-4 relative transition-transform group-active:scale-95 text-center">
+                          <span className="text-xs font-black uppercase tracking-[0.2em] text-black">Execute_Buy_Order</span>
+                       </div>
+                    </button>
+                    <button onClick={() => sell(selectedStock.symbol, 1)} disabled={currentHolding === 0} className="group relative w-full disabled:opacity-30">
+                       <div className="absolute inset-0 bg-brand-tertiary/20 blur group-hover:bg-brand-tertiary/40 transition-all" />
+                       <div className="cyber-skew bg-brand-tertiary px-4 py-4 relative transition-transform group-active:scale-95 text-center">
+                          <span className="text-xs font-black uppercase tracking-[0.2em] text-white">Execute_Sell_Order</span>
+                       </div>
+                    </button>
                   </div>
                 </div>
               )}
