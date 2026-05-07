@@ -23,6 +23,7 @@ import { DayNightCycle } from "@/components/DayNightCycle";
 import { RoadTile } from "@/components/RoadTile";
 import { CombinedMarketView } from "@/components/CombinedMarketView";
 import { MarketTickerTape } from "@/components/MarketTickerTape";
+import { TownChatPanel } from "@/components/TownChatPanel";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -419,6 +420,8 @@ export default function TownPage({
   const isWalletModalEnabled = walletModalFeatureFlag !== "false";
   const walletPositionFeatureFlag = process.env.NEXT_PUBLIC_HEADER_WALLET_POSITION_V2 ?? "true";
   const isWalletPositionV2Enabled = walletPositionFeatureFlag !== "false";
+  const chatFeatureFlag = process.env.NEXT_PUBLIC_CHAT_EPIC3_ENABLED ?? process.env.NEXT_PUBLIC_CHAT_EPIC1_ENABLED ?? "false";
+  const isChatWhisperEnabled = chatFeatureFlag === "true";
 
   type HeaderNavItem = {
     id: string;
@@ -1635,6 +1638,15 @@ export default function TownPage({
           </div>
         </DialogContent>
       </Dialog>
+
+      {isChatWhisperEnabled && (
+        <TownChatPanel
+          socket={socket}
+          townId={townId}
+          currentUserId={currentUser?.id}
+          currentUsername={currentUser?.username}
+        />
+      )}
 
       <CombinedMarketView
         socket={socket}
