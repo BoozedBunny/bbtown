@@ -7,15 +7,24 @@ async function main() {
 
   // Create dummy users with characters
   const player1 = await prisma.user.upsert({
-    where: { username: 'Player1' },
-    update: {},
+    where: { username: 'bunny' },
+    update: {
+      character: {
+        update: {
+          name: 'bunny',
+          avatar: 'bunny',
+          wallet: 5000,
+        }
+      }
+    },
     create: {
-      username: 'Player1',
+      username: 'bunny',
       character: {
         create: {
-          name: 'Player1Char',
+          name: 'bunny',
           appearanceColor: '#BD00FF',
-          wallet: 1500,
+          avatar: 'bunny',
+          wallet: 5000,
         }
       }
     },
@@ -24,15 +33,24 @@ async function main() {
   console.log('User created/updated:', player1.username)
 
   const player2 = await prisma.user.upsert({
-    where: { username: 'Player2' },
-    update: {},
+    where: { username: 'cowie' },
+    update: {
+      character: {
+        update: {
+          name: 'cowie',
+          avatar: 'cowie',
+          wallet: 2000,
+        }
+      }
+    },
     create: {
-      username: 'Player2',
+      username: 'cowie',
       character: {
         create: {
-          name: 'Player2Char',
+          name: 'cowie',
           appearanceColor: '#FFB800',
-          wallet: 1000,
+          avatar: 'cowie',
+          wallet: 2000,
         }
       }
     },
@@ -51,26 +69,50 @@ async function main() {
   })
   console.log('Town created/updated:', town.name)
 
-  const gameState = await prisma.gameState.create({
-    data: {
-      state: JSON.stringify({ players: [], objects: [] }),
-    },
-  })
-  console.log('Game state created:', gameState.id)
-
-  // Create BuildingStates for IDs "1" through "6"
+  // Create BuildingStates for various buildings
   console.log('Creating BuildingStates...')
-  for (let i = 1; i <= 7; i++) {
+
+  // Building 1 owned by bunny
+  await prisma.buildingState.upsert({
+    where: { id: "1" },
+    update: { ownerId: player1.character?.id, forSale: false },
+    create: {
+      id: "1",
+      townId: "1",
+      price: 5000,
+      employees: 2,
+      ownerId: player1.character?.id,
+      forSale: false,
+    }
+  })
+
+  // Building 2 owned by cowie
+  await prisma.buildingState.upsert({
+    where: { id: "2" },
+    update: { ownerId: player2.character?.id, forSale: false },
+    create: {
+      id: "2",
+      townId: "1",
+      price: 8000,
+      employees: 5,
+      ownerId: player2.character?.id,
+      forSale: false,
+    }
+  })
+
+  // Other buildings for sale
+  for (let i = 3; i <= 21; i++) {
     const buildingId = i.toString()
     await prisma.buildingState.upsert({
       where: { id: buildingId },
       update: {},
       create: {
         id: buildingId,
-        townId: town.id.toString(),
-        price: 5000,
+        townId: "1",
+        price: 5000 + (i * 100),
         employees: 0,
-        ownerId: i === 1 ? player1.character?.id : null,
+        ownerId: null,
+        forSale: true,
       }
     })
   }
