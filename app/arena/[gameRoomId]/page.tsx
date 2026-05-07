@@ -500,8 +500,15 @@ function MovingObstacle({
     });
   });
 
+    // Textur laden (Pfad bezieht sich auf den public-Ordner)
+  const texture = useTexture("/textures/planked_wood.webp");
+
+  // Optional: Textur-Wiederholung konfigurieren, falls die Box groß ist
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(1, 1);
+
   return (
-    <RigidBody
+<RigidBody
       ref={rbRef}
       type="kinematicPosition"
       colliders="cuboid"
@@ -509,10 +516,11 @@ function MovingObstacle({
     >
       <mesh castShadow receiveShadow>
         <boxGeometry args={[width, height, OBSTACLE_DEPTH]} />
-        <meshStandardMaterial
-          color="#FF0055"
-          emissive="#FF0055"
-          emissiveIntensity={2}
+        <meshStandardMaterial 
+          map={texture} 
+          // Falls du den rötlichen Schimmer behalten willst, 
+          // kannst du 'color' zusätzlich zur Textur setzen.
+          // color="#FF0055" 
         />
       </mesh>
     </RigidBody>
