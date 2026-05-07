@@ -8,6 +8,11 @@ export async function getCurrentUser() {
   return {
     id: user.id,
     username: user.username,
-    character: user.character,
+    character: {
+      id: user.character.id,
+      name: user.character.name,
+      avatar: user.character.avatar,
+      wallet: user.character.wallet,
+    },
   };
 }

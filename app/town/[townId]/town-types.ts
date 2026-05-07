@@ -5,6 +5,7 @@ export interface BuildingData {
   glb?: string;
   type: string;
   owner?: string;
+  ownerAvatar?: string;
   ownerId?: string;
   color?: string;
   price?: number;
@@ -17,7 +18,7 @@ export interface BuildingData {
 export interface DbBuildingState {
   id: string;
   ownerId?: string;
-  owner?: { name?: string | null } | null;
+  owner?: { name?: string | null; avatar?: string | null } | null;
   price?: number;
   title?: string;
   forSale?: boolean;
@@ -33,6 +34,8 @@ export interface UserWithCharacter {
   username?: string;
   character?: {
     id: string;
+    name: string;
+    avatar: string;
     wallet: number;
   } | null;
 }

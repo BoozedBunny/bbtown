@@ -6,6 +6,7 @@ import { createCharacter } from "../actions/character";
 import { Button } from "@/components/ui/button";
 import { doWork } from "../actions/work";
 import { LobbyTownEntryClient } from "./LobbyTownEntryClient";
+import { AvatarSelection } from "./AvatarSelection";
 import { getTownPreloadManifest } from "../town/[townId]/preload-manifest";
 
 export default async function LobbyPage() {
@@ -56,48 +57,7 @@ export default async function LobbyPage() {
                <span className="w-2 h-2 bg-brand-primary" />
                New_Avatar_Registry
             </h2>
-            <form action={createCharacter} className="space-y-6">
-              <div className="space-y-2">
-                <label htmlFor="name" className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest block">
-                  Identifier
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  required
-                  className="w-full px-4 py-3 bg-black/60 border border-white/10 text-white font-mono focus:outline-none focus:border-brand-primary transition-colors"
-                  placeholder="Subject_Name"
-                />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="appearanceColor" className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest block">
-                  Visual_Signature
-                </label>
-                <div className="relative">
-                  <select
-                    id="appearanceColor"
-                    name="appearanceColor"
-                    required
-                    className="w-full px-4 py-3 bg-black/60 border border-white/10 text-white font-mono focus:outline-none focus:border-brand-primary transition-colors appearance-none"
-                  >
-                    <option value="#BD00FF">Primary Purple</option>
-                    <option value="#FFB800">Secondary Gold</option>
-                    <option value="#FF4D00">Tertiary Orange</option>
-                  </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-brand-primary">▼</div>
-                </div>
-              </div>
-              <button
-                type="submit"
-                className="group relative w-full block"
-              >
-                <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
-                <div className="cyber-skew bg-brand-primary px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
-                   <span className="text-sm font-black uppercase tracking-[0.2em] text-white">Initialize_Deployment</span>
-                </div>
-              </button>
-            </form>
+            <AvatarSelection mode="create" />
           </section>
         ) : (
           <section className="text-center animate-in fade-in duration-500">
@@ -108,17 +68,37 @@ export default async function LobbyPage() {
                  <div className="h-px flex-1 bg-white/5" />
               </div>
 
-              <div className="relative inline-block">
+              <div className="relative inline-block mb-4">
                 <div
-                  className="w-24 h-24 rounded-none border-2 border-white/20 relative z-10 flex items-center justify-center overflow-hidden cyber-skew"
-                  style={{ backgroundColor: user.character.appearanceColor }}
+                  className="w-24 h-24 rounded-none border-2 border-white/20 relative z-10 flex items-center justify-center overflow-hidden cyber-skew bg-black/60"
                 >
-                   <div className="w-full h-full bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.1)_50%,transparent_75%)] bg-[length:200%_200%] animate-[scanline_4s_linear_infinite]" />
+                   <Image
+                     src={`/avatars/${user.character.avatar}_avatar.webp`}
+                     alt={user.character.name}
+                     fill
+                     className="object-cover"
+                   />
+                   <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.1)_50%,transparent_75%)] bg-[length:200%_200%] animate-[scanline_4s_linear_infinite]" />
                 </div>
                 <div className="absolute -inset-2 bg-brand-primary/10 blur-md rounded-full -z-10" />
               </div>
 
-              <p className="text-3xl font-heading font-black text-white mt-6 italic tracking-tighter uppercase">{user.character.name}</p>
+              <p className="text-3xl font-heading font-black text-white italic tracking-tighter uppercase mb-2">{user.character.name}</p>
+
+              <div className="mb-8 max-w-sm mx-auto">
+                <details className="group">
+                  <summary className="text-[10px] font-mono font-bold text-gray-500 hover:text-brand-primary transition-colors cursor-pointer list-none flex items-center justify-center gap-2 uppercase tracking-widest mb-4">
+                    <span>{`>> modify_profile_parameters`}</span>
+                  </summary>
+                  <div className="mt-4 p-4 border border-white/5 bg-black/20 text-left">
+                    <AvatarSelection
+                      mode="edit"
+                      initialName={user.character.name}
+                      initialAvatar={user.character.avatar}
+                    />
+                  </div>
+                </details>
+              </div>
 
               <div className="mt-8 flex flex-col items-center gap-4">
                 <div className="px-6 py-2 bg-brand-primary/10 border-x border-brand-primary text-brand-secondary font-black font-mono tracking-tighter">

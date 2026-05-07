@@ -716,6 +716,7 @@ export default function TownPage({
           rotationY: rot,
           ...b,
           owner: dbState.owner?.name || "Unowned",
+          ownerAvatar: dbState.owner?.avatar || "bunny",
           ownerId: dbState.ownerId,
           price: dbState.price,
           title: dbState.title,
@@ -1557,8 +1558,19 @@ export default function TownPage({
                           OWNER_SIGNAL
                         </span>
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 border border-brand-primary/50 bg-brand-primary/10 flex items-center justify-center text-sm font-black italic text-brand-primary cyber-skew">
-                            {selectedBuilding?.owner?.charAt(0) || "U"}
+                          <div className="w-12 h-12 border border-brand-primary/50 bg-black/40 relative overflow-hidden cyber-skew">
+                            {selectedBuilding?.ownerId ? (
+                              <Image
+                                src={`/avatars/${selectedBuilding.ownerAvatar}_avatar.webp`}
+                                alt={selectedBuilding.owner || "Owner"}
+                                fill
+                                className="object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-sm font-black italic text-brand-primary">
+                                U
+                              </div>
+                            )}
                           </div>
                           <span className="text-xl font-black italic tracking-tighter uppercase">
                             {selectedBuilding?.owner}
