@@ -29,6 +29,8 @@ export interface TownStateData {
 }
 
 export interface UserWithCharacter {
+  id?: string;
+  username?: string;
   character?: {
     id: string;
     wallet: number;

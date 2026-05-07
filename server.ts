@@ -10,6 +10,14 @@ import { runTreasuryDailySettlement } from "./lib/treasury/treasuryService";
 import { runLoanDelinquencySweep } from "./lib/treasury/loanService";
 import { PostMatchEntry, setGlobalToplist } from "./lib/arena/toplist";
 import { DEFAULT_ROUND_TRANSITION_CONFIG, getRoundPhaseStateAt } from "./lib/arena/roundPhases";
+import { GLOBAL_CHANNEL_KEY } from "./lib/chat/channel";
+import type {
+  ChatHistoryRequestPayload,
+  ChatMessage,
+  ChatReadUpsertPayload,
+  ChatSendAckPayload,
+  ChatSendPayload,
+} from "./lib/chat/chatTypes";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
@@ -77,6 +85,40 @@ app.prepare().then(async () => {
 
   // Arena Matchmaking Queue
   const matchmakingQueue: { socketId: string; username: string }[] = [];
+  const chatSubscriptionsBySocket = new Map<string, Set<string>>();
+  const chatSocketsByUser = new Map<string, Set<string>>();
+  const chatMessageHistory = new Map<string, Array<{
+    messageId: string;
+    channel: string;
+    senderUserId: string;
+    senderName: string;
+    body: string;
+    mentions: string[];
+    sentAt: string;
+  }>>();
+
+  const canAccessChatChannel = (username: string | undefined, channelKey: string): boolean => {
+    if (channelKey === GLOBAL_CHANNEL_KEY) return true;
+    if (channelKey.startsWith("town:")) return true;
+    if (!channelKey.startsWith("whisper:")) return false;
+    if (!username) return false;
+    const [, userA, userB] = channelKey.split(":");
+    return userA === username || userB === username;
+  };
+
+  const appendChatHistory = (channelKey: string, message: {
+    messageId: string;
+    channel: string;
+    senderUserId: string;
+    senderName: string;
+    body: string;
+    mentions: string[];
+    sentAt: string;
+  }) => {
+    const rows = chatMessageHistory.get(channelKey) ?? [];
+    rows.push(message);
+    chatMessageHistory.set(channelKey, rows.slice(-200));
+  };
 
   interface PlayerState {
     id: string;
@@ -120,6 +162,38 @@ app.prepare().then(async () => {
   }
 
   const games: Record<string, GameSession> = {};
+
+  type ChatRoomState = {
+    messages: ChatMessage[];
+    readStateByUser: Map<string, string>;
+    sendTimestampsByUser: Map<string, number[]>;
+  };
+
+  const chatRooms = new Map<string, ChatRoomState>();
+  const CHAT_RATE_LIMIT_COUNT = 5;
+  const CHAT_RATE_LIMIT_WINDOW_MS = 10_000;
+  const CHAT_MAX_HISTORY = 10_000;
+
+  const getChatRoom = (roomId: string): ChatRoomState => {
+    let room = chatRooms.get(roomId);
+    if (!room) {
+      room = {
+        messages: [],
+        readStateByUser: new Map(),
+        sendTimestampsByUser: new Map(),
+      };
+      chatRooms.set(roomId, room);
+    }
+    return room;
+  };
+
+  const sortChatMessages = (messages: ChatMessage[]) =>
+    messages.sort((a, b) => (a.createdAtMs === b.createdAtMs ? a.id.localeCompare(b.id) : a.createdAtMs - b.createdAtMs));
+
+  const emitChatAck = (targetSocket: { emit: (event: string, payload: ChatSendAckPayload) => void }, payload: ChatSendAckPayload) => {
+    targetSocket.emit("chat:send:ack", payload);
+  };
+
   const spawnOrientationAwayFromCameraEnabled =
     process.env.SPAWN_ORIENTATION_AWAY_FROM_CAMERA !== "0";
   const spawnSlotAllocatorEnabled = process.env.SPAWN_MP_SLOT_ALLOCATOR_V1 !== "0";
@@ -283,7 +357,102 @@ app.prepare().then(async () => {
     if (mockUser) {
       socket.join(`user:${mockUser}`);
       console.log(`Socket ${socket.id} joined room user:${mockUser}`);
+      const socketsForUser = chatSocketsByUser.get(mockUser) ?? new Set<string>();
+      socketsForUser.add(socket.id);
+      chatSocketsByUser.set(mockUser, socketsForUser);
     }
+
+    chatSubscriptionsBySocket.set(socket.id, new Set([GLOBAL_CHANNEL_KEY]));
+
+    socket.on("chat.subscribe", (payload: { channels?: string[]; since?: string }) => {
+      const requested = Array.isArray(payload?.channels) ? payload.channels.slice(0, 10) : [];
+      const subscribed: string[] = [];
+      const rejected: Array<{ channel: string; reason: string }> = [];
+      const set = chatSubscriptionsBySocket.get(socket.id) ?? new Set<string>([GLOBAL_CHANNEL_KEY]);
+
+      for (const channelKey of requested) {
+        if (!canAccessChatChannel(mockUser, channelKey)) {
+          rejected.push({ channel: channelKey, reason: "forbidden" });
+          continue;
+        }
+        set.add(channelKey);
+        subscribed.push(channelKey);
+      }
+
+      if (set.size === 0) set.add(GLOBAL_CHANNEL_KEY);
+      chatSubscriptionsBySocket.set(socket.id, set);
+
+      socket.emit("chat.subscribe.ack", { ok: true, subscribed, rejected });
+
+      if (payload?.since) {
+        const sinceMs = Number.parseInt(String(new Date(payload.since).getTime()), 10);
+        for (const channel of Array.from(set)) {
+          const history = chatMessageHistory.get(channel) ?? [];
+          for (const msg of history) {
+            if (!Number.isNaN(sinceMs) && new Date(msg.sentAt).getTime() < sinceMs) continue;
+            socket.emit("chat.message", msg);
+          }
+        }
+      }
+    });
+
+    socket.on("chat.unsubscribe", (payload: { channels?: string[] }) => {
+      const channels = Array.isArray(payload?.channels) ? payload.channels : [];
+      const set = chatSubscriptionsBySocket.get(socket.id) ?? new Set<string>([GLOBAL_CHANNEL_KEY]);
+      for (const channel of channels) {
+        if (channel === GLOBAL_CHANNEL_KEY) continue;
+        set.delete(channel);
+      }
+      if (set.size === 0) set.add(GLOBAL_CHANNEL_KEY);
+      chatSubscriptionsBySocket.set(socket.id, set);
+    });
+
+    socket.on("chat.send", (payload: { clientMessageId?: string; channel?: string; body?: string; mentions?: string[] }) => {
+      const channel = typeof payload?.channel === "string" ? payload.channel : "";
+      const body = typeof payload?.body === "string" ? payload.body.trim() : "";
+
+      if (!mockUser) {
+        socket.emit("chat.error", { code: "NOT_AUTHENTICATED", message: "You must be signed in to chat." });
+        return;
+      }
+      if (!canAccessChatChannel(mockUser, channel)) {
+        socket.emit("chat.error", { code: "FORBIDDEN", message: "You cannot post to this channel." });
+        return;
+      }
+      if (!body) {
+        socket.emit("chat.error", { code: "EMPTY_MESSAGE", message: "Message cannot be empty." });
+        return;
+      }
+      if (body.length > 500) {
+        socket.emit("chat.error", { code: "MESSAGE_TOO_LONG", message: "Message cannot exceed 500 characters." });
+        return;
+      }
+
+      const message = {
+        messageId: `m_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`,
+        channel,
+        senderUserId: mockUser,
+        senderName: mockUser,
+        body,
+        mentions: Array.isArray(payload?.mentions) ? payload.mentions : [],
+        sentAt: new Date().toISOString(),
+      };
+
+      appendChatHistory(channel, message);
+
+      for (const entry of Array.from(chatSubscriptionsBySocket.entries())) {
+        const [targetSocketId, channels] = entry;
+        if (!channels.has(channel)) continue;
+        io.to(targetSocketId).emit("chat.message", message);
+      }
+
+      socket.emit("chat.send.ack", {
+        ok: true,
+        clientMessageId: payload?.clientMessageId ?? null,
+        serverMessageId: message.messageId,
+        sentAt: message.sentAt,
+      });
+    });
 
     socket.on("buy_stock", async ({ symbol, quantity }) => {
       if (!mockUser) return;
@@ -420,6 +589,123 @@ app.prepare().then(async () => {
     socket.on("buy_building", (data) => {
       // Broadcast to all clients in the town
       io.emit("building_updated", data);
+    });
+
+    socket.on("chat:history:request", (payload: ChatHistoryRequestPayload) => {
+      if (!mockUser) return;
+      const roomId = payload?.roomId;
+      if (typeof roomId !== "string" || roomId.trim().length === 0) return;
+
+      socket.join(roomId);
+      const room = getChatRoom(roomId);
+      const requestedLimit = Number.isFinite(payload?.limit) ? Number(payload.limit) : 50;
+      const limit = Math.max(1, Math.min(100, requestedLimit));
+
+      const sorted = sortChatMessages([...room.messages]);
+      let filtered = sorted;
+      if (payload?.beforeMessageId) {
+        const beforeIndex = sorted.findIndex((msg) => msg.id === payload.beforeMessageId);
+        filtered = beforeIndex > 0 ? sorted.slice(0, beforeIndex) : [];
+      }
+      const messages = filtered.slice(-limit);
+
+      socket.emit("chat:history", {
+        roomId,
+        messages,
+        nextBeforeMessageId: messages.length > 0 ? messages[0].id : null,
+        hasMore: filtered.length > messages.length,
+      });
+    });
+
+    socket.on("chat:send", (payload: ChatSendPayload) => {
+      if (!mockUser) {
+        emitChatAck(socket, {
+          clientNonce: payload?.clientNonce ?? "unknown",
+          accepted: false,
+          errorCode: "NOT_AUTHORIZED",
+        });
+        return;
+      }
+
+      const roomId = payload?.roomId;
+      const clientNonce = payload?.clientNonce;
+      const rawBody = payload?.body ?? "";
+      const body = rawBody.trim();
+
+      if (typeof roomId !== "string" || roomId.trim().length === 0) {
+        emitChatAck(socket, { clientNonce: clientNonce ?? "unknown", accepted: false, errorCode: "ROOM_NOT_FOUND" });
+        return;
+      }
+      if (typeof clientNonce !== "string" || clientNonce.length === 0) {
+        emitChatAck(socket, { clientNonce: "unknown", accepted: false, errorCode: "EMPTY_MESSAGE" });
+        return;
+      }
+      if (body.length === 0) {
+        emitChatAck(socket, { clientNonce, accepted: false, errorCode: "EMPTY_MESSAGE" });
+        return;
+      }
+      if (body.length > 500) {
+        emitChatAck(socket, { clientNonce, accepted: false, errorCode: "MESSAGE_TOO_LONG" });
+        return;
+      }
+
+      socket.join(roomId);
+      const room = getChatRoom(roomId);
+      const now = Date.now();
+      const prior = room.sendTimestampsByUser.get(mockUser) ?? [];
+      const recent = prior.filter((ts) => now - ts <= CHAT_RATE_LIMIT_WINDOW_MS);
+      if (recent.length >= CHAT_RATE_LIMIT_COUNT) {
+        room.sendTimestampsByUser.set(mockUser, recent);
+        emitChatAck(socket, { clientNonce, accepted: false, errorCode: "RATE_LIMIT" });
+        return;
+      }
+
+      recent.push(now);
+      room.sendTimestampsByUser.set(mockUser, recent);
+
+      const existing = room.messages.find((msg) => msg.clientNonce === clientNonce && msg.senderId === mockUser);
+      if (existing) {
+        emitChatAck(socket, {
+          clientNonce,
+          messageId: existing.id,
+          accepted: true,
+          errorCode: null,
+        });
+        return;
+      }
+
+      const message: ChatMessage = {
+        id: `msg_${Math.random().toString(36).slice(2, 11)}`,
+        roomId,
+        senderId: mockUser,
+        senderName: mockUser,
+        body,
+        createdAtMs: now,
+        clientNonce,
+        kind: "user",
+      };
+
+      room.messages.push(message);
+      room.messages = sortChatMessages(room.messages).slice(-CHAT_MAX_HISTORY);
+
+      io.to(roomId).emit("chat:message", { message });
+      emitChatAck(socket, {
+        clientNonce,
+        messageId: message.id,
+        accepted: true,
+        errorCode: null,
+      });
+    });
+
+    socket.on("chat:read:upsert", (payload: ChatReadUpsertPayload) => {
+      if (!mockUser) return;
+      const roomId = payload?.roomId;
+      const lastReadMessageId = payload?.lastReadMessageId;
+      if (typeof roomId !== "string" || roomId.trim().length === 0) return;
+      if (typeof lastReadMessageId !== "string" || lastReadMessageId.trim().length === 0) return;
+
+      const room = getChatRoom(roomId);
+      room.readStateByUser.set(mockUser, lastReadMessageId);
     });
 
     // Arena Matchmaking & Game Logic
@@ -637,6 +923,16 @@ app.prepare().then(async () => {
 
     socket.on("disconnect", () => {
       console.log("User disconnected:", socket.id);
+      chatSubscriptionsBySocket.delete(socket.id);
+      if (mockUser) {
+        const socketsForUser = chatSocketsByUser.get(mockUser);
+        if (socketsForUser) {
+          socketsForUser.delete(socket.id);
+          if (socketsForUser.size === 0) {
+            chatSocketsByUser.delete(mockUser);
+          }
+        }
+      }
       const index = matchmakingQueue.findIndex((p) => p.socketId === socket.id);
       if (index !== -1) {
         matchmakingQueue.splice(index, 1);
