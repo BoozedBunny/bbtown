@@ -179,89 +179,106 @@ export function TownChatPanel({
   };
 
   return (
-    <div className="pointer-events-auto fixed bottom-4 left-4 z-40 w-[min(32rem,calc(100vw-2rem))] rounded-xl border border-white/20 bg-black/70 p-3 text-white shadow-2xl backdrop-blur-sm">
-      <div className="mb-2 max-h-40 overflow-y-auto rounded border border-white/10 bg-black/30 p-2 text-xs">
-        {messages.length === 0 ? <p className="text-gray-400">Town chat ready.</p> : (
-          <ul className="space-y-1">
-            {messages.map((message) => (
-              <li key={message.id}>
-                <span className="text-gray-300">{new Date(message.createdAtMs).toLocaleTimeString()} </span>
-                <span className="font-semibold text-brand-secondary">{message.senderName}</span>
-                <span className="text-gray-400"> [{message.roomId.startsWith("whisper:") ? "W" : "T"}]</span>
-                <span>: {message.body}</span>
-              </li>
-            ))}
+    <div className="pointer-events-auto fixed bottom-14 left-4 z-40 w-[min(28rem,calc(100vw-2rem))] cyber-panel border-l-4 border-l-brand-primary p-3 text-white shadow-2xl">
+      <div className="mb-2 flex items-center justify-between px-1">
+        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-brand-primary">Neural_Chat_Link</span>
+        <div className="flex gap-1">
+          <div className="w-1.5 h-1.5 bg-brand-primary animate-pulse" />
+          <div className="w-1.5 h-1.5 bg-brand-primary/30" />
+        </div>
+      </div>
+
+      <div className="mb-3 max-h-40 overflow-y-auto border border-white/5 bg-black/40 p-2 text-[11px] font-mono scrollbar-hide">
+        {messages.length === 0 ? <p className="text-gray-600 uppercase tracking-widest text-[9px]">Initializing encrypted feed...</p> : (
+          <ul className="space-y-1.5">
+            {messages.map((message) => {
+              const isWhisper = message.roomId.startsWith("whisper:");
+              return (
+                <li key={message.id} className="leading-relaxed">
+                  <span className="text-gray-600 text-[9px] mr-1">[{new Date(message.createdAtMs).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })}]</span>
+                  <span className={`font-black uppercase tracking-tighter ${isWhisper ? "text-brand-secondary" : "text-brand-primary"}`}>{message.senderName}</span>
+                  <span className="text-gray-500 mx-1">»</span>
+                  <span className={isWhisper ? "text-brand-secondary/90 italic" : "text-gray-300"}>{message.body}</span>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
 
-      <input
-        value={inputValue}
-        onChange={(event) => {
-          setInputValue(event.target.value);
-          setInlineError(null);
-        }}
-        onCompositionStart={() => setCompositionActive(true)}
-        onCompositionEnd={() => setCompositionActive(false)}
-        onKeyDown={(event) => {
-          if (compositionActive) return;
-          if (event.key === "ArrowDown") {
-            if (recipientMenuOpen && recipientItems.length > 0) {
-              event.preventDefault();
-              setRecipientIndex((prev) => (prev + 1) % recipientItems.length);
-            } else if (commandMenuOpen && commandItems.length > 0) {
-              event.preventDefault();
-              setCommandIndex((prev) => (prev + 1) % commandItems.length);
+      <div className="relative">
+        <input
+          value={inputValue}
+          onChange={(event) => {
+            setInputValue(event.target.value);
+            setInlineError(null);
+          }}
+          onCompositionStart={() => setCompositionActive(true)}
+          onCompositionEnd={() => setCompositionActive(false)}
+          onKeyDown={(event) => {
+            if (compositionActive) return;
+            if (event.key === "ArrowDown") {
+              if (recipientMenuOpen && recipientItems.length > 0) {
+                event.preventDefault();
+                setRecipientIndex((prev) => (prev + 1) % recipientItems.length);
+              } else if (commandMenuOpen && commandItems.length > 0) {
+                event.preventDefault();
+                setCommandIndex((prev) => (prev + 1) % commandItems.length);
+              }
+              return;
             }
-            return;
-          }
-          if (event.key === "ArrowUp") {
-            if (recipientMenuOpen && recipientItems.length > 0) {
-              event.preventDefault();
-              setRecipientIndex((prev) => (prev - 1 + recipientItems.length) % recipientItems.length);
-            } else if (commandMenuOpen && commandItems.length > 0) {
-              event.preventDefault();
-              setCommandIndex((prev) => (prev - 1 + commandItems.length) % commandItems.length);
-            }
-            return;
-          }
-          if (event.key === "Tab") {
-            if (recipientMenuOpen && recipientItems.length > 0) {
-              event.preventDefault();
-              if (event.shiftKey) {
+            if (event.key === "ArrowUp") {
+              if (recipientMenuOpen && recipientItems.length > 0) {
+                event.preventDefault();
                 setRecipientIndex((prev) => (prev - 1 + recipientItems.length) % recipientItems.length);
-              } else {
-                commitRecipient();
-              }
-              return;
-            }
-            if (commandMenuOpen && commandItems.length > 0) {
-              event.preventDefault();
-              if (event.shiftKey) {
+              } else if (commandMenuOpen && commandItems.length > 0) {
+                event.preventDefault();
                 setCommandIndex((prev) => (prev - 1 + commandItems.length) % commandItems.length);
-              } else {
-                commitCommand();
               }
-            }
-            return;
-          }
-          if (event.key === "Enter") {
-            event.preventDefault();
-            if (recipientMenuOpen && recipientItems.length > 0 && !hasBody && commitRecipient()) return;
-            if (commandMenuOpen && commandItems.length > 0) {
-              commitCommand();
               return;
             }
-            handleSend();
-          }
-        }}
-        className="w-full rounded border border-white/20 bg-black/50 px-3 py-2 text-sm text-white outline-none focus:border-brand-primary"
-        placeholder="Type / for commands. Whisper: /w <name> <message>"
-        aria-autocomplete={(commandMenuOpen || recipientMenuOpen) ? "list" : "none"}
-      />
+            if (event.key === "Tab") {
+              if (recipientMenuOpen && recipientItems.length > 0) {
+                event.preventDefault();
+                if (event.shiftKey) {
+                  setRecipientIndex((prev) => (prev - 1 + recipientItems.length) % recipientItems.length);
+                } else {
+                  commitRecipient();
+                }
+                return;
+              }
+              if (commandMenuOpen && commandItems.length > 0) {
+                event.preventDefault();
+                if (event.shiftKey) {
+                  setCommandIndex((prev) => (prev - 1 + commandItems.length) % commandItems.length);
+                } else {
+                  commitCommand();
+                }
+              }
+              return;
+            }
+            if (event.key === "Enter") {
+              event.preventDefault();
+              if (recipientMenuOpen && recipientItems.length > 0 && !hasBody && commitRecipient()) return;
+              if (commandMenuOpen && commandItems.length > 0) {
+                commitCommand();
+                return;
+              }
+              handleSend();
+            }
+          }}
+          className="w-full bg-black/60 border border-white/10 px-3 py-2.5 text-[11px] text-white font-mono outline-none focus:border-brand-primary cyber-skew transition-all placeholder:text-gray-700"
+          placeholder="CMD_INPUT // TYPE / HELP"
+          aria-autocomplete={(commandMenuOpen || recipientMenuOpen) ? "list" : "none"}
+        />
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-0.5 pointer-events-none">
+           <div className="w-1 h-3 bg-brand-primary/20" />
+           <div className="w-1 h-3 bg-brand-primary/40" />
+        </div>
+      </div>
 
       {(commandMenuOpen || recipientMenuOpen) && (
-        <div role="listbox" className="mt-2 max-h-40 overflow-y-auto rounded border border-white/20 bg-[#10071B] p-1 text-sm">
+        <div role="listbox" className="mt-2 max-h-40 overflow-y-auto border border-brand-primary/30 bg-[#0F021A] p-1 text-[10px] font-black uppercase tracking-widest cyber-skew">
           {recipientMenuOpen ? (
             recipientItems.length === 0 ? <div className="px-2 py-1 text-gray-400">No recipients</div> : recipientItems.map((item, index) => (
               <button

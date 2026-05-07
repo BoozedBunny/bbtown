@@ -36,7 +36,8 @@ export function MarketTickerTape({ onSelectSymbol }: { onSelectSymbol: (symbol: 
   if (rows.length === 0) return null;
 
   return (
-    <div className="pointer-events-auto absolute bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-black/65 backdrop-blur-sm overflow-hidden">
+    <div className="pointer-events-auto absolute bottom-0 left-0 right-0 z-40 border-t border-brand-primary/30 bg-black/80 backdrop-blur-md overflow-hidden h-10 flex items-center">
+      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-brand-primary to-transparent opacity-50" />
       <div className="group relative flex w-max min-w-full animate-[ticker_45s_linear_infinite] hover:[animation-play-state:paused]">
         {duplicatedRows.map((row, index) => {
           const up = row.trend === "UP";
@@ -45,11 +46,11 @@ export function MarketTickerTape({ onSelectSymbol }: { onSelectSymbol: (symbol: 
             <button
               key={`${row.symbol}-${index}`}
               onClick={() => onSelectSymbol(row.symbol)}
-              className="px-4 py-2 text-xs font-mono whitespace-nowrap border-r border-white/10 hover:bg-white/10 transition-colors"
+              className="px-6 h-10 text-[10px] font-black font-mono whitespace-nowrap border-r border-white/5 hover:bg-brand-primary/10 transition-all group/item"
             >
-              <span className="text-white font-semibold mr-2">{row.symbol}</span>
-              <span className="text-slate-300 mr-2">${row.price.toFixed(2)}</span>
-              <span className={up ? "text-brand-secondary" : down ? "text-brand-tertiary" : "text-slate-300"}>
+              <span className="text-white group-hover/item:text-brand-primary transition-colors mr-3 uppercase tracking-widest">{row.symbol}</span>
+              <span className="text-gray-400 mr-3 font-bold">${row.price.toFixed(2)}</span>
+              <span className={`px-2 py-0.5 cyber-skew ${up ? "bg-brand-secondary/20 text-brand-secondary" : down ? "bg-brand-tertiary/20 text-brand-tertiary" : "bg-white/5 text-gray-500"}`}>
                 {up ? "▲" : down ? "▼" : "•"}
                 {Math.abs(row.changePct).toFixed(2)}%
               </span>

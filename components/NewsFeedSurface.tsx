@@ -78,42 +78,45 @@ export function NewsFeedSurface({ mode, townId, initialTab = "all" }: { mode: Fe
   };
 
   return (
-    <div className="h-full w-full flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <div className="h-full w-full flex flex-col gap-6 font-sans">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <Tabs value={selectedTab} onValueChange={(value) => setSelectedTab(value as NewsTab)}>
-          <TabsList className="bg-white/5 border border-white/10 p-1">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="town_wire">Town Wire {unreadCount.town_wire > 0 ? `(${unreadCount.town_wire})` : ""}</TabsTrigger>
-            <TabsTrigger value="channel_bb">Channel BB {unreadCount.channel_bb > 0 ? `(${unreadCount.channel_bb})` : ""}</TabsTrigger>
+          <TabsList className="bg-black/40 border border-white/10 p-1 cyber-skew">
+            <TabsTrigger value="all" className="data-[state=active]:bg-brand-primary data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest px-6">All</TabsTrigger>
+            <TabsTrigger value="town_wire" className="data-[state=active]:bg-brand-primary data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest px-6">Wire {unreadCount.town_wire > 0 ? `(${unreadCount.town_wire})` : ""}</TabsTrigger>
+            <TabsTrigger value="channel_bb" className="data-[state=active]:bg-brand-primary data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest px-6">BB_TV {unreadCount.channel_bb > 0 ? `(${unreadCount.channel_bb})` : ""}</TabsTrigger>
           </TabsList>
         </Tabs>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           {mode === "modal" && (
-            <Link href={`/town/${townId}/news`} className="text-xs text-gray-300 hover:text-white underline underline-offset-4">
-              Open full page
+            <Link href={`/town/${townId}/news`} className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-brand-primary transition-colors">
+              [ Full_Interface ]
             </Link>
           )}
-          <Button variant="ghost" size="sm" onClick={refreshFeed} className="text-xs text-gray-300">
-            <RefreshCw className="w-4 h-4 mr-1" /> Refresh
-          </Button>
+          <button onClick={refreshFeed} className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white flex items-center gap-2">
+            <RefreshCw className="w-3 h-3" /> RELOAD_FEED
+          </button>
         </div>
       </div>
 
-      {error && <div className="text-xs text-amber-200 bg-amber-500/10 border border-amber-400/20 rounded-md px-3 py-2">{error}</div>}
+      {error && <div className="text-[10px] font-black uppercase tracking-widest text-brand-tertiary bg-brand-tertiary/10 border border-brand-tertiary/30 px-4 py-2 cyber-skew">{error}</div>}
 
-      <div className="text-[11px] uppercase tracking-widest text-gray-500 flex items-center gap-2">
-        <Bell className="w-3 h-3" /> Last update: {lastFetchedAt ? new Date(lastFetchedAt).toLocaleTimeString() : "--"}
+      <div className="text-[9px] font-mono font-black uppercase tracking-[0.3em] text-gray-600 flex items-center gap-2">
+        <div className="w-2 h-2 bg-brand-primary animate-pulse" />
+        LIVE_FEED_SYNC: {lastFetchedAt ? new Date(lastFetchedAt).toLocaleTimeString() : "--"}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-4 min-h-0 flex-1">
-        <div className="space-y-3 overflow-y-auto pr-1">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6 min-h-0 flex-1">
+        <div className="space-y-3 overflow-y-auto pr-2 scrollbar-hide">
           {visibleItems.length === 0 ? (
-            <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-gray-300">
-              {selectedTab === "town_wire"
-                ? "No active notices right now."
-                : selectedTab === "channel_bb"
-                  ? "Quiet feed... for now. Check back for fresh buzz."
-                  : "No stories available right now."}
+            <div className="cyber-panel p-6 border-white/5 text-center">
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-600">
+                {selectedTab === "town_wire"
+                  ? "No encrypted packets found."
+                  : selectedTab === "channel_bb"
+                    ? "Broadcast signal lost... scanning."
+                    : "End of data stream."}
+              </p>
             </div>
           ) : (
             visibleItems.map((item) => {
@@ -125,17 +128,17 @@ export function NewsFeedSurface({ mode, townId, initialTab = "all" }: { mode: Fe
                     setActiveItemId(item.id);
                     markRead(item.id);
                   }}
-                  className={`w-full text-left p-4 rounded-xl border ${PRIORITY_CLASS[item.priority]} bg-white/5 hover:bg-white/10 transition ${isRead ? "opacity-75" : "opacity-100"}`}
+                  className={`w-full text-left p-5 border-l-4 transition-all relative overflow-hidden cyber-skew group ${isRead ? "bg-black/20 border-white/5 opacity-60" : "bg-black/60 border-brand-primary hover:border-brand-secondary hover:bg-brand-primary/5"}`}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className={`inline-flex items-center border px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide mb-2 ${CHANNEL_BADGE_CLASS[item.channel]}`}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="relative z-10">
+                      <div className={`inline-flex items-center px-2 py-0.5 text-[8px] font-black uppercase tracking-widest mb-3 skew-x-[-15deg] border ${item.channel === 'town_wire' ? 'bg-sky-500/10 border-sky-500/30 text-sky-400' : 'bg-fuchsia-500/10 border-fuchsia-500/30 text-fuchsia-400'}`}>
                         {CHANNEL_LABEL[item.channel]}
                       </div>
-                      <div className="text-sm font-semibold leading-tight line-clamp-2">{item.title}</div>
-                      {item.deck && <div className="mt-1 text-xs text-gray-300 line-clamp-2">{item.deck}</div>}
+                      <div className="text-lg font-black italic tracking-tighter leading-tight group-hover:text-brand-primary transition-colors">{item.title}</div>
+                      {item.deck && <div className="mt-2 text-[11px] text-gray-500 font-mono leading-relaxed line-clamp-2">{item.deck}</div>}
                     </div>
-                    <div className="text-[10px] text-gray-500 whitespace-nowrap">{relativeTimeLabel(item.publishedAt)}</div>
+                    <div className="text-[9px] font-mono text-gray-600 font-black whitespace-nowrap pt-1">{relativeTimeLabel(item.publishedAt).toUpperCase()}</div>
                   </div>
                 </button>
               );
@@ -143,35 +146,45 @@ export function NewsFeedSurface({ mode, townId, initialTab = "all" }: { mode: Fe
           )}
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-black/30 p-4 overflow-y-auto">
+        <div className="cyber-panel bg-black/40 p-6 border-white/5 overflow-y-auto relative scrollbar-hide">
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
           {!activeItem ? (
-            <div className="text-sm text-gray-400">Select a story to read details.</div>
+            <div className="h-full flex items-center justify-center text-center">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-700 animate-pulse">Select_Node_To_Decrypt</p>
+            </div>
           ) : (
-            <div className="space-y-3">
-              <div className={`inline-flex items-center border px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide ${CHANNEL_BADGE_CLASS[activeItem.channel]}`}>
+            <div className="space-y-6 animate-in fade-in duration-500">
+              <div className={`inline-flex items-center px-3 py-1 text-[9px] font-black uppercase tracking-widest skew-x-[-15deg] border ${activeItem.channel === 'town_wire' ? 'bg-sky-500/20 border-sky-500/50 text-sky-400' : 'bg-fuchsia-500/20 border-fuchsia-500/50 text-fuchsia-400'}`}>
                 {CHANNEL_LABEL[activeItem.channel]}
               </div>
-              <h3 className="text-lg font-bold leading-tight">{activeItem.title}</h3>
-              {activeItem.deck && <p className="text-sm text-gray-300">{activeItem.deck}</p>}
-              <div className="text-xs text-gray-500">
-                {activeItem.authorLabel ?? "Desk"} • {new Date(activeItem.publishedAt).toLocaleString()}
+              <h3 className="text-3xl font-black italic tracking-tighter leading-[0.9] text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]">{activeItem.title}</h3>
+              {activeItem.deck && <p className="text-sm text-brand-secondary font-bold leading-relaxed">{activeItem.deck}</p>}
+
+              <div className="h-px bg-white/5 w-full" />
+
+              <div className="text-[10px] font-mono font-black uppercase tracking-widest text-gray-600">
+                Source: {activeItem.authorLabel?.toUpperCase() ?? "BB_CENTRAL"} // {new Date(activeItem.publishedAt).toLocaleDateString()}
               </div>
-              <div className="text-sm text-gray-200 whitespace-pre-line">{activeItem.body}</div>
+
+              <div className="text-xs text-gray-400 font-mono leading-relaxed whitespace-pre-line border-l-2 border-white/5 pl-4">{activeItem.body}</div>
+
               {activeItem.cta && activeItem.cta.actionType !== "none" && activeItem.cta.href ? (
-                activeItem.cta.actionType === "external" ? (
-                  <a
-                    href={activeItem.cta.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center text-sm text-brand-primary hover:underline"
-                  >
-                    {activeItem.cta.label} <ExternalLink className="w-3 h-3 ml-1" />
-                  </a>
-                ) : (
-                  <Link href={activeItem.cta.href} className="inline-flex items-center text-sm text-brand-primary hover:underline">
-                    {activeItem.cta.label}
-                  </Link>
-                )
+                <div className="pt-4">
+                  {activeItem.cta.actionType === "external" ? (
+                    <a
+                      href={activeItem.cta.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group inline-flex items-center text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary hover:text-brand-secondary transition-colors"
+                    >
+                      [ {activeItem.cta.label} ] <ExternalLink className="w-3 h-3 ml-2 group-hover:translate-x-1 transition-transform" />
+                    </a>
+                  ) : (
+                    <Link href={activeItem.cta.href} className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary hover:text-brand-secondary transition-colors">
+                      [ {activeItem.cta.label} ]
+                    </Link>
+                  )}
+                </div>
               ) : null}
             </div>
           )}

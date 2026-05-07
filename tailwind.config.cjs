@@ -69,6 +69,7 @@ module.exports = {
       animation: {
         "gradient-x": "gradient-x 3s ease infinite",
         "loading-bar": "loading-bar 2s ease-in-out infinite",
+        "scanline": "scanline 3s linear infinite",
       },
       keyframes: {
         "gradient-x": {
@@ -79,6 +80,10 @@ module.exports = {
           "0%": { transform: "translateX(-100%)" },
           "50%": { transform: "translateX(100%)" },
           "100%": { transform: "translateX(-100%)" },
+        },
+        "scanline": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100%)" },
         },
       },
     },

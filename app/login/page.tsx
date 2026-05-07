@@ -14,53 +14,60 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen text-white overflow-hidden relative brand-bg-overlay">
-      <div className="z-10 p-10 glass-card w-full max-w-md">
+    <div className="flex flex-col items-center justify-center min-h-screen text-white overflow-hidden relative brand-bg-overlay font-sans">
+      <div className="z-10 p-10 cyber-panel w-full max-w-md border-t-4 border-t-brand-primary">
         <div className="mb-8 text-center flex flex-col items-center">
-          <div className="relative w-32 h-32 mb-6 animate-pulse">
+          <div className="relative w-32 h-32 mb-6">
+            <div className="absolute inset-0 bg-brand-primary/20 blur-2xl rounded-full animate-pulse" />
             <Image
               src="/logo.png"
               alt="BoozedBunny Logo"
               fill
-              className="object-contain drop-shadow-[0_0_15px_rgba(189,0,255,0.5)]"
+              className="object-contain drop-shadow-[0_0_15px_rgba(189,0,255,0.5)] relative z-10"
             />
           </div>
-          <h1 className="text-4xl font-heading font-bold tracking-tight mb-2 brand-gradient-text">
+          <h1 className="text-4xl font-heading font-black tracking-tighter mb-2 cyber-glitch-text italic" data-text="BoozedBunnyTown">
             BoozedBunnyTown
           </h1>
-          <p className="text-gray-400 font-sans">Enter the next generation of building</p>
+          <p className="text-gray-500 font-mono text-[10px] uppercase tracking-[0.3em]">Neural Interface v2.0.4</p>
         </div>
 
-        <div className="space-y-4 mt-8">
-          <Button
+        <div className="space-y-6 mt-8">
+          <button
             onClick={() => handleLogin("Player1")}
-            className="w-full py-6 text-lg font-bold bg-brand-primary hover:bg-brand-primary/80 transition-all duration-300 shadow-[0_0_20px_rgba(189,0,255,0.3)] hover:shadow-[0_0_30px_rgba(189,0,255,0.5)]"
+            className="group relative w-full block"
           >
-            Login as Player 1
-          </Button>
-          <Button
+            <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
+            <div className="cyber-skew bg-brand-primary px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
+               <span className="text-sm font-black uppercase tracking-[0.2em] text-white">Login_as_Player_1</span>
+            </div>
+          </button>
+
+          <button
             onClick={() => handleLogin("Player2")}
-            variant="outline"
-            className="w-full py-6 text-lg font-bold border-brand-secondary text-brand-secondary hover:bg-brand-secondary hover:text-brand-neutral transition-all duration-300"
+            className="group relative w-full block"
           >
-            Login as Player 2
-          </Button>
+            <div className="absolute inset-0 bg-brand-secondary/10 blur group-hover:bg-brand-secondary/20 transition-all" />
+            <div className="cyber-skew bg-black/40 border border-brand-secondary/50 px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
+               <span className="text-sm font-black uppercase tracking-[0.2em] text-brand-secondary">Login_as_Player_2</span>
+            </div>
+          </button>
         </div>
 
-        <div className="mt-10 pt-6 border-t border-white/10 text-center flex flex-col items-center gap-2">
-          <p className="text-xs text-gray-500 uppercase tracking-widest font-bold">
-            Powered by
+        <div className="mt-12 pt-6 border-t border-white/5 text-center flex flex-col items-center gap-2">
+          <p className="text-[8px] text-gray-600 uppercase tracking-[0.5em] font-black">
+            System Synchronization Active
           </p>
-          <div className="relative w-24 h-8 opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all">
-             <Image
-              src="/logo.png"
-              alt="BoozedBunny Logo"
-              fill
-              className="object-contain"
-            />
+          <div className="flex gap-1">
+             {[...Array(6)].map((_, i) => (
+               <div key={i} className="w-4 h-[2px] bg-brand-primary/30" />
+             ))}
           </div>
         </div>
       </div>
+
+      {/* Decorative scanline overlay */}
+      <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-20 bg-[length:100%_2px,3px_100%]" />
     </div>
   );
 }
