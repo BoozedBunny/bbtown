@@ -912,63 +912,101 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
 
   return (
     <main className="flex min-h-screen flex-col bg-[#05010a] text-white font-sans overflow-hidden relative">
-      <div className="absolute top-8 left-8 right-8 z-10 flex justify-between items-start pointer-events-none">
-        <div className="bg-black/40 backdrop-blur-xl p-4 rounded-2xl border border-white/10 flex items-center gap-4">
-          <div className="w-10 h-10 bg-brand-primary/20 rounded-xl flex items-center justify-center">
-            <Swords className="w-6 h-6 text-brand-primary" />
-          </div>
-          <div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-gray-400">
-              Room
-            </h2>
-            <p className="font-mono text-brand-secondary font-bold">
-              {gameRoomId}
-            </p>
+      <div className="absolute top-6 left-6 right-6 z-10 flex justify-between items-start pointer-events-none">
+        <div className="relative group">
+          <div className="absolute inset-0 bg-brand-primary/20 blur-xl group-hover:bg-brand-primary/30 transition-all" />
+          <div className="cyber-skew bg-black/60 backdrop-blur-md border-l-4 border-brand-primary px-6 py-4 relative">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-brand-primary/10 flex items-center justify-center border border-brand-primary/30">
+                <Swords className="w-5 h-5 text-brand-primary" />
+              </div>
+              <div>
+                <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-primary/70">
+                  Sector ID
+                </h2>
+                <p className="font-mono text-white font-black text-lg leading-none">
+                  {gameRoomId.split('-')[0].toUpperCase()}
+                  <span className="text-brand-primary opacity-50">-{gameRoomId.split('-')[1] || 'X'}</span>
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
         {gameState.status === "playing" && (
-          <div className="flex flex-col items-center gap-2">
-            <div className="bg-black/40 backdrop-blur-xl px-8 py-3 rounded-full border border-green-500/30 flex items-center gap-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-xs font-bold uppercase tracking-[0.2em] text-green-400">
-                {authoritativePhase.phase === "ACTIVE_ROUND" ? "Match in Progress" : "Breathing Window"}
-              </span>
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative">
+              <div className="absolute inset-0 bg-brand-secondary/5 blur-lg" />
+              <div className="bg-black/40 backdrop-blur-xl px-10 py-2 border-y border-brand-secondary/30 relative">
+                 <div className="absolute left-0 top-0 w-2 h-full bg-brand-secondary" />
+                 <div className="absolute right-0 top-0 w-2 h-full bg-brand-secondary" />
+                 <span className="text-[10px] font-black uppercase tracking-[0.4em] text-brand-secondary animate-pulse">
+                   {authoritativePhase.phase === "ACTIVE_ROUND" ? "SYSTEM_ACTIVE" : "RECALIBRATING"}
+                 </span>
+              </div>
             </div>
-            <div className={`px-6 py-2 rounded-xl border text-xs font-bold uppercase tracking-[0.2em] ${isSuddenDeath ? "bg-red-500/20 border-red-500/50 text-red-300" : "bg-black/40 border-brand-primary/40 text-brand-secondary"}`}>
-              Round {currentRound}/{TOTAL_ROUNDS} • {roundSecondsRemaining}s
-              {isSuddenDeath ? " • Floor Drop" : ""}
+
+            <div className="flex gap-1">
+               <div className={`cyber-skew ${isSuddenDeath ? 'bg-red-600/80' : 'bg-brand-primary/80'} px-8 py-3 relative`}>
+                  <p className="text-[10px] font-bold uppercase text-white/70 tracking-widest text-center">Cycle</p>
+                  <p className="text-2xl font-black text-white leading-none">{currentRound}<span className="text-xs opacity-50 ml-1">/ {TOTAL_ROUNDS}</span></p>
+               </div>
+               <div className="cyber-skew bg-white/10 backdrop-blur-md px-8 py-3 border-r border-white/20">
+                  <p className="text-[10px] font-bold uppercase text-white/50 tracking-widest text-center">Time</p>
+                  <p className="text-2xl font-mono font-black text-brand-secondary leading-none">
+                    {String(Math.floor(roundSecondsRemaining / 60)).padStart(2, '0')}:{String(roundSecondsRemaining % 60).padStart(2, '0')}
+                  </p>
+               </div>
             </div>
           </div>
         )}
 
-        <div className="flex gap-4">
-          <div className="bg-black/40 backdrop-blur-xl p-4 rounded-2xl border border-white/10 flex items-center gap-4 pointer-events-auto">
-            <Users className="w-5 h-5 text-gray-400" />
-            <div>
-              <h2 className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
-                Players
-              </h2>
-              <p className="text-sm font-bold">
-                {gameState.players.length} /{" "}
-                {gameRoomId.startsWith("solo-") ? "1" : "2"}
-              </p>
+        <div className="flex gap-4 items-start">
+          <div className="cyber-skew bg-white/5 backdrop-blur-md px-6 py-4 border-r border-brand-primary/30">
+            <div className="flex items-center gap-3">
+              <Users className="w-4 h-4 text-brand-primary" />
+              <div>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">Nodes</p>
+                <p className="text-sm font-black font-mono">0{gameState.players.length}<span className="opacity-30">/0{gameRoomId.startsWith("solo-") ? "1" : "2"}</span></p>
+              </div>
             </div>
           </div>
           <button
             onClick={() => router.push("/")}
-            className="bg-red-500/10 hover:bg-red-500/20 text-red-500 px-6 py-4 rounded-2xl border border-red-500/30 text-xs font-bold uppercase tracking-widest transition-all pointer-events-auto"
+            className="group relative pointer-events-auto"
           >
-            Leave Battle
+            <div className="absolute inset-0 bg-red-500/20 blur group-hover:bg-red-500/40 transition-all" />
+            <div className="cyber-skew bg-red-950/40 border border-red-500/50 px-6 py-4 transition-all group-hover:translate-x-1 group-hover:-translate-y-1">
+               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500">Abort_Mission</span>
+            </div>
           </button>
         </div>
       </div>
 
       {gameState.status === "playing" && authoritativePhase.phase !== "ACTIVE_ROUND" && (
-        <div className="absolute top-28 left-1/2 z-20 -translate-x-1/2 pointer-events-none">
-          <div className="rounded-2xl border border-brand-secondary/50 bg-black/60 px-8 py-4 text-center shadow-[0_0_40px_rgba(255,184,0,0.25)] animate-pulse">
-            <p className="text-xs uppercase tracking-[0.3em] text-brand-secondary/80">Round</p>
-            <p className="text-4xl font-heading font-bold text-brand-secondary">{currentRound}</p>
+        <div className="absolute inset-x-0 top-1/3 z-20 pointer-events-none">
+          <div className="relative h-32 w-full flex items-center justify-center overflow-hidden">
+             <div className="absolute inset-0 bg-brand-primary/10 backdrop-blur-sm skew-y-1" />
+             <div className="absolute inset-y-0 left-0 w-24 bg-brand-primary" />
+             <div className="absolute inset-y-0 right-0 w-24 bg-brand-primary" />
+
+             <div className="relative flex flex-col items-center">
+                <div className="flex items-center gap-8">
+                   <div className="h-[2px] w-32 bg-gradient-to-r from-transparent to-brand-primary" />
+                   <span className="text-xs font-black uppercase tracking-[0.8em] text-brand-primary">Prepare for link</span>
+                   <div className="h-[2px] w-32 bg-gradient-to-l from-transparent to-brand-primary" />
+                </div>
+                <h1 className="text-7xl font-heading font-black text-white italic tracking-tighter cyber-glitch-text" data-text={`CYCLE_0${currentRound}`}>
+                  CYCLE_0{currentRound}
+                </h1>
+                <div className="flex items-center gap-2 mt-2">
+                   <div className="w-2 h-2 bg-brand-secondary animate-ping" />
+                   <span className="text-[10px] font-mono font-bold text-brand-secondary uppercase">Broadcasting Obstacle Data...</span>
+                </div>
+             </div>
+
+             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[120%] h-px bg-white/20 animate-pulse" />
+             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[120%] h-px bg-white/20 animate-pulse" />
           </div>
         </div>
       )}
@@ -976,95 +1014,153 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
       {gameState.status === "waiting" && !gameRoomId.startsWith("solo-") && (
         <div
           id="waiting-overlay"
-          className={`absolute inset-0 z-20 flex flex-col items-center justify-center backdrop-blur-sm transition-colors duration-200 ${entryPhase === "playing" ? "bg-[#05010a]/80" : "bg-[#05010a]"}`}
+          className={`absolute inset-0 z-20 flex flex-col items-center justify-center backdrop-blur-md transition-colors duration-200 ${entryPhase === "playing" ? "bg-[#05010a]/90" : "bg-[#05010a]"}`}
         >
-          <div className="w-20 h-20 border-4 border-brand-primary/20 border-t-brand-primary rounded-full animate-spin mb-6" />
-          <h2 className="text-2xl font-heading font-bold mb-2">
-            Waiting for Opponent
-          </h2>
-          <p className="text-gray-400 animate-pulse">
-            Match will start automatically...
-          </p>
+          <div className="max-w-md w-full px-6">
+            <div className="cyber-border bg-black/80 p-8 rounded-sm">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 bg-brand-primary/20 flex items-center justify-center border border-brand-primary/50">
+                  <Users className="w-6 h-6 text-brand-primary" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-heading font-bold tracking-tighter cyber-glitch-text" data-text="AWAITING OPPONENT">
+                    AWAITING OPPONENT
+                  </h2>
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-brand-primary/60 font-bold">Establishing Secure Link...</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="h-1 bg-white/5 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-brand-primary animate-[cyber-loading_2s_infinite]" />
+                </div>
+                <div className="flex justify-between text-[10px] font-mono text-gray-500">
+                  <span>PING: 24MS</span>
+                  <span className="animate-pulse">ENCRYPTING...</span>
+                  <span>SSL: ACTIVE</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
       {gameState.status === "finished" && (
-        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#05010a]/90 backdrop-blur-md animate-in fade-in duration-500 text-center p-6">
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#05010a]/95 backdrop-blur-xl animate-in fade-in duration-700 text-center p-6">
           {!currentUser ? (
-            <Loader2 className="w-12 h-12 text-brand-primary animate-spin" />
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-16 h-16 border-t-2 border-brand-primary rounded-full animate-spin" />
+              <p className="text-xs font-black uppercase tracking-[0.4em] text-brand-primary">Finalizing Session...</p>
+            </div>
           ) : (
-            <div className="w-full max-w-3xl rounded-3xl border border-white/15 bg-black/50 p-8 text-left">
-              <div className="mb-6 flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-gray-400">
-                    {mode === "SP" ? "Run complete" : "Match complete"}
-                  </p>
-                  <h2 className="text-3xl font-heading font-bold text-white">
-                    Rounds reached: {roundsReached}
-                  </h2>
-                  {mode === "MP" && gameState.gameOver?.winner && (
-                    <p className="mt-1 text-sm text-gray-300">
-                      Winner: {gameState.gameOver.winner}
-                    </p>
-                  )}
-                </div>
-                <div className="w-16 h-16 bg-brand-secondary/20 rounded-2xl flex items-center justify-center border border-brand-secondary/30">
-                  <Trophy className="w-8 h-8 text-brand-secondary" />
-                </div>
+            <div className="w-full max-w-4xl relative">
+              <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-full flex flex-col items-center">
+                 <h1 className="text-8xl font-heading font-black italic tracking-tighter opacity-10 absolute top-0">DEBRIEFING</h1>
+                 <div className="cyber-glitch-text text-5xl font-heading font-black tracking-tighter text-white mt-12 mb-4" data-text={mode === "SP" ? "SESSION COMPLETE" : "MISSION_END"}>
+                   {mode === "SP" ? "SESSION COMPLETE" : "MISSION_END"}
+                 </div>
+                 <div className="w-32 h-1 bg-brand-primary" />
               </div>
 
-              {mode === "SP" ? (
-                <p className="mb-6 text-gray-300">Keep going — every round improves your progression.</p>
-              ) : (
-                <>
-                  <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-brand-secondary">
-                    Global toplist baseline
-                  </p>
-                  {toplistStatus === "unavailable" && (
-                    <p className="mb-3 text-sm text-yellow-300">Toplist unavailable. Showing local match stats.</p>
-                  )}
-                  <div className="mb-6 overflow-hidden rounded-xl border border-white/10">
-                    <table className="w-full text-sm">
-                      <thead className="bg-white/5 text-left text-xs uppercase tracking-wider text-gray-400">
-                        <tr>
-                          <th className="px-4 py-3">Rank</th>
-                          <th className="px-4 py-3">Player</th>
-                          <th className="px-4 py-3">Rounds</th>
-                          <th className="px-4 py-3">Tie-break</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(toplistStatus === "ready" ? globalToplistRows : localPostMatchRows).map((row) => (
-                          <tr
-                            key={row.playerId}
-                            className={`${row.displayName === currentUser.username ? "bg-brand-primary/15" : "bg-transparent"} border-t border-white/10`}
-                          >
-                            <td className="px-4 py-2 font-semibold">#{row.rank}</td>
-                            <td className="px-4 py-2">{row.displayName}</td>
-                            <td className="px-4 py-2">{row.roundsReached}</td>
-                            <td className="px-4 py-2 text-gray-300">{row.tieBreakReason ?? "—"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              )}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
+                 <div className="cyber-border bg-black/60 p-6 flex flex-col items-center justify-center min-h-[160px]">
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Efficiency</p>
+                    <p className="text-5xl font-heading font-black text-white italic">{roundsReached}</p>
+                    <p className="text-[10px] font-bold text-brand-primary uppercase mt-1">Cycles Completed</p>
+                 </div>
 
-              {mode === "MP" && gameState.gameOver?.winner === currentUser.username && (
-                <div className="mb-6 inline-block rounded-full border border-brand-secondary/40 bg-brand-secondary/20 px-4 py-2">
-                  <span className="text-brand-secondary font-bold">
-                    +{gameState.gameOver.reward?.toLocaleString() || 0} BBT reward
-                  </span>
-                </div>
-              )}
+                 <div className="md:col-span-2 cyber-border bg-brand-primary/5 p-6 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                       <Trophy className="w-32 h-32 text-brand-primary" />
+                    </div>
 
-              <button
-                onClick={() => router.push("/")}
-                className="px-8 py-3 bg-brand-primary hover:bg-brand-primary/90 rounded-2xl font-bold transition-all shadow-[0_0_30px_rgba(189,0,255,0.3)] hover:scale-105 active:scale-95 pointer-events-auto"
-              >
-                Back to Simulation
-              </button>
+                    <div className="relative z-10">
+                       <p className="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em] mb-4">Mission Performance</p>
+
+                       {mode === "MP" ? (
+                         <div className="space-y-4">
+                            <div className="flex justify-between items-end border-b border-white/10 pb-2">
+                               <span className="text-xs font-bold text-gray-400 uppercase">Primary Node</span>
+                               <span className="text-xl font-black text-white">{currentUser.username}</span>
+                            </div>
+                            <div className="flex justify-between items-end border-b border-white/10 pb-2">
+                               <span className="text-xs font-bold text-gray-400 uppercase">Operational Status</span>
+                               <span className={`text-xl font-black ${gameState.gameOver?.winner === currentUser.username ? 'text-green-500' : 'text-red-500'}`}>
+                                 {gameState.gameOver?.winner === currentUser.username ? 'STILL STANDING' : 'NEURAL TERMINATED'}
+                               </span>
+                            </div>
+                            {gameState.gameOver?.winner === currentUser.username && (
+                               <div className="pt-2">
+                                  <div className="inline-block bg-brand-secondary/20 border border-brand-secondary/40 px-4 py-2 skew-x-[-15deg]">
+                                     <span className="text-brand-secondary font-black text-sm tracking-tighter">
+                                       +{gameState.gameOver.reward?.toLocaleString() || 0} BBT CREDITS ISSUED
+                                     </span>
+                                  </div>
+                               </div>
+                            )}
+                         </div>
+                       ) : (
+                         <div className="space-y-2">
+                            <p className="text-gray-300 text-sm leading-relaxed max-w-md">
+                               Neural synchronization sustained for {roundsReached} cycles. Performance data uploaded to the central grid. Keep training to increase your BBT yield potential.
+                            </p>
+                            <div className="h-px w-full bg-white/5 mt-4" />
+                            <div className="flex gap-4 mt-4 text-[10px] font-mono text-gray-500">
+                               <span>RANK: B+</span>
+                               <span>STABILITY: 98.4%</span>
+                               <span>YIELD: N/A (TRAINING)</span>
+                            </div>
+                         </div>
+                       )}
+                    </div>
+                 </div>
+
+                 {mode === "MP" && (
+                   <div className="md:col-span-3 cyber-border bg-black/40 mt-2 overflow-hidden">
+                      <div className="bg-brand-primary/20 px-6 py-2 border-b border-brand-primary/30 flex justify-between items-center">
+                         <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary">Global Leaderboard Extract</span>
+                         {toplistStatus === "loading" && <div className="w-2 h-2 bg-brand-primary animate-ping" />}
+                      </div>
+                      <div className="max-h-[240px] overflow-y-auto">
+                        <table className="w-full text-[10px]">
+                          <thead className="bg-white/5 text-left text-gray-500 uppercase">
+                            <tr>
+                              <th className="px-6 py-3">Pos</th>
+                              <th className="px-6 py-3">Subject</th>
+                              <th className="px-6 py-3">Cycles</th>
+                              <th className="px-6 py-3">Ref</th>
+                            </tr>
+                          </thead>
+                          <tbody className="font-mono">
+                            {(toplistStatus === "ready" ? globalToplistRows : localPostMatchRows).map((row) => (
+                              <tr
+                                key={row.playerId}
+                                className={`${row.displayName === currentUser.username ? "bg-brand-primary/20 text-white" : "text-gray-400"} border-t border-white/5`}
+                              >
+                                <td className="px-6 py-2 font-black italic">#{String(row.rank).padStart(2, '0')}</td>
+                                <td className="px-6 py-2 font-bold uppercase">{row.displayName}</td>
+                                <td className="px-6 py-2">{row.roundsReached}</td>
+                                <td className="px-6 py-2 opacity-50">{row.tieBreakReason?.slice(0, 10) ?? "STABLE"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                   </div>
+                 )}
+              </div>
+
+              <div className="mt-12 flex justify-center gap-6">
+                 <button
+                   onClick={() => router.push("/")}
+                   className="group relative pointer-events-auto"
+                 >
+                   <div className="absolute inset-0 bg-brand-primary/30 blur group-hover:bg-brand-primary/50 transition-all" />
+                   <div className="cyber-skew bg-brand-primary px-12 py-4 relative transition-transform group-active:scale-95">
+                      <span className="text-xs font-black uppercase tracking-[0.3em] text-white">Return to Simulation</span>
+                   </div>
+                 </button>
+              </div>
             </div>
           )}
         </div>
@@ -1090,45 +1186,67 @@ const handleMove = (position: [number, number, number], rotation: number, anim: 
 
         {showEntryOverlay && (
           <div
-            className={`absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#05010a] transition-opacity duration-200 ${entryPhase === "fade_out_overlay" ? "opacity-0" : "opacity-100"}`}
+            className={`absolute inset-0 z-40 flex flex-col items-center justify-center bg-[#05010a] transition-opacity duration-500 ${entryPhase === "fade_out_overlay" ? "opacity-0" : "opacity-100"}`}
           >
             {entryPhase === "load_error" ? (
-              <>
-                <h2 className="text-2xl font-heading font-bold mb-2">Failed to load arena</h2>
-                <p className="text-gray-400 mb-6">Retry loading the room scene.</p>
+              <div className="cyber-border bg-black/60 p-10 max-w-sm text-center">
+                <h2 className="text-2xl font-heading font-bold mb-2 text-red-500">SYSTEM FAILURE</h2>
+                <p className="text-gray-400 mb-6 text-sm">COULD NOT SYNCHRONIZE ARENA PARAMETERS</p>
                 <button
                   onClick={handleRetryArenaLoad}
-                  className="px-6 py-3 rounded-xl bg-brand-primary hover:bg-brand-primary/90 font-bold pointer-events-auto"
+                  className="w-full py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-500 font-bold uppercase tracking-widest transition-all pointer-events-auto"
                 >
-                  Retry
+                  Reboot System
                 </button>
-              </>
+              </div>
             ) : (
-              <>
-                <div className="w-20 h-20 border-4 border-brand-primary/20 border-t-brand-primary rounded-full animate-spin mb-6" />
-                <h2 className="text-2xl font-heading font-bold mb-2">Entering Arena...</h2>
-                <p className="text-gray-400">Preparing obstacles</p>
-              </>
+              <div className="relative flex flex-col items-center">
+                <div className="mb-8 relative">
+                   <div className="w-32 h-32 border border-brand-primary/30 rounded-full animate-[spin_10s_linear_infinite]" />
+                   <div className="absolute inset-0 border-t-2 border-brand-primary rounded-full animate-spin" />
+                   <div className="absolute inset-4 border border-brand-secondary/20 rounded-full animate-[spin_5s_linear_infinite_reverse]" />
+                   <Swords className="absolute inset-0 m-auto w-10 h-10 text-brand-primary animate-pulse" />
+                </div>
+                <h2 className="text-4xl font-heading font-black tracking-tighter mb-2 cyber-glitch-text" data-text="INITIALIZING">
+                  INITIALIZING
+                </h2>
+                <div className="w-64 h-[2px] bg-white/5 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-brand-secondary animate-[cyber-loading_1.5s_infinite]" />
+                </div>
+                <p className="mt-4 text-[10px] uppercase tracking-[0.5em] text-gray-500 font-bold">Loading Neural Assets</p>
+              </div>
             )}
           </div>
         )}
       </div>
 
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex gap-4 pointer-events-none">
-        <div className="bg-black/40 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 flex items-center gap-3">
-          <div className="flex gap-1">
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-4 pointer-events-none">
+        <div className="cyber-skew bg-black/60 backdrop-blur-xl px-8 py-3 border-b-2 border-brand-primary/50 flex items-center gap-6">
+          <div className="flex gap-2">
             {["W", "A", "S", "D"].map((k) => (
               <div
                 key={k}
-                className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-bold"
+                className="w-9 h-9 bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-black text-brand-secondary skew-x-[-10deg]"
               >
                 {k}
               </div>
             ))}
           </div>
-          <span className="text-xs text-gray-400 font-medium">
-            to Move • Space to Jump
-          </span>
+          <div className="h-4 w-px bg-white/10" />
+          <div className="flex items-center gap-2">
+             <div className="px-3 py-1 bg-brand-primary/20 border border-brand-primary/40 text-[10px] font-black text-brand-primary skew-x-[-10deg]">SPACE</div>
+             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Neural Jump</span>
+          </div>
+          <div className="h-4 w-px bg-white/10" />
+          <div className="flex items-center gap-2">
+             <div className="px-3 py-1 bg-brand-secondary/20 border border-brand-secondary/40 text-[10px] font-black text-brand-secondary skew-x-[-10deg]">SHIFT</div>
+             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Overdrive</span>
+          </div>
+        </div>
+        <div className="flex gap-2 opacity-30">
+           {[...Array(5)].map((_, i) => (
+             <div key={i} className="w-12 h-[2px] bg-brand-primary" />
+           ))}
         </div>
       </div>
     </main>
