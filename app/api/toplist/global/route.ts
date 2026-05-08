@@ -4,6 +4,7 @@ import {
   PostMatchEntry,
   setGlobalToplist,
 } from "@/lib/arena/toplist";
+import { getSessionUser } from "@/lib/auth";
 
 const DEFAULT_LIMIT = 50;
 
@@ -59,6 +60,11 @@ const isValidEntry = (entry: PostMatchEntry): boolean => {
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = (await request.json()) as ToplistWriteBody;
     if (!body || !Array.isArray(body.entries)) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
