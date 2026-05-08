@@ -9,7 +9,10 @@ import { COMPANY_PROFILES } from "./lib/market/companyProfiles";
 import { runTreasuryDailySettlement } from "./lib/treasury/treasuryService";
 import { runLoanDelinquencySweep } from "./lib/treasury/loanService";
 import { PostMatchEntry, setGlobalToplist } from "./lib/arena/toplist";
-import { DEFAULT_ROUND_TRANSITION_CONFIG, getRoundPhaseStateAt } from "./lib/arena/roundPhases";
+import {
+  DEFAULT_ROUND_TRANSITION_CONFIG,
+  getRoundPhaseStateAt,
+} from "./lib/arena/roundPhases";
 import { GLOBAL_CHANNEL_KEY } from "./lib/chat/channel";
 import type {
   ChatHistoryRequestPayload,
@@ -33,14 +36,18 @@ type SqliteTableInfoRow = {
 };
 
 async function getCharacterColumns(): Promise<Set<string>> {
-  const rows = await prisma.$queryRawUnsafe<SqliteTableInfoRow[]>("PRAGMA table_info('Character')");
+  const rows = await prisma.$queryRawUnsafe<SqliteTableInfoRow[]>(
+    "PRAGMA table_info('Character')",
+  );
   return new Set(rows.map((row) => row.name));
 }
 
 async function ensureCharacterLoanSchemaReady() {
   const requiredColumns = ["loanStatus", "loanLockedUntil"] as const;
   const existingColumns = await getCharacterColumns();
-  const missingColumns = requiredColumns.filter((column) => !existingColumns.has(column));
+  const missingColumns = requiredColumns.filter(
+    (column) => !existingColumns.has(column),
+  );
 
   if (missingColumns.length === 0) return;
 
@@ -51,9 +58,13 @@ async function ensureCharacterLoanSchemaReady() {
   execSync("npx prisma db push", { stdio: "inherit" });
 
   const postPushColumns = await getCharacterColumns();
-  const stillMissing = requiredColumns.filter((column) => !postPushColumns.has(column));
+  const stillMissing = requiredColumns.filter(
+    (column) => !postPushColumns.has(column),
+  );
   if (stillMissing.length > 0) {
-    throw new Error(`[SchemaGuard] Prisma schema sync failed. Still missing Character columns: ${stillMissing.join(", ")}`);
+    throw new Error(
+      `[SchemaGuard] Prisma schema sync failed. Still missing Character columns: ${stillMissing.join(", ")}`,
+    );
   }
 
   console.log("[SchemaGuard] Character loan columns restored successfully.");
@@ -87,17 +98,23 @@ app.prepare().then(async () => {
   const matchmakingQueue: { socketId: string; username: string }[] = [];
   const chatSubscriptionsBySocket = new Map<string, Set<string>>();
   const chatSocketsByUser = new Map<string, Set<string>>();
-  const chatMessageHistory = new Map<string, Array<{
-    messageId: string;
-    channel: string;
-    senderUserId: string;
-    senderName: string;
-    body: string;
-    mentions: string[];
-    sentAt: string;
-  }>>();
+  const chatMessageHistory = new Map<
+    string,
+    Array<{
+      messageId: string;
+      channel: string;
+      senderUserId: string;
+      senderName: string;
+      body: string;
+      mentions: string[];
+      sentAt: string;
+    }>
+  >();
 
-  const canAccessChatChannel = (username: string | undefined, channelKey: string): boolean => {
+  const canAccessChatChannel = (
+    username: string | undefined,
+    channelKey: string,
+  ): boolean => {
     if (channelKey === GLOBAL_CHANNEL_KEY) return true;
     if (channelKey.startsWith("town:")) return true;
     if (!channelKey.startsWith("whisper:")) return false;
@@ -106,15 +123,18 @@ app.prepare().then(async () => {
     return userA === username || userB === username;
   };
 
-  const appendChatHistory = (channelKey: string, message: {
-    messageId: string;
-    channel: string;
-    senderUserId: string;
-    senderName: string;
-    body: string;
-    mentions: string[];
-    sentAt: string;
-  }) => {
+  const appendChatHistory = (
+    channelKey: string,
+    message: {
+      messageId: string;
+      channel: string;
+      senderUserId: string;
+      senderName: string;
+      body: string;
+      mentions: string[];
+      sentAt: string;
+    },
+  ) => {
     const rows = chatMessageHistory.get(channelKey) ?? [];
     rows.push(message);
     chatMessageHistory.set(channelKey, rows.slice(-200));
@@ -188,16 +208,28 @@ app.prepare().then(async () => {
   };
 
   const sortChatMessages = (messages: ChatMessage[]) =>
-    messages.sort((a, b) => (a.createdAtMs === b.createdAtMs ? a.id.localeCompare(b.id) : a.createdAtMs - b.createdAtMs));
+    messages.sort((a, b) =>
+      a.createdAtMs === b.createdAtMs
+        ? a.id.localeCompare(b.id)
+        : a.createdAtMs - b.createdAtMs,
+    );
 
-  const emitChatAck = (targetSocket: { emit: (event: string, payload: ChatSendAckPayload) => void }, payload: ChatSendAckPayload) => {
+  const emitChatAck = (
+    targetSocket: {
+      emit: (event: string, payload: ChatSendAckPayload) => void;
+    },
+    payload: ChatSendAckPayload,
+  ) => {
     targetSocket.emit("chat:send:ack", payload);
   };
 
   const spawnOrientationAwayFromCameraEnabled =
     process.env.SPAWN_ORIENTATION_AWAY_FROM_CAMERA !== "0";
-  const spawnSlotAllocatorEnabled = process.env.SPAWN_MP_SLOT_ALLOCATOR_V1 !== "0";
-  const spawnSpacing = Number.parseFloat(process.env.SPAWN_MP_SPACING_METERS ?? "1.5");
+  const spawnSlotAllocatorEnabled =
+    process.env.SPAWN_MP_SLOT_ALLOCATOR_V1 !== "0";
+  const spawnSpacing = Number.parseFloat(
+    process.env.SPAWN_MP_SPACING_METERS ?? "1.5",
+  );
 
   const normalizeAngle = (angle: number) => {
     let normalized = angle % (Math.PI * 2);
@@ -226,7 +258,9 @@ app.prepare().then(async () => {
     return normalizeAngle(cameraYaw + Math.PI);
   };
 
-  const computeSpawnPosition = (slotIndex: number): [number, number, number] => {
+  const computeSpawnPosition = (
+    slotIndex: number,
+  ): [number, number, number] => {
     if (!spawnSlotAllocatorEnabled) {
       return [slotIndex === 0 ? -2 : 2, 0, 0];
     }
@@ -270,39 +304,43 @@ app.prepare().then(async () => {
 
   const updateGame = (roomId: string) => {
     const game = games[roomId];
-    if (!game || game.status !== "playing") return;
+    if (game && game.status === "playing") {
+      const nowMs = Date.now();
+      const startedAtMs = game.startedAtMs ?? nowMs;
+      const phaseState = getRoundPhaseStateAt(
+        nowMs,
+        startedAtMs,
+        DEFAULT_ROUND_TRANSITION_CONFIG,
+      );
+      game.roundIndex = phaseState.roundIndex;
+      game.roundPhase = phaseState.phase;
+      game.phaseStartTimeMs = phaseState.phaseStartTimeMs;
+      game.phaseDurationMs = phaseState.phaseDurationMs;
+      game.obstaclesEnabled = phaseState.obstaclesEnabled;
 
-    const nowMs = Date.now();
-    const startedAtMs = game.startedAtMs ?? nowMs;
-    const phaseState = getRoundPhaseStateAt(nowMs, startedAtMs, DEFAULT_ROUND_TRANSITION_CONFIG);
-    game.roundIndex = phaseState.roundIndex;
-    game.roundPhase = phaseState.phase;
-    game.phaseStartTimeMs = phaseState.phaseStartTimeMs;
-    game.phaseDurationMs = phaseState.phaseDurationMs;
-    game.obstaclesEnabled = phaseState.obstaclesEnabled;
+      if (phaseState.obstaclesEnabled) {
+        game.obstacles = game.obstacles.filter((obs) => {
+          obs.position[2] += obs.speed;
+          return Math.abs(obs.position[2]) <= 20;
+        });
 
-    if (phaseState.obstaclesEnabled) {
-      game.obstacles = game.obstacles.filter((obs) => {
-        obs.position[2] += obs.speed;
-        return Math.abs(obs.position[2]) <= 20;
-      });
-
-      if (Math.random() < 0.05) {
-        spawnObstacle(game);
+        if (Math.random() < 0.05) {
+          spawnObstacle(game);
+        }
       }
-    }
 
-    io.to(roomId).emit("game_state", {
-      players: Object.values(game.players),
-      obstacles: game.obstacles,
-      status: game.status,
-      startedAtMs: game.startedAtMs,
-      roundIndex: game.roundIndex,
-      roundPhase: game.roundPhase,
-      phaseStartTimeMs: game.phaseStartTimeMs,
-      phaseDurationMs: game.phaseDurationMs,
-      obstaclesEnabled: game.obstaclesEnabled,
-    });
+      io.to(roomId).emit("game_state", {
+        players: Object.values(game.players),
+        obstacles: game.obstacles,
+        status: game.status,
+        startedAtMs: game.startedAtMs,
+        roundIndex: game.roundIndex,
+        roundPhase: game.roundPhase,
+        phaseStartTimeMs: game.phaseStartTimeMs,
+        phaseDurationMs: game.phaseDurationMs,
+        obstaclesEnabled: game.obstaclesEnabled,
+      });
+    }
   };
 
   // Stock update interval
@@ -355,48 +393,65 @@ app.prepare().then(async () => {
     if (mockUser) {
       socket.join(`user:${mockUser}`);
       console.log(`Socket ${socket.id} joined room user:${mockUser}`);
-      const socketsForUser = chatSocketsByUser.get(mockUser) ?? new Set<string>();
+      const socketsForUser =
+        chatSocketsByUser.get(mockUser) ?? new Set<string>();
       socketsForUser.add(socket.id);
       chatSocketsByUser.set(mockUser, socketsForUser);
     }
 
     chatSubscriptionsBySocket.set(socket.id, new Set([GLOBAL_CHANNEL_KEY]));
 
-    socket.on("chat.subscribe", (payload: { channels?: string[]; since?: string }) => {
-      const requested = Array.isArray(payload?.channels) ? payload.channels.slice(0, 10) : [];
-      const subscribed: string[] = [];
-      const rejected: Array<{ channel: string; reason: string }> = [];
-      const set = chatSubscriptionsBySocket.get(socket.id) ?? new Set<string>([GLOBAL_CHANNEL_KEY]);
+    socket.on(
+      "chat.subscribe",
+      (payload: { channels?: string[]; since?: string }) => {
+        const requested = Array.isArray(payload?.channels)
+          ? payload.channels.slice(0, 10)
+          : [];
+        const subscribed: string[] = [];
+        const rejected: Array<{ channel: string; reason: string }> = [];
+        const set =
+          chatSubscriptionsBySocket.get(socket.id) ??
+          new Set<string>([GLOBAL_CHANNEL_KEY]);
 
-      for (const channelKey of requested) {
-        if (!canAccessChatChannel(mockUser, channelKey)) {
-          rejected.push({ channel: channelKey, reason: "forbidden" });
-          continue;
+        for (const channelKey of requested) {
+          if (!canAccessChatChannel(mockUser, channelKey)) {
+            rejected.push({ channel: channelKey, reason: "forbidden" });
+            continue;
+          }
+          set.add(channelKey);
+          subscribed.push(channelKey);
         }
-        set.add(channelKey);
-        subscribed.push(channelKey);
-      }
 
-      if (set.size === 0) set.add(GLOBAL_CHANNEL_KEY);
-      chatSubscriptionsBySocket.set(socket.id, set);
+        if (set.size === 0) set.add(GLOBAL_CHANNEL_KEY);
+        chatSubscriptionsBySocket.set(socket.id, set);
 
-      socket.emit("chat.subscribe.ack", { ok: true, subscribed, rejected });
+        socket.emit("chat.subscribe.ack", { ok: true, subscribed, rejected });
 
-      if (payload?.since) {
-        const sinceMs = Number.parseInt(String(new Date(payload.since).getTime()), 10);
-        for (const channel of Array.from(set)) {
-          const history = chatMessageHistory.get(channel) ?? [];
-          for (const msg of history) {
-            if (!Number.isNaN(sinceMs) && new Date(msg.sentAt).getTime() < sinceMs) continue;
-            socket.emit("chat.message", msg);
+        if (payload?.since) {
+          const sinceMs = Number.parseInt(
+            String(new Date(payload.since).getTime()),
+            10,
+          );
+          for (const channel of Array.from(set)) {
+            const history = chatMessageHistory.get(channel) ?? [];
+            for (const msg of history) {
+              if (
+                !Number.isNaN(sinceMs) &&
+                new Date(msg.sentAt).getTime() < sinceMs
+              )
+                continue;
+              socket.emit("chat.message", msg);
+            }
           }
         }
-      }
-    });
+      },
+    );
 
     socket.on("chat.unsubscribe", (payload: { channels?: string[] }) => {
       const channels = Array.isArray(payload?.channels) ? payload.channels : [];
-      const set = chatSubscriptionsBySocket.get(socket.id) ?? new Set<string>([GLOBAL_CHANNEL_KEY]);
+      const set =
+        chatSubscriptionsBySocket.get(socket.id) ??
+        new Set<string>([GLOBAL_CHANNEL_KEY]);
       for (const channel of channels) {
         if (channel === GLOBAL_CHANNEL_KEY) continue;
         set.delete(channel);
@@ -405,52 +460,74 @@ app.prepare().then(async () => {
       chatSubscriptionsBySocket.set(socket.id, set);
     });
 
-    socket.on("chat.send", (payload: { clientMessageId?: string; channel?: string; body?: string; mentions?: string[] }) => {
-      const channel = typeof payload?.channel === "string" ? payload.channel : "";
-      const body = typeof payload?.body === "string" ? payload.body.trim() : "";
+    socket.on(
+      "chat.send",
+      (payload: {
+        clientMessageId?: string;
+        channel?: string;
+        body?: string;
+        mentions?: string[];
+      }) => {
+        const channel =
+          typeof payload?.channel === "string" ? payload.channel : "";
+        const body =
+          typeof payload?.body === "string" ? payload.body.trim() : "";
 
-      if (!mockUser) {
-        socket.emit("chat.error", { code: "NOT_AUTHENTICATED", message: "You must be signed in to chat." });
-        return;
-      }
-      if (!canAccessChatChannel(mockUser, channel)) {
-        socket.emit("chat.error", { code: "FORBIDDEN", message: "You cannot post to this channel." });
-        return;
-      }
-      if (!body) {
-        socket.emit("chat.error", { code: "EMPTY_MESSAGE", message: "Message cannot be empty." });
-        return;
-      }
-      if (body.length > 500) {
-        socket.emit("chat.error", { code: "MESSAGE_TOO_LONG", message: "Message cannot exceed 500 characters." });
-        return;
-      }
+        if (!mockUser) {
+          socket.emit("chat.error", {
+            code: "NOT_AUTHENTICATED",
+            message: "You must be signed in to chat.",
+          });
+          return;
+        }
+        if (!canAccessChatChannel(mockUser, channel)) {
+          socket.emit("chat.error", {
+            code: "FORBIDDEN",
+            message: "You cannot post to this channel.",
+          });
+          return;
+        }
+        if (!body) {
+          socket.emit("chat.error", {
+            code: "EMPTY_MESSAGE",
+            message: "Message cannot be empty.",
+          });
+          return;
+        }
+        if (body.length > 500) {
+          socket.emit("chat.error", {
+            code: "MESSAGE_TOO_LONG",
+            message: "Message cannot exceed 500 characters.",
+          });
+          return;
+        }
 
-      const message = {
-        messageId: `m_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`,
-        channel,
-        senderUserId: mockUser,
-        senderName: mockUser,
-        body,
-        mentions: Array.isArray(payload?.mentions) ? payload.mentions : [],
-        sentAt: new Date().toISOString(),
-      };
+        const message = {
+          messageId: `m_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`,
+          channel,
+          senderUserId: mockUser,
+          senderName: mockUser,
+          body,
+          mentions: Array.isArray(payload?.mentions) ? payload.mentions : [],
+          sentAt: new Date().toISOString(),
+        };
 
-      appendChatHistory(channel, message);
+        appendChatHistory(channel, message);
 
-      for (const entry of Array.from(chatSubscriptionsBySocket.entries())) {
-        const [targetSocketId, channels] = entry;
-        if (!channels.has(channel)) continue;
-        io.to(targetSocketId).emit("chat.message", message);
-      }
+        for (const entry of Array.from(chatSubscriptionsBySocket.entries())) {
+          const [targetSocketId, channels] = entry;
+          if (!channels.has(channel)) continue;
+          io.to(targetSocketId).emit("chat.message", message);
+        }
 
-      socket.emit("chat.send.ack", {
-        ok: true,
-        clientMessageId: payload?.clientMessageId ?? null,
-        serverMessageId: message.messageId,
-        sentAt: message.sentAt,
-      });
-    });
+        socket.emit("chat.send.ack", {
+          ok: true,
+          clientMessageId: payload?.clientMessageId ?? null,
+          serverMessageId: message.messageId,
+          sentAt: message.sentAt,
+        });
+      },
+    );
 
     socket.on("buy_stock", async ({ symbol, quantity }) => {
       if (!mockUser) return;
@@ -596,13 +673,17 @@ app.prepare().then(async () => {
 
       socket.join(roomId);
       const room = getChatRoom(roomId);
-      const requestedLimit = Number.isFinite(payload?.limit) ? Number(payload.limit) : 50;
+      const requestedLimit = Number.isFinite(payload?.limit)
+        ? Number(payload.limit)
+        : 50;
       const limit = Math.max(1, Math.min(100, requestedLimit));
 
       const sorted = sortChatMessages([...room.messages]);
       let filtered = sorted;
       if (payload?.beforeMessageId) {
-        const beforeIndex = sorted.findIndex((msg) => msg.id === payload.beforeMessageId);
+        const beforeIndex = sorted.findIndex(
+          (msg) => msg.id === payload.beforeMessageId,
+        );
         filtered = beforeIndex > 0 ? sorted.slice(0, beforeIndex) : [];
       }
       const messages = filtered.slice(-limit);
@@ -631,19 +712,35 @@ app.prepare().then(async () => {
       const body = rawBody.trim();
 
       if (typeof roomId !== "string" || roomId.trim().length === 0) {
-        emitChatAck(socket, { clientNonce: clientNonce ?? "unknown", accepted: false, errorCode: "ROOM_NOT_FOUND" });
+        emitChatAck(socket, {
+          clientNonce: clientNonce ?? "unknown",
+          accepted: false,
+          errorCode: "ROOM_NOT_FOUND",
+        });
         return;
       }
       if (typeof clientNonce !== "string" || clientNonce.length === 0) {
-        emitChatAck(socket, { clientNonce: "unknown", accepted: false, errorCode: "EMPTY_MESSAGE" });
+        emitChatAck(socket, {
+          clientNonce: "unknown",
+          accepted: false,
+          errorCode: "EMPTY_MESSAGE",
+        });
         return;
       }
       if (body.length === 0) {
-        emitChatAck(socket, { clientNonce, accepted: false, errorCode: "EMPTY_MESSAGE" });
+        emitChatAck(socket, {
+          clientNonce,
+          accepted: false,
+          errorCode: "EMPTY_MESSAGE",
+        });
         return;
       }
       if (body.length > 500) {
-        emitChatAck(socket, { clientNonce, accepted: false, errorCode: "MESSAGE_TOO_LONG" });
+        emitChatAck(socket, {
+          clientNonce,
+          accepted: false,
+          errorCode: "MESSAGE_TOO_LONG",
+        });
         return;
       }
 
@@ -651,17 +748,25 @@ app.prepare().then(async () => {
       const room = getChatRoom(roomId);
       const now = Date.now();
       const prior = room.sendTimestampsByUser.get(mockUser) ?? [];
-      const recent = prior.filter((ts) => now - ts <= CHAT_RATE_LIMIT_WINDOW_MS);
+      const recent = prior.filter(
+        (ts) => now - ts <= CHAT_RATE_LIMIT_WINDOW_MS,
+      );
       if (recent.length >= CHAT_RATE_LIMIT_COUNT) {
         room.sendTimestampsByUser.set(mockUser, recent);
-        emitChatAck(socket, { clientNonce, accepted: false, errorCode: "RATE_LIMIT" });
+        emitChatAck(socket, {
+          clientNonce,
+          accepted: false,
+          errorCode: "RATE_LIMIT",
+        });
         return;
       }
 
       recent.push(now);
       room.sendTimestampsByUser.set(mockUser, recent);
 
-      const existing = room.messages.find((msg) => msg.clientNonce === clientNonce && msg.senderId === mockUser);
+      const existing = room.messages.find(
+        (msg) => msg.clientNonce === clientNonce && msg.senderId === mockUser,
+      );
       if (existing) {
         emitChatAck(socket, {
           clientNonce,
@@ -700,7 +805,11 @@ app.prepare().then(async () => {
       const roomId = payload?.roomId;
       const lastReadMessageId = payload?.lastReadMessageId;
       if (typeof roomId !== "string" || roomId.trim().length === 0) return;
-      if (typeof lastReadMessageId !== "string" || lastReadMessageId.trim().length === 0) return;
+      if (
+        typeof lastReadMessageId !== "string" ||
+        lastReadMessageId.trim().length === 0
+      )
+        return;
 
       const room = getChatRoom(roomId);
       room.readStateByUser.set(mockUser, lastReadMessageId);
@@ -860,18 +969,28 @@ app.prepare().then(async () => {
         games[roomId].status = "finished";
         const loser = mockUser;
         const game = games[roomId];
-        const winnerPlayer = Object.values(game.players).find((p) => p.id !== socket.id);
+        const winnerPlayer = Object.values(game.players).find(
+          (p) => p.id !== socket.id,
+        );
         const winner = winnerPlayer?.username;
         const isSolo = roomId.startsWith("solo-");
         const reward = isSolo ? 0 : 1000;
         const endedAt = Date.now();
-        const elapsedSeconds = Math.max(0, (endedAt - (game.startedAtMs ?? endedAt)) / 1000);
+        const elapsedSeconds = Math.max(
+          0,
+          (endedAt - (game.startedAtMs ?? endedAt)) / 1000,
+        );
         const roundsReached = Math.max(
           0,
-          Math.min(TOTAL_ROUNDS, Math.floor(elapsedSeconds / ROUND_DURATION_SECONDS) + 1),
+          Math.min(
+            TOTAL_ROUNDS,
+            Math.floor(elapsedSeconds / ROUND_DURATION_SECONDS) + 1,
+          ),
         );
 
-        const toplistPayload: PostMatchEntry[] = Object.values(game.players).map((player) => {
+        const toplistPayload: PostMatchEntry[] = Object.values(
+          game.players,
+        ).map((player) => {
           const fell = player.id === socket.id;
           return {
             playerId: player.id,
