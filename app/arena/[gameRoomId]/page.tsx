@@ -516,7 +516,7 @@ function MovingObstacle({
   });
 
   // Textur laden (Pfad bezieht sich auf den public-Ordner)
-  const texture = useTexture("/textures/planked_wood.webp");
+  const texture = useTexture("/media/textures/planked_wood.webp");
 
   // Optional: Textur-Wiederholung konfigurieren, falls die Box groß ist
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -562,8 +562,8 @@ function ArenaScene({
   obstaclesEnabled: boolean;
 }) {
   // Lade die Textur (R3F sucht automatisch im /public Ordner)
-  const floorTexture = useTexture("/textures/rocky_trail_02_diff_4k.jpg");
-  const grandStandTexture = useTexture("/textures/ground_v2.webp");
+  const floorTexture = useTexture("/media/textures/rocky_trail_02_diff_4k.jpg");
+  const grandStandTexture = useTexture("/media/textures/ground_v2.webp");
 
   // Bringe der Textur bei, dass sie sich wiederholen darf
   floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
@@ -619,7 +619,7 @@ function ArenaScene({
         position={[0, 20, 0]}
         receiveShadow
         scale={120}
-        src="/models/arena_inside.glb"
+        src="/media/models/arena_inside.glb"
       />
 
       <mesh receiveShadow position={[0, -5.5, 0]}>

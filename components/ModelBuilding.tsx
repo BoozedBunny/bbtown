@@ -126,7 +126,7 @@ export function ModelBuilding({
             {ownerId && ownerAvatar ? (
               <div className="relative h-[48px] w-[48px] rounded-full border-2 border-white overflow-hidden shadow-[0_0_15px_rgba(189,0,255,0.6)]">
                 <Image
-                  src={`/avatars/${ownerAvatar}_avatar.webp`}
+                  src={`/media/avatars/${ownerAvatar}_avatar.webp`}
                   alt="Owner Avatar"
                   fill
                   className="object-cover"

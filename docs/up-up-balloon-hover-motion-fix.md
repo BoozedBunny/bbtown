@@ -1,7 +1,7 @@
 # Up-Up Balloon Hover Motion: Root Cause + Enhancement Spec
 
 ## Scope
-Target asset: `/models/up_up_balloon.glb`
+Target asset: `/media/models/up_up_balloon.glb`
 Town position: `(-2.4, 2.67, 4.0)` from `app/town/[townId]/town-config.ts`.
 
 ## 1) Root cause summary

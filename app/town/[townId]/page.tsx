@@ -253,7 +253,7 @@ function Scene({
       })}
 
       <ModelX
-        url="/models/bbtown_logo_optimized.glb"
+        url="/media/models/bbtown_logo_optimized.glb"
         position={[6, 0.69, 4.1]}
         opacity={!isXRay ? 1 : 0.5}
         rotationY={50}
@@ -262,7 +262,7 @@ function Scene({
       />
 
         <ModelX
-        url="/models/ground.glb"
+        url="/media/models/ground.glb"
         position={[0, -2.36, 0]}
         opacity={!isXRay ? 1 : 0.5}
         scale={20}
@@ -1563,7 +1563,7 @@ export default function TownPage({
                           <div className="w-12 h-12 border border-brand-primary/50 bg-black/40 relative overflow-hidden cyber-skew">
                             {selectedBuilding?.ownerId ? (
                               <Image
-                                src={`/avatars/${selectedBuilding.ownerAvatar}_avatar.webp`}
+                                src={`/media/avatars/${selectedBuilding.ownerAvatar}_avatar.webp`}
                                 alt={selectedBuilding.owner || "Owner"}
                                 fill
                                 className="object-cover"
