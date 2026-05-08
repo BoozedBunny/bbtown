@@ -345,8 +345,6 @@ app.prepare().then(async () => {
   }, 60_000);
 
   io.on("connection", (socket) => {
-    console.log("A user connected:", socket.id);
-
     // Identify user via cookies for secure communication
     const cookieHeader = socket.handshake.headers.cookie;
     const cookies = cookieHeader
@@ -922,7 +920,6 @@ app.prepare().then(async () => {
     });
 
     socket.on("disconnect", () => {
-      console.log("User disconnected:", socket.id);
       chatSubscriptionsBySocket.delete(socket.id);
       if (mockUser) {
         const socketsForUser = chatSocketsByUser.get(mockUser);
