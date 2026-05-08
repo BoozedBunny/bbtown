@@ -246,6 +246,8 @@ function Scene({
               if (!freeMoveBuildingId) onBuildingClick(b);
             }}
             scale={b.scale || 1}
+            ownerId={b.ownerId}
+            ownerAvatar={b.ownerAvatar}
           />
         );
       })}
