@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { compareToplistEntries, rankToplistEntries } from "../lib/arena/toplist";
+import { compareToplistEntries, rankToplistEntries } from "../lib/arena/toplist.ts";
 
 test("sorts by rounds reached descending", () => {
   const ranked = rankToplistEntries([
