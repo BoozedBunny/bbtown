@@ -207,6 +207,10 @@ export async function runLoanDelinquencySweep(now = new Date()) {
   const loans = await prisma.characterLoan.findMany({ where: { status: { in: [LoanStatus.ACTIVE, LoanStatus.DELINQUENT] } } });
   const today = toUtcDateKey(now);
 
+  const loanUpdatesByDelinquentDays = new Map<number, string[]>();
+  const characterIdsToDefault = new Set<string>();
+  const characterIdsToDelinquent = new Set<string>();
+
   for (const loan of loans) {
     if (today <= loan.nextDueDateKey) continue;
     const dueDate = new Date(`${loan.nextDueDateKey}T00:00:00.000Z`);
@@ -216,20 +220,47 @@ export async function runLoanDelinquencySweep(now = new Date()) {
     const delinquentDays = daysLate - treasuryConfig.loanGraceDays;
     const shouldDefault = delinquentDays >= treasuryConfig.loanDefaultDays;
 
-    await prisma.characterLoan.update({
-      where: { id: loan.id },
+    if (!loanUpdatesByDelinquentDays.has(delinquentDays)) {
+      loanUpdatesByDelinquentDays.set(delinquentDays, []);
+    }
+    loanUpdatesByDelinquentDays.get(delinquentDays)!.push(loan.id);
+
+    if (shouldDefault) {
+      characterIdsToDefault.add(loan.characterId);
+    } else {
+      characterIdsToDelinquent.add(loan.characterId);
+    }
+  }
+
+  // Execute CharacterLoan updates in batches grouped by delinquentDays
+  for (const [delinquentDays, loanIds] of loanUpdatesByDelinquentDays.entries()) {
+    const shouldDefault = delinquentDays >= treasuryConfig.loanDefaultDays;
+    await prisma.characterLoan.updateMany({
+      where: { id: { in: loanIds } },
       data: {
         status: shouldDefault ? LoanStatus.DEFAULTED : LoanStatus.DELINQUENT,
         lateFeesAccrued: delinquentDays * treasuryConfig.loanLateFeeFlat,
         missedPaymentDays: delinquentDays,
       },
     });
+  }
 
-    await prisma.character.update({
-      where: { id: loan.characterId },
+  // Execute Character updates
+  if (characterIdsToDefault.size > 0) {
+    await prisma.character.updateMany({
+      where: { id: { in: Array.from(characterIdsToDefault) } },
       data: {
-        loanStatus: shouldDefault ? "DELINQUENT" : "DELINQUENT",
-        loanLockedUntil: shouldDefault ? addUtcDays(now, treasuryConfig.loanDefaultLockDays) : undefined,
+        loanStatus: "DELINQUENT",
+        loanLockedUntil: addUtcDays(now, treasuryConfig.loanDefaultLockDays),
+      },
+    });
+  }
+
+  if (characterIdsToDelinquent.size > 0) {
+    await prisma.character.updateMany({
+      where: { id: { in: Array.from(characterIdsToDelinquent) } },
+      data: {
+        loanStatus: "DELINQUENT",
       },
     });
   }
