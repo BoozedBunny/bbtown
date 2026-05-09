@@ -5,22 +5,22 @@ import { Server } from "socket.io";
 import express from "express";
 import { PrismaClient } from "@prisma/client";
 import { execSync } from "child_process";
-import { COMPANY_PROFILES } from "./lib/market/companyProfiles.js";
-import { runTreasuryDailySettlement } from "./lib/treasury/treasuryService.js";
-import { runLoanDelinquencySweep } from "./lib/treasury/loanService.js";
-import { PostMatchEntry, setGlobalToplist } from "./lib/arena/toplist.js";
+import { COMPANY_PROFILES } from "./lib/market/companyProfiles";
+import { runTreasuryDailySettlement } from "./lib/treasury/treasuryService";
+import { runLoanDelinquencySweep } from "./lib/treasury/loanService";
+import { PostMatchEntry, setGlobalToplist } from "./lib/arena/toplist";
 import {
   DEFAULT_ROUND_TRANSITION_CONFIG,
   getRoundPhaseStateAt,
-} from "./lib/arena/roundPhases.js";
-import { GLOBAL_CHANNEL_KEY } from "./lib/chat/channel.js";
+} from "./lib/arena/roundPhases";
+import { GLOBAL_CHANNEL_KEY } from "./lib/chat/channel";
 import type {
   ChatHistoryRequestPayload,
   ChatMessage,
   ChatReadUpsertPayload,
   ChatSendAckPayload,
   ChatSendPayload,
-} from "./lib/chat/chatTypes.js";
+} from "./lib/chat/chatTypes";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
