@@ -12,42 +12,35 @@ export async function buyBuilding(buildingId: string) {
 
   if (buildingId === "4") throw new Error("You cannot buy the Bank.");
 
-  const building = await prisma.buildingState.findUnique({
-    where: { id: buildingId }
-  });
+  await prisma.$transaction(async (tx) => {
+    const building = await tx.buildingState.findUnique({
+      where: { id: buildingId }
+    });
 
-  if (!building) throw new Error("Building not found");
-  if (!building.forSale) throw new Error("Building is not for sale");
-  if (character.wallet < building.price) throw new Error("Not enough funds");
+    if (!building) throw new Error("Building not found");
+    if (!building.forSale) throw new Error("Building is not for sale");
 
-  const transactions = [];
-
-  // Deduct from buyer atomically only if funds are still available
-  transactions.push(
-    prisma.character.updateMany({
+    // Deduct from buyer atomically only if funds are still available
+    const buyerUpdate = await tx.character.updateMany({
       where: { id: character.id, wallet: { gte: building.price } },
       data: { wallet: { decrement: building.price } }
-    })
-  );
+    });
 
-  // If owned, transfer to seller. If unowned, transfer to town bank.
-  if (building.ownerId) {
-    transactions.push(
-      prisma.character.update({
+    if (buyerUpdate.count === 0) throw new Error("Not enough funds");
+
+    // If owned, transfer to seller. If unowned, transfer to town bank.
+    if (building.ownerId) {
+      await tx.character.update({
         where: { id: building.ownerId },
         data: { wallet: { increment: building.price } }
-      })
-    );
-  } else {
-    const townId = parseInt(building.townId);
-    transactions.push(
-      prisma.town.update({
+      });
+    } else {
+      const townId = parseInt(building.townId);
+      await tx.town.update({
         where: { id: townId },
         data: { bankBalance: { increment: building.price } }
-      })
-    );
-    transactions.push(
-      prisma.treasuryLedgerEntry.create({
+      });
+      await tx.treasuryLedgerEntry.create({
         data: {
           townId,
           kind: TreasuryLedgerKind.BUILDING_SALE_INFLOW,
@@ -56,22 +49,23 @@ export async function buyBuilding(buildingId: string) {
           referenceId: building.id,
           metadataJson: JSON.stringify({ source: "buyBuilding" }),
         }
-      })
-    );
-  }
+      });
+    }
 
-  // Update building ownership and take it off the market only if still for sale
-  transactions.push(
-    prisma.buildingState.updateMany({
-      where: { id: buildingId, forSale: true },
+    // Update building ownership and take it off the market only if still for sale and owner is unchanged
+    const buildingUpdate = await tx.buildingState.updateMany({
+      where: {
+        id: buildingId,
+        forSale: true,
+        ownerId: building.ownerId
+      },
       data: { ownerId: character.id, forSale: false }
-    })
-  );
+    });
 
-  const [buyerUpdate, , buildingUpdate] = await prisma.$transaction(transactions);
-
-  if (buyerUpdate.count === 0) throw new Error("Not enough funds");
-  if (buildingUpdate.count === 0) throw new Error("Building is not for sale");
+    if (buildingUpdate.count === 0) {
+      throw new Error("Building state changed unexpectedly during purchase");
+    }
+  });
 
   return { success: true };
 }
