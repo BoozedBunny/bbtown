@@ -536,14 +536,18 @@ export default function TownPage({
         priority: 10,
         onSelect: () => setIsXRay((prev) => !prev),
       },
-      {
-        id: "camera",
-        label: cameraMode === "game" ? "Dev Mode" : "Game Mode",
-        group: "core",
-        priority: 20,
-        onSelect: () =>
-          setCameraMode((prev) => (prev === "game" ? "dev" : "game")),
-      },
+      ...(process.env.NODE_ENV !== "production"
+        ? [
+            {
+              id: "camera",
+              label: cameraMode === "game" ? "Dev Mode" : "Game Mode",
+              group: "core" as const,
+              priority: 20,
+              onSelect: () =>
+                setCameraMode((prev) => (prev === "game" ? "dev" : "game")),
+            },
+          ]
+        : []),
       {
         id: "profile",
         label: "My Profile",
@@ -1065,15 +1069,17 @@ export default function TownPage({
                 >
                   {isXRay ? "X-Ray Active" : "X-Ray View"}
                 </Button>
-                <Button
-                  variant={cameraMode === "dev" ? "default" : "outline"}
-                  onClick={() =>
-                    setCameraMode(cameraMode === "game" ? "dev" : "game")
-                  }
-                  className="text-xs"
-                >
-                  {cameraMode === "game" ? "Dev Mode" : "Game Mode"}
-                </Button>
+                {process.env.NODE_ENV !== "production" && (
+                  <Button
+                    variant={cameraMode === "dev" ? "default" : "outline"}
+                    onClick={() =>
+                      setCameraMode(cameraMode === "game" ? "dev" : "game")
+                    }
+                    className="text-xs"
+                  >
+                    {cameraMode === "game" ? "Dev Mode" : "Game Mode"}
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   onClick={() =>
