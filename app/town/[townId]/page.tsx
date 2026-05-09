@@ -248,6 +248,10 @@ function Scene({
             scale={b.scale || 1}
             ownerId={b.ownerId}
             ownerAvatar={b.ownerAvatar}
+            title={b.title}
+            ownerName={b.owner}
+            forSale={b.forSale}
+            price={b.price}
           />
         );
       })}
