@@ -123,7 +123,7 @@ export function ModelBuilding({
       />
 
       {!hoverSuppressed && (
-        <Html position={iconPosition} center zIndexRange={[100, 0]}>
+        <Html position={iconPosition} center zIndexRange={[30, 0]}>
           <div
             className="pointer-events-auto group flex items-center cursor-pointer transition-all duration-300 opacity-70 hover:opacity-100 hover:scale-110"
             onClick={(e) => {
