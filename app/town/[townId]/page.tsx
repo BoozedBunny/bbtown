@@ -845,7 +845,7 @@ export default function TownPage({
 
   return (
     <main className="flex min-h-screen flex-col items-center p-8 text-white font-sans overflow-hidden relative brand-bg-overlay">
-      <div className="relative z-10 w-full max-w-6xl mb-8">
+      <div className="relative z-40 w-full max-w-6xl mb-8">
         <div className="w-full cyber-panel p-4 md:p-6 shadow-xl relative border-t-4 border-t-brand-primary">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
