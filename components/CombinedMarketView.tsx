@@ -293,8 +293,8 @@ export function CombinedMarketView({
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-primary animate-scanline" />
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as CentralManagementTab)} className="w-full h-full flex flex-col overflow-x-clip">
           <DialogHeader className="p-6 pb-0 flex flex-row justify-between items-center relative z-10">
-            <DialogTitle className="text-2xl font-heading font-black italic tracking-tighter text-white cyber-glitch-text" data-text="BB_CENTRAL_COMMAND">
-              BB_CENTRAL_COMMAND
+            <DialogTitle className="text-2xl font-heading font-black italic tracking-tighter text-white cyber-glitch-text" data-text="City Dashboard">
+              City Dashboard
             </DialogTitle>
             <TabsList className="bg-black/40 border border-white/10 p-1 cyber-skew">
               <TabsTrigger value="treasury" className="data-[state=active]:bg-brand-primary data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest">Treasury</TabsTrigger>

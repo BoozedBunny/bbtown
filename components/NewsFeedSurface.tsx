@@ -94,7 +94,7 @@ export function NewsFeedSurface({ mode, townId, initialTab = "all" }: { mode: Fe
             </Link>
           )}
           <button onClick={refreshFeed} className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white flex items-center gap-2">
-            <RefreshCw className="w-3 h-3" /> RELOAD_FEED
+            <RefreshCw className="w-3 h-3" /> RELOAD FEED
           </button>
         </div>
       </div>
@@ -103,7 +103,7 @@ export function NewsFeedSurface({ mode, townId, initialTab = "all" }: { mode: Fe
 
       <div className="text-[9px] font-mono font-black uppercase tracking-[0.3em] text-gray-600 flex items-center gap-2">
         <div className="w-2 h-2 bg-brand-primary animate-pulse" />
-        LIVE_FEED_SYNC: {lastFetchedAt ? new Date(lastFetchedAt).toLocaleTimeString() : "--"}
+        LIVE FEED SYNC: {lastFetchedAt ? new Date(lastFetchedAt).toLocaleTimeString() : "--"}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6 min-h-0 flex-1">
@@ -150,7 +150,7 @@ export function NewsFeedSurface({ mode, townId, initialTab = "all" }: { mode: Fe
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
           {!activeItem ? (
             <div className="h-full flex items-center justify-center text-center">
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-700 animate-pulse">Select_Node_To_Decrypt</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-700 animate-pulse">Select Message</p>
             </div>
           ) : (
             <div className="space-y-6 animate-in fade-in duration-500">
