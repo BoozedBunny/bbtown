@@ -32,17 +32,17 @@ export default async function LobbyPage() {
               className="object-contain relative z-10"
             />
           </div>
-          <h1 className="text-3xl font-heading font-black italic tracking-tighter cyber-glitch-text" data-text="BB_LOBBY_CONTROL">
-            BB_LOBBY_CONTROL
+          <h1 className="text-3xl font-heading font-black italic tracking-tighter cyber-glitch-text" data-text="LOBBY">
+            LOBBY
           </h1>
-          <p className="text-[10px] font-mono text-gray-500 uppercase tracking-[0.3em] mt-1">Authorized Access Only</p>
+          <p className="text-[10px] font-mono text-gray-500 uppercase tracking-[0.3em] mt-1">Members Only</p>
         </div>
 
         <div className="mb-8 p-6 bg-black/40 border border-white/5 relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-2">
              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
           </div>
-          <p className="text-[10px] font-mono text-brand-primary uppercase tracking-widest mb-1">Authenticated_User</p>
+          <p className="text-[10px] font-mono text-brand-primary uppercase tracking-widest mb-1">Player Profile</p>
           <p className="text-2xl font-black text-white italic">{user.username}</p>
           <div className="mt-4 flex gap-1">
              {[...Array(12)].map((_, i) => (
@@ -55,7 +55,7 @@ export default async function LobbyPage() {
           <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h2 className="text-sm font-black uppercase tracking-[0.2em] text-brand-primary mb-6 flex items-center gap-2">
                <span className="w-2 h-2 bg-brand-primary" />
-               New_Avatar_Registry
+               Choose Your Avatar
             </h2>
             <AvatarSelection mode="create" />
           </section>
@@ -64,7 +64,7 @@ export default async function LobbyPage() {
             <div className="mb-8">
               <div className="flex items-center justify-center gap-3 mb-6">
                  <div className="h-px flex-1 bg-white/5" />
-                 <h2 className="text-[10px] font-mono font-black text-gray-500 uppercase tracking-[0.3em]">Avatar_Status</h2>
+                 <h2 className="text-[10px] font-mono font-black text-gray-500 uppercase tracking-[0.3em]">Current Avatar</h2>
                  <div className="h-px flex-1 bg-white/5" />
               </div>
 
@@ -88,7 +88,7 @@ export default async function LobbyPage() {
               <div className="mb-8 max-w-sm mx-auto">
                 <details className="group">
                   <summary className="text-[10px] font-mono font-bold text-gray-500 hover:text-brand-primary transition-colors cursor-pointer list-none flex items-center justify-center gap-2 uppercase tracking-widest mb-4">
-                    <span>{`>> modify_profile_parameters`}</span>
+                    <span>Edit Profile</span>
                   </summary>
                   <div className="mt-4 p-4 border border-white/5 bg-black/20 text-left">
                     <AvatarSelection
@@ -106,7 +106,7 @@ export default async function LobbyPage() {
                 </div>
                 <form action={doWork}>
                   <button type="submit" className="text-[10px] font-mono font-bold text-gray-400 hover:text-brand-primary transition-colors flex items-center gap-2 uppercase tracking-widest border border-white/5 px-4 py-2 hover:bg-white/5">
-                    ⚒️ run_work_routine (+ $500)
+                    ⚒️ Go to Work (+ $500)
                   </button>
                 </form>
               </div>
@@ -122,7 +122,7 @@ export default async function LobbyPage() {
 
         <div className="mt-12 text-center">
           <Link href="/login" className="text-[10px] font-mono text-gray-600 hover:text-white transition-colors uppercase tracking-[0.2em]">
-            {`>> logout_and_reauth`}
+            Logout
           </Link>
         </div>
       </div>
