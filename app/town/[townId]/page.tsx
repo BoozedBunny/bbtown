@@ -219,7 +219,7 @@ function Scene({
 
       {/* Dein neues Bild als Boden */}
       <TexturedGround
-        url="/textures/testground.png"
+        url="https://www.boozedbunnytown.com/media/textures/testground.png"
         onPointerMove={onGroundPointerMove}
         onClick={onGroundClick}
       />
@@ -1563,7 +1563,7 @@ export default function TownPage({
                           <div className="w-12 h-12 border border-brand-primary/50 bg-black/40 relative overflow-hidden cyber-skew">
                             {selectedBuilding?.ownerId ? (
                               <Image
-                                src={`/media/avatars/${selectedBuilding.ownerAvatar}_avatar.webp`}
+                                src={`https://www.boozedbunnytown.com/media/avatars/${selectedBuilding.ownerAvatar}_avatar.webp`}
                                 alt={selectedBuilding.owner || "Owner"}
                                 fill
                                 className="object-cover"

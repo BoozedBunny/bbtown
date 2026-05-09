@@ -73,7 +73,7 @@ export default async function LobbyPage() {
                   className="w-24 h-24 rounded-none border-2 border-white/20 relative z-10 flex items-center justify-center overflow-hidden cyber-skew bg-black/60"
                 >
                    <Image
-                     src={`/media/avatars/${user.character.avatar}_avatar.webp`}
+                     src={`https://www.boozedbunnytown.com/media/avatars/${user.character.avatar}_avatar.webp`}
                      alt={user.character.name}
                      fill
                      className="object-cover"
