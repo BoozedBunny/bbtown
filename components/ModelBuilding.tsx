@@ -167,7 +167,7 @@ export function ModelBuilding({
             {/* Icon/Avatar Container */}
             <div className="relative z-10 flex items-center justify-center">
               {ownerId && ownerAvatar ? (
-                <div className="relative h-[48px] w-[48px] rounded-full border border-brand-primary/50 overflow-hidden shadow-[0_0_15px_rgba(189,0,255,0.6)] bg-brand-neutral">
+                <div className="relative h-[80px] w-[80px] rounded-full border border-brand-primary/50 overflow-hidden shadow-[0_0_15px_rgba(189,0,255,0.6)] bg-brand-neutral">
                   <Image
                     src={`https://www.boozedbunnytown.com/media/avatars/${ownerAvatar}_avatar.webp`}
                     alt="Owner Avatar"
@@ -177,9 +177,9 @@ export function ModelBuilding({
                 </div>
               ) : (
                 <div
-                  className={`${iconBgColor} h-[38px] w-[38px] rounded-full border border-brand-primary/50 p-2 flex items-center justify-center`}
+                  className={`${iconBgColor} h-[64px] w-[64px] rounded-full border border-brand-primary/50 p-2 flex items-center justify-center`}
                 >
-                  <Icon className="h-5 w-5 text-white" />
+                  <Icon className="h-8 w-8 text-white" />
                 </div>
               )}
             </div>
