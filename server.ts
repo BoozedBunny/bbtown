@@ -5,7 +5,7 @@ import { Server } from "socket.io";
 import express from "express";
 import { PrismaClient } from "@prisma/client";
 import { execSync } from "child_process";
-import { COMPANY_PROFILES } from "./lib/market/companyProfiles";
+import { COMPANY_PROFILES } from "./lib/market/companyProfiles.js";
 import { runTreasuryDailySettlement } from "./lib/treasury/treasuryService";
 import { runLoanDelinquencySweep } from "./lib/treasury/loanService";
 import { PostMatchEntry, setGlobalToplist } from "./lib/arena/toplist";
