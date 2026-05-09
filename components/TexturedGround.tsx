@@ -1,5 +1,6 @@
 "use client";
 
+import { ThreeEvent } from "@react-three/fiber";
 import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
 
@@ -9,8 +10,8 @@ export function TexturedGround({
   onClick,
 }: {
   url: string;
-  onPointerMove?: (e: any) => void;
-  onClick?: (e: any) => void;
+  onPointerMove?: (e: ThreeEvent<PointerEvent>) => void;
+  onClick?: (e: ThreeEvent<PointerEvent>) => void;
 }) {
   const texture = useTexture(url);
 
