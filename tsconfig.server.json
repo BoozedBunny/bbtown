@@ -1,12 +1,18 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "Node",
     "outDir": "dist",
     "rootDir": ".",
-    "noEmit": false
+    "noEmit": false,
+    "declaration": false,
+    "emitDeclarationOnly": false,
+    "allowImportingTsExtensions": false,
+    "skipLibCheck": true,
+    "checkJs": false,
+    "noImplicitAny": false
   },
-  "include": ["server.ts", "lib/**/*"],
-  "exclude": ["node_modules", ".next"]
+  "include": ["server.ts", "lib/**/*.ts"],
+  "exclude": ["node_modules", ".next", "app"]
 }

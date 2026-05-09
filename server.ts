@@ -70,7 +70,7 @@ async function ensureCharacterLoanSchemaReady() {
   console.log("[SchemaGuard] Character loan columns restored successfully.");
 }
 
-const app = next({ dev, hostname, port });
+const app = (next as any)({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
 app.prepare().then(async () => {
