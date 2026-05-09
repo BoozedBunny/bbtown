@@ -7,8 +7,7 @@ module.exports = {
       interpreter_args: "--loader ts-node/esm", // Wichtig für ESM Support
       env: {
         NODE_ENV: "production",
-        PORT: 3004,
-        DATABASE_URL: "file:./dev.db"
+        PORT: 3000,
       }
     }
   ]
