@@ -61,7 +61,7 @@ export function AvatarSelection({
                 onChange={() => setSelectedAvatar(avatar.id)}
                 className="sr-only"
               />
-              <div className="relative w-20 h-20 overflow-hidden cyber-skew">
+              <div className="relative w-32 h-32 overflow-hidden cyber-skew">
                 <Image
                   src={avatar.src}
                   alt={avatar.label}

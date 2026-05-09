@@ -1812,7 +1812,7 @@ export default function TownPage({
                           Owner Info
                         </span>
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 border border-brand-primary/50 bg-black/40 relative overflow-hidden cyber-skew">
+                          <div className="w-24 h-24 border border-brand-primary/50 bg-black/40 relative overflow-hidden cyber-skew">
                             {selectedBuilding?.ownerId ? (
                               <Image
                                 src={`https://www.boozedbunnytown.com/media/avatars/${selectedBuilding.ownerAvatar}_avatar.webp`}
