@@ -26,6 +26,7 @@ import { RoadTile } from "@/components/RoadTile";
 import { CombinedMarketView } from "@/components/CombinedMarketView";
 import { MarketTickerTape } from "@/components/MarketTickerTape";
 import { TownChatPanel } from "@/components/TownChatPanel";
+import { PlayerProfileModal } from "@/components/PlayerProfileModal";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -458,6 +459,11 @@ export default function TownPage({
   const [currentUser, setCurrentUser] = useState<UserWithCharacter | null>(
     null,
   );
+
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [profileModalCharacterId, setProfileModalCharacterId] = useState<
+    string | null
+  >(null);
   const topNavFeatureFlag =
     process.env.NEXT_PUBLIC_HEADER_BURGER_NAV_V1 ??
     process.env.NEXT_PUBLIC_TOPNAV_REFACTOR_V2 ??
@@ -537,6 +543,20 @@ export default function TownPage({
         priority: 20,
         onSelect: () =>
           setCameraMode((prev) => (prev === "game" ? "dev" : "game")),
+      },
+      {
+        id: "profile",
+        label: "My Profile",
+        group: "community",
+        priority: 25,
+        onSelect: () => {
+          if (currentUser?.character) {
+            setProfileModalCharacterId(currentUser.character.id);
+            setProfileModalOpen(true);
+          } else {
+            toast.error("Please log in to view your profile.");
+          }
+        },
       },
       {
         id: "news",
@@ -1812,23 +1832,36 @@ export default function TownPage({
                           Owner Info
                         </span>
                         <div className="flex items-center gap-3">
-                          <div className="w-24 h-24 border border-brand-primary/50 bg-black/40 relative overflow-hidden cyber-skew">
-                            {selectedBuilding?.ownerId ? (
-                              <Image
-                                src={`https://www.boozedbunnytown.com/media/avatars/${selectedBuilding.ownerAvatar}_avatar.webp`}
-                                alt={selectedBuilding.owner || "Owner"}
-                                fill
-                                className="object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-sm font-black italic text-brand-primary">
-                                U
-                              </div>
-                            )}
-                          </div>
-                          <span className="text-xl font-black italic tracking-tighter uppercase">
-                            {selectedBuilding?.owner}
-                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (selectedBuilding?.ownerId) {
+                                setProfileModalCharacterId(
+                                  selectedBuilding.ownerId,
+                                );
+                                setProfileModalOpen(true);
+                              }
+                            }}
+                            className={`flex items-center gap-3 text-left focus:outline-none ${selectedBuilding?.ownerId ? "hover:opacity-80 transition-opacity cursor-pointer group" : ""}`}
+                          >
+                            <div className="w-24 h-24 border border-brand-primary/50 bg-black/40 relative overflow-hidden cyber-skew group-hover:border-brand-primary group-hover:shadow-[0_0_15px_rgba(189,0,255,0.4)] transition-all">
+                              {selectedBuilding?.ownerId ? (
+                                <Image
+                                  src={`https://www.boozedbunnytown.com/media/avatars/${selectedBuilding.ownerAvatar}_avatar.webp`}
+                                  alt={selectedBuilding.owner || "Owner"}
+                                  fill
+                                  className="object-cover group-hover:scale-110 transition-transform duration-500"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-sm font-black italic text-brand-primary">
+                                  U
+                                </div>
+                              )}
+                            </div>
+                            <span className="text-xl font-black italic tracking-tighter uppercase group-hover:text-brand-primary transition-colors">
+                              {selectedBuilding?.owner}
+                            </span>
+                          </button>
                         </div>
                       </div>
                       <div className="text-right">
@@ -1973,6 +2006,13 @@ export default function TownPage({
         townId={townId}
         intent={marketIntent}
         onIntentConsumed={() => setMarketIntent(null)}
+      />
+
+      <PlayerProfileModal
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        characterId={profileModalCharacterId || ""}
+        currentUserId={currentUser?.character?.id}
       />
 
       <Dialog

@@ -32,6 +32,7 @@ export async function updateCharacter(formData: FormData) {
 
   const name = formData.get("name") as string;
   const avatar = formData.get("avatar") as string;
+  const description = formData.get("description") as string | null;
 
   if (!name || !avatar) throw new Error("Missing fields");
 
@@ -40,6 +41,7 @@ export async function updateCharacter(formData: FormData) {
     data: {
       name,
       avatar,
+      description,
     },
   });
 

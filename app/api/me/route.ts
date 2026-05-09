@@ -12,10 +12,14 @@ export async function GET() {
       username: user.username,
       wallet: user.character.wallet,
       characterId: user.character.id,
-      avatar: user.character.avatar
+      avatar: user.character.avatar,
+      description: user.character.description,
     });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Failed to fetch user state" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch user state" },
+      { status: 500 },
+    );
   }
 }

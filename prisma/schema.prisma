@@ -20,6 +20,7 @@ model Character {
   name            String
   appearanceColor String
   avatar          String              @default("bunny")
+  description     String?
   wallet          Int                 @default(1000)
   loanStatus      CharacterLoanStatus @default(NONE)
   loanLockedUntil DateTime?
