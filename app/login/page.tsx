@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
@@ -54,14 +55,28 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <div className="mt-12 pt-6 border-t border-white/5 text-center flex flex-col items-center gap-2">
-          <p className="text-[8px] text-gray-600 uppercase tracking-[0.5em] font-black">
-            Getting things ready...
-          </p>
-          <div className="flex gap-1">
-             {[...Array(6)].map((_, i) => (
-               <div key={i} className="w-4 h-[2px] bg-brand-primary/30" />
-             ))}
+        <div className="mt-8 pt-6 border-t border-white/5 text-center flex flex-col items-center gap-4">
+          <div className="bg-brand-primary/10 border border-brand-primary/20 p-4 rounded text-sm text-gray-300">
+            <strong className="text-brand-secondary font-black block mb-1">ALPHA VERSION DISCLAIMER</strong>
+            <p className="text-xs">
+              Welcome to the very early Alpha! Everything you see here is subject to change.
+              Features might break, things will definitely change, and player data will probably be wiped multiple times before the official launch. You have been warned!
+            </p>
+          </div>
+
+          <Link href="/about" className="text-brand-primary hover:text-brand-secondary transition-colors text-sm font-bold underline decoration-brand-primary/50 underline-offset-4">
+            What is BoozedBunnyTown?
+          </Link>
+
+          <div className="mt-4 flex flex-col items-center gap-2">
+            <p className="text-[8px] text-gray-600 uppercase tracking-[0.5em] font-black">
+              Getting things ready...
+            </p>
+            <div className="flex gap-1">
+               {[...Array(6)].map((_, i) => (
+                 <div key={i} className="w-4 h-[2px] bg-brand-primary/30" />
+               ))}
+            </div>
           </div>
         </div>
       </div>
