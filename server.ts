@@ -24,7 +24,7 @@ import type {
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
-const port = parseInt(process.env.PORT || "3004", 10);
+const port = parseInt(process.env.PORT || "3000", 10);
 
 const ROUND_DURATION_SECONDS = 30;
 const TOTAL_ROUNDS = 30;

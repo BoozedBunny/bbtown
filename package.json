@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "PORT=3004 nodemon --watch server.ts --exec \"tsx server.ts\"",
-"build": "next build && tsc -p tsconfig.server.json && tsc-alias -p tsconfig.server.json && echo '{\"type\": \"commonjs\"}' > dist/package.json",
+    "build": "next build && tsc -p tsconfig.server.json && tsc-alias -p tsconfig.server.json && echo '{\"type\": \"commonjs\"}' > dist/package.json",
     "start": "PORT=3000 NODE_ENV=production node dist/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
