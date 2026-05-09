@@ -313,7 +313,7 @@ export function CombinedMarketView({
                   <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Today variation: {(treasurySummary?.todaySnapshot?.variationAmount ?? 0) >= 0 ? "+" : ""}{treasurySummary?.todaySnapshot?.variationAmount ?? 0}</div>
                 </div>
                 <div className="p-6 bg-white/5 border border-white/10 space-y-3">
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary">Borrow_Node</div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary">Borrow Node</div>
                   {!loanState ? (
                     <div className="space-y-4">
                       <div className="relative">
@@ -338,7 +338,7 @@ export function CombinedMarketView({
                         <button onClick={handleRepayLoan} disabled={loanBusy} className="group relative w-full">
                            <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
                            <div className="cyber-skew bg-brand-primary px-4 py-3 relative transition-transform group-active:scale-95 text-center">
-                              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Execute_Repayment</span>
+                              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Execute Repayment</span>
                            </div>
                         </button>
                       </div>
@@ -348,8 +348,8 @@ export function CombinedMarketView({
               </div>
 
               <div className="p-4 bg-black/40 border border-white/10 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-2 text-[8px] text-brand-primary font-mono opacity-50">HISTORICAL_DATA</div>
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 mb-4">Treasury_Ledger_v1.0</div>
+                <div className="absolute top-0 right-0 p-2 text-[8px] text-brand-primary font-mono opacity-50">HISTORICAL DATA</div>
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 mb-4">Treasury Ledger v1.0</div>
                 <div className="space-y-1 text-sm text-gray-300">
                   {(treasurySummary?.last7Days ?? []).map((day) => (
                     <div key={day.dateKey} className="flex justify-between">

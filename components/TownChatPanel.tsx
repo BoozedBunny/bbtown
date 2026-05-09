@@ -268,7 +268,7 @@ export function TownChatPanel({
             }
           }}
           className="w-full bg-black/60 border border-white/10 px-3 py-2.5 text-[11px] text-white font-mono outline-none focus:border-brand-primary cyber-skew transition-all placeholder:text-gray-700"
-          placeholder="CMD_INPUT // TYPE / HELP"
+          placeholder="CMD INPUT // TYPE / HELP"
           aria-autocomplete={(commandMenuOpen || recipientMenuOpen) ? "list" : "none"}
         />
         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-0.5 pointer-events-none">

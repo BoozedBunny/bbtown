@@ -1007,7 +1007,7 @@ export default function ArenaPage({
             <div className="absolute inset-0 bg-red-500/20 blur group-hover:bg-red-500/40 transition-all" />
             <div className="cyber-skew bg-red-950/40 border border-red-500/50 px-6 py-4 transition-all group-hover:translate-x-1 group-hover:-translate-y-1">
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500">
-                Abort_Mission
+                Abort Mission
               </span>
             </div>
           </button>
