@@ -34,6 +34,10 @@ type ModelBuildingProps = {
   scale?: number | [number, number, number];
   ownerId?: string;
   ownerAvatar?: string;
+  title?: string;
+  ownerName?: string;
+  forSale?: boolean;
+  price?: number;
 };
 
 export function ModelBuilding({
@@ -49,6 +53,10 @@ export function ModelBuilding({
   scale = 1,
   ownerId,
   ownerAvatar,
+  title,
+  ownerName,
+  forSale,
+  price,
 }: ModelBuildingProps) {
   const { scene } = useGLTF(url);
   const groupRef = useRef<THREE.Group>(null);
@@ -117,28 +125,48 @@ export function ModelBuilding({
       {!hoverSuppressed && (
         <Html position={iconPosition} center zIndexRange={[100, 0]}>
           <div
-            className="pointer-events-auto flex items-center justify-center cursor-pointer transition-transform hover:scale-110"
+            className="pointer-events-auto group flex items-center cursor-pointer transition-all duration-300 opacity-70 hover:opacity-100 hover:scale-110"
             onClick={(e) => {
               e.stopPropagation();
               if (onClick) onClick();
             }}
           >
-            {ownerId && ownerAvatar ? (
-              <div className="relative h-[48px] w-[48px] rounded-full border-2 border-white overflow-hidden shadow-[0_0_15px_rgba(189,0,255,0.6)]">
-                <Image
-                  src={`https://www.boozedbunnytown.com/media/avatars/${ownerAvatar}_avatar.webp`}
-                  alt="Owner Avatar"
-                  fill
-                  className="object-cover"
-                />
+            {/* Icon/Avatar Container */}
+            <div className="relative z-10 flex items-center justify-center">
+              {ownerId && ownerAvatar ? (
+                <div className="relative h-[48px] w-[48px] rounded-full border border-brand-primary/50 overflow-hidden shadow-[0_0_15px_rgba(189,0,255,0.6)] bg-brand-neutral">
+                  <Image
+                    src={`https://www.boozedbunnytown.com/media/avatars/${ownerAvatar}_avatar.webp`}
+                    alt="Owner Avatar"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div
+                  className={`${iconBgColor} h-[38px] w-[38px] rounded-full border border-brand-primary/50 p-2 flex items-center justify-center`}
+                >
+                  <Icon className="h-5 w-5 text-white" />
+                </div>
+              )}
+            </div>
+
+            {/* Expandable Popover Container */}
+            <div className="absolute left-1/2 ml-[24px] top-1/2 -translate-y-1/2 overflow-hidden w-0 opacity-0 transition-all duration-300 ease-out group-hover:w-[180px] group-hover:opacity-100">
+              <div className="w-[180px] cyber-panel px-3 py-2 text-left bg-[#0F021A]/95 rounded-r-lg border-y border-r border-brand-primary/30 shadow-[0_0_15px_rgba(189,0,255,0.3)]">
+                <div className="text-[10px] uppercase font-black text-brand-primary tracking-widest mb-1 truncate">
+                  {title || "Unknown Building"}
+                </div>
+                <div className="text-xs font-bold text-white truncate">
+                  {ownerName || "No Owner"}
+                </div>
+                {forSale && price !== undefined && (
+                  <div className="mt-1 text-[10px] text-green-400 font-bold tracking-wider">
+                    FOR SALE: ${price.toLocaleString()}
+                  </div>
+                )}
               </div>
-            ) : (
-              <div
-                className={`${iconBgColor} h-[38px] w-[38px] rounded-full border-2 border-white p-2 flex items-center justify-center`}
-              >
-                <Icon className="h-5 w-5 text-white" />
-              </div>
-            )}
+            </div>
           </div>
         </Html>
       )}

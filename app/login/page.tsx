@@ -29,7 +29,7 @@ export default function LoginPage() {
           <h1 className="text-4xl font-heading font-black tracking-tighter mb-2 cyber-glitch-text italic" data-text="BoozedBunnyTown">
             BoozedBunnyTown
           </h1>
-          <p className="text-gray-500 font-mono text-[10px] uppercase tracking-[0.3em]">Neural Interface v2.0.4</p>
+          <p className="text-gray-500 font-mono text-[10px] uppercase tracking-[0.3em]">Welcome to the Town</p>
         </div>
 
         <div className="space-y-6 mt-8">
@@ -39,7 +39,7 @@ export default function LoginPage() {
           >
             <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
             <div className="cyber-skew bg-brand-primary px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
-               <span className="text-sm font-black uppercase tracking-[0.2em] text-white">Login_as_Player_1</span>
+               <span className="text-sm font-black uppercase tracking-[0.2em] text-white">Play as Player 1</span>
             </div>
           </button>
 
@@ -49,14 +49,14 @@ export default function LoginPage() {
           >
             <div className="absolute inset-0 bg-brand-secondary/10 blur group-hover:bg-brand-secondary/20 transition-all" />
             <div className="cyber-skew bg-black/40 border border-brand-secondary/50 px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
-               <span className="text-sm font-black uppercase tracking-[0.2em] text-brand-secondary">Login_as_Player_2</span>
+               <span className="text-sm font-black uppercase tracking-[0.2em] text-brand-secondary">Play as Player 2</span>
             </div>
           </button>
         </div>
 
         <div className="mt-12 pt-6 border-t border-white/5 text-center flex flex-col items-center gap-2">
           <p className="text-[8px] text-gray-600 uppercase tracking-[0.5em] font-black">
-            System Synchronization Active
+            Getting things ready...
           </p>
           <div className="flex gap-1">
              {[...Array(6)].map((_, i) => (

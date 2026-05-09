@@ -991,8 +991,8 @@ export default function ArenaPage({
                 <div className="absolute right-0 top-0 w-2 h-full bg-brand-secondary" />
                 <span className="text-[10px] font-black uppercase tracking-[0.4em] text-brand-secondary animate-pulse">
                   {authoritativePhase.phase === "ACTIVE_ROUND"
-                    ? "SYSTEM_ACTIVE"
-                    : "RECALIBRATING"}
+                    ? "Round Active"
+                    : "Recalibrating"}
                 </span>
               </div>
             </div>
@@ -1150,9 +1150,9 @@ export default function ArenaPage({
                 </h1>
                 <div
                   className="cyber-glitch-text text-5xl font-heading font-black tracking-tighter text-white mt-12 mb-4"
-                  data-text={mode === "SP" ? "SESSION COMPLETE" : "MISSION_END"}
+                  data-text={mode === "SP" ? "Game Over" : "Match Finished"}
                 >
-                  {mode === "SP" ? "SESSION COMPLETE" : "MISSION_END"}
+                  {mode === "SP" ? "Game Over" : "Match Finished"}
                 </div>
                 <div className="w-32 h-1 bg-brand-primary" />
               </div>

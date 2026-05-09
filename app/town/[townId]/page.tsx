@@ -287,6 +287,10 @@ function Scene({
             scale={b.scale || 1}
             ownerId={b.ownerId}
             ownerAvatar={b.ownerAvatar}
+            title={b.title}
+            ownerName={b.owner}
+            forSale={b.forSale}
+            price={b.price}
           />
         );
       })}
@@ -1525,11 +1529,8 @@ export default function TownPage({
         <DialogContent className="sm:max-w-[480px] cyber-panel text-white border-t-4 border-t-brand-secondary rounded-none shadow-[0_0_50px_rgba(255,184,0,0.15)] p-0 overflow-hidden">
           <div className="p-8 space-y-6">
             <DialogHeader>
-              <DialogTitle
-                className="text-3xl font-heading font-black italic tracking-tighter text-brand-secondary cyber-glitch-text"
-                data-text="NEURAL_WALLET"
-              >
-                NEURAL_WALLET
+              <DialogTitle className="text-3xl font-heading font-black italic tracking-tighter text-brand-secondary cyber-glitch-text" data-text="YOUR WALLET">
+                YOUR WALLET
               </DialogTitle>
               <DialogDescription className="text-gray-500 font-mono text-[10px] uppercase tracking-[0.3em]">
                 Financial Summary // Authorization Confirmed
@@ -1538,9 +1539,7 @@ export default function TownPage({
             <div className="grid gap-4">
               <div className="grid gap-3 p-6 bg-black/40 border border-white/5 cyber-skew">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-black">
-                    Total_Balance
-                  </span>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-black">Total Balance</span>
                   <span className="text-3xl font-black italic tracking-tighter text-white">
                     {formatCurrencyAmount(
                       walletSummary.totalBalance,
@@ -1550,9 +1549,7 @@ export default function TownPage({
                 </div>
                 <div className="h-px bg-white/5 w-full" />
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-black">
-                    Net_Inflow
-                  </span>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-black">Income</span>
                   <span className="text-sm font-mono font-bold text-green-400">
                     {formatCurrencyAmount(
                       walletSummary.income,
@@ -1561,9 +1558,7 @@ export default function TownPage({
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-black">
-                    Net_Outflow
-                  </span>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-black">Expenses</span>
                   <span className="text-sm font-mono font-bold text-brand-tertiary">
                     {formatCurrencyAmount(
                       walletSummary.expenses,
@@ -1575,12 +1570,8 @@ export default function TownPage({
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between px-2">
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-brand-primary font-black">
-                    Sector_Breakdown
-                  </p>
-                  <p className="text-[8px] uppercase tracking-[0.2em] text-gray-600 font-black">
-                    Sub_Ledger_v1.2
-                  </p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-brand-primary font-black">Activity Breakdown</p>
+                  <p className="text-[8px] uppercase tracking-[0.2em] text-gray-600 font-black">Recent Transactions</p>
                 </div>
                 <ul className="grid gap-2">
                   {walletSummary.categories
@@ -1676,9 +1667,7 @@ export default function TownPage({
                   >
                     <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
                     <div className="cyber-skew bg-brand-primary px-4 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
-                      <span className="text-xs font-black uppercase tracking-[0.2em] text-white">
-                        ACCESS_CENTRAL_COMMAND
-                      </span>
+                      <span className="text-xs font-black uppercase tracking-[0.2em] text-white">Building Controls</span>
                     </div>
                   </button>
                 </div>
@@ -1749,9 +1738,7 @@ export default function TownPage({
                               }
                               className="accent-brand-primary w-4 h-4 bg-black border-white/10"
                             />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 group-hover:text-brand-primary transition-colors">
-                              List_For_Sale
-                            </span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 group-hover:text-brand-primary transition-colors">List for Sale</span>
                           </label>
                         </div>
                       </div>
@@ -1786,9 +1773,7 @@ export default function TownPage({
                       >
                         <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
                         <div className="cyber-skew bg-brand-primary px-4 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
-                          <span className="text-xs font-black uppercase tracking-[0.2em] text-white">
-                            {isProcessing ? "Processing..." : "Commit_Changes"}
-                          </span>
+                          <span className="text-xs font-black uppercase tracking-[0.2em] text-white">{isProcessing ? "Processing..." : "Save Changes"}</span>
                         </div>
                       </button>
                     </div>
@@ -1803,7 +1788,7 @@ export default function TownPage({
                     <div className="flex justify-between items-start">
                       <div className="space-y-2">
                         <span className="text-[10px] uppercase font-black text-gray-600 tracking-[0.3em]">
-                          OWNER_SIGNAL
+                          Owner Info
                         </span>
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 border border-brand-primary/50 bg-black/40 relative overflow-hidden cyber-skew">
@@ -1833,8 +1818,8 @@ export default function TownPage({
                           className={`text-[10px] font-black tracking-widest mt-2 px-3 py-1.5 border cyber-skew ${selectedBuilding?.forSale ? "border-green-500/50 bg-green-500/10 text-green-400" : "border-brand-tertiary/50 bg-brand-tertiary/10 text-brand-tertiary"}`}
                         >
                           {selectedBuilding?.forSale
-                            ? `AVAIL_MARKET ($${selectedBuilding.price?.toLocaleString()})`
-                            : "RESTRICTED_ACCESS"}
+                            ? `For Sale ($${selectedBuilding.price?.toLocaleString()})`
+                            : "Not For Sale"}
                         </p>
                       </div>
                     </div>
@@ -1843,7 +1828,7 @@ export default function TownPage({
                       {canViewGeoPosition && (
                         <div className="p-3 bg-white/5 border border-white/5">
                           <span className="text-[8px] uppercase font-black text-gray-500 tracking-[0.4em] block mb-1">
-                            GEO_COORDS
+                            Location
                           </span>
                           <p className="font-mono text-[10px] text-brand-primary font-bold">
                             {selectedBuilding?.position
@@ -1989,11 +1974,8 @@ export default function TownPage({
               <div className="mx-auto w-20 h-20 bg-brand-primary/10 border border-brand-primary/30 flex items-center justify-center mb-6 cyber-skew group">
                 <Swords className="w-10 h-10 text-brand-primary group-hover:scale-110 transition-transform" />
               </div>
-              <DialogTitle
-                className="text-3xl font-heading font-black italic tracking-tighter text-center cyber-glitch-text"
-                data-text="THE_BATTLE_ARENA"
-              >
-                THE_BATTLE_ARENA
+              <DialogTitle className="text-3xl font-heading font-black italic tracking-tighter text-center cyber-glitch-text" data-text="THE ARENA">
+                THE ARENA
               </DialogTitle>
               <DialogDescription className="text-center text-gray-500 font-mono text-[10px] uppercase tracking-[0.2em] mt-2">
                 {matchmakingStatus === "idle" &&
@@ -2011,12 +1993,8 @@ export default function TownPage({
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 bg-white/5 border border-white/5 cyber-skew flex flex-col items-center text-center group hover:border-brand-secondary/30 transition-colors">
                       <Trophy className="w-6 h-6 text-brand-secondary mb-2 group-hover:scale-110 transition-transform" />
-                      <span className="text-[8px] uppercase font-black text-gray-600 tracking-[0.3em]">
-                        POTENTIAL_WIN
-                      </span>
-                      <span className="text-sm font-black italic text-brand-secondary">
-                        1,000 BBT
-                      </span>
+                      <span className="text-[8px] uppercase font-black text-gray-600 tracking-[0.3em]">Prize Pool</span>
+                      <span className="text-sm font-black italic text-brand-secondary">1,000 BBT</span>
                     </div>
                     <div className="p-4 bg-white/5 border border-white/5 cyber-skew flex flex-col items-center text-center group hover:border-brand-primary/30 transition-colors">
                       <div className="w-6 h-6 flex items-center justify-center mb-2">
@@ -2024,12 +2002,8 @@ export default function TownPage({
                           1v1
                         </span>
                       </div>
-                      <span className="text-[8px] uppercase font-black text-gray-600 tracking-[0.3em]">
-                        PROTO_MODE
-                      </span>
-                      <span className="text-sm font-black italic text-white">
-                        SURVIVOR
-                      </span>
+                      <span className="text-[8px] uppercase font-black text-gray-600 tracking-[0.3em]">Practice Mode</span>
+                      <span className="text-sm font-black italic text-white">SURVIVOR</span>
                     </div>
                   </div>
 
@@ -2042,9 +2016,7 @@ export default function TownPage({
                   >
                     <div className="absolute inset-0 bg-white/5 blur group-hover:bg-white/10 transition-all" />
                     <div className="cyber-skew bg-white/5 border border-white/10 px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
-                      <span className="text-xs font-black uppercase tracking-[0.2em] text-gray-400 group-hover:text-white transition-colors">
-                        SIMULATION_MODE (SOLO)
-                      </span>
+                       <span className="text-xs font-black uppercase tracking-[0.2em] text-gray-400 group-hover:text-white transition-colors">Solo Play</span>
                     </div>
                   </button>
 
@@ -2057,9 +2029,7 @@ export default function TownPage({
                   >
                     <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
                     <div className="cyber-skew bg-brand-primary px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
-                      <span className="text-sm font-black uppercase tracking-[0.2em] text-white">
-                        INITIALIZE_COMBAT_SEQUENCE
-                      </span>
+                       <span className="text-sm font-black uppercase tracking-[0.2em] text-white">Enter Arena</span>
                     </div>
                   </button>
                 </div>
@@ -2090,9 +2060,7 @@ export default function TownPage({
                         </span>
                       </div>
                     </div>
-                    <p className="text-brand-primary font-mono text-[10px] font-black uppercase tracking-[0.4em] animate-pulse">
-                      SEARCHING_ACTIVE_NODES...
-                    </p>
+                    <p className="text-brand-primary font-mono text-[10px] font-black uppercase tracking-[0.4em] animate-pulse">Looking for match...</p>
                   </div>
                   <button
                     onClick={() => {
@@ -2101,7 +2069,7 @@ export default function TownPage({
                     }}
                     className="text-[10px] font-black uppercase tracking-widest text-gray-600 hover:text-brand-tertiary transition-colors"
                   >
-                    [ ABORT_SIGNAL ]
+                    [ Cancel ]
                   </button>
                 </div>
               )}
@@ -2131,12 +2099,10 @@ export default function TownPage({
                     <div className="absolute inset-0 bg-green-500/5 animate-pulse" />
                     <p className="text-green-400 font-black uppercase tracking-[0.3em] text-sm flex items-center gap-3">
                       <span className="w-2 h-2 bg-green-400 rounded-full animate-ping" />
-                      NEURAL_LINK_ESTABLISHED
+                      Match Found!
                     </p>
                   </div>
-                  <p className="text-gray-600 text-[10px] uppercase font-black tracking-[0.5em] animate-pulse">
-                    TELEPORTING_IN_2.0s
-                  </p>
+                  <p className="text-gray-600 text-[10px] uppercase font-black tracking-[0.5em] animate-pulse">Entering in 2s...</p>
                 </div>
               )}
             </div>

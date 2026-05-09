@@ -26,7 +26,7 @@ async function test() {
       id: charDelinquentId,
       name: "Delinquent Char",
       appearanceColor: "#000",
-      userId: "user_delinquent",
+
       user: { create: { username: "user_delinquent" } }
     }
   });
@@ -38,7 +38,7 @@ async function test() {
       id: charDefaultedId,
       name: "Defaulted Char",
       appearanceColor: "#000",
-      userId: "user_defaulted",
+
       user: { create: { username: "user_defaulted" } }
     }
   });

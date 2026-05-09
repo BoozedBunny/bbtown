@@ -13,11 +13,11 @@ export default async function TownNewsPage({
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between gap-4 cyber-panel p-6 border-l-4 border-l-brand-primary">
           <div>
-            <h1 className="text-4xl font-black italic tracking-tighter cyber-glitch-text" data-text="NEURAL_NEWS_DESK">NEURAL_NEWS_DESK</h1>
-            <p className="text-[10px] font-mono font-black uppercase tracking-[0.3em] text-gray-500 mt-1">Encrypted Broadcast // Node: {townId}</p>
+            <h1 className="text-4xl font-black italic tracking-tighter cyber-glitch-text" data-text="TOWN NEWS">TOWN NEWS</h1>
+            <p className="text-[10px] font-mono font-black uppercase tracking-[0.3em] text-gray-500 mt-1">Latest updates from Town {townId}</p>
           </div>
           <Link href={`/town/${townId}`} className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-brand-secondary transition-colors">
-            [ RET_TO_DISTRICT ]
+            [ Go back to Town ]
           </Link>
         </div>
 
