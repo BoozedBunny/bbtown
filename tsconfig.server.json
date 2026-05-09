@@ -1,18 +1,13 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "module": "ESNext",
+    "module": "CommonJS", // <--- Wir wechseln auf CommonJS für den Server-Build
     "moduleResolution": "Node",
     "outDir": "dist",
     "rootDir": ".",
     "noEmit": false,
-    "declaration": false,
-    "emitDeclarationOnly": false,
-    "allowImportingTsExtensions": false,
-    "skipLibCheck": true,
-    "checkJs": false,
-    "noImplicitAny": false
+    "esModuleInterop": true 
   },
-  "include": ["server.ts", "lib/**/*.ts"],
-  "exclude": ["node_modules", ".next", "app"]
+  "include": ["server.ts", "lib/**/*"],
+  "exclude": ["node_modules", ".next"]
 }
