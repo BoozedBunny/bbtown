@@ -1,12 +1,13 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "module": "CommonJS", // <--- Wir wechseln auf CommonJS für den Server-Build
+    "module": "CommonJS",
     "moduleResolution": "Node",
     "outDir": "dist",
     "rootDir": ".",
     "noEmit": false,
-    "esModuleInterop": true 
+    "esModuleInterop": true,
+    "skipLibCheck": true
   },
   "include": ["server.ts", "lib/**/*"],
   "exclude": ["node_modules", ".next"]
