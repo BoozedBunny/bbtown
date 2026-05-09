@@ -12,15 +12,15 @@ import { PostMatchEntry, setGlobalToplist } from "./lib/arena/toplist.js";
 import {
   DEFAULT_ROUND_TRANSITION_CONFIG,
   getRoundPhaseStateAt,
-} from "./lib/arena/roundPhases";
-import { GLOBAL_CHANNEL_KEY } from "./lib/chat/channel";
+} from "./lib/arena/roundPhases.js";
+import { GLOBAL_CHANNEL_KEY } from "./lib/chat/channel.js";
 import type {
   ChatHistoryRequestPayload,
   ChatMessage,
   ChatReadUpsertPayload,
   ChatSendAckPayload,
   ChatSendPayload,
-} from "./lib/chat/chatTypes";
+} from "./lib/chat/chatTypes.js";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
