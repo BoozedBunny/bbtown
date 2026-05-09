@@ -1614,7 +1614,7 @@ export default function TownPage({
               onClick={() => setIsWalletModalOpen(false)}
               className="w-full h-12 bg-white/5 hover:bg-white/10 text-white font-black uppercase tracking-widest text-xs border border-white/10 rounded-none cyber-skew"
             >
-              Close_Interface
+              Close Interface
             </Button>
           </div>
           <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] z-40 bg-[length:100%_2px,3px_100%] opacity-50" />
@@ -1656,7 +1656,7 @@ export default function TownPage({
                   <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-brand-primary/50 to-transparent" />
                   <div className="text-center space-y-2">
                     <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary">
-                      Bank_of_BoozedBunnyTown
+                      Bank of BoozedBunnyTown
                     </h3>
                     <p className="text-[9px] text-gray-500 font-mono">
                       Neural Financial Governance
@@ -1664,7 +1664,7 @@ export default function TownPage({
                   </div>
                   <div className="p-4 bg-black/60 border border-white/5 text-center">
                     <span className="text-[8px] uppercase font-black text-gray-600 tracking-[0.4em] block mb-1">
-                      MUNICIPAL_TREASURY_RESERVE
+                      MUNICIPAL TREASURY RESERVE
                     </span>
                     <span className="text-4xl font-black italic tracking-tighter text-brand-secondary">
                       ${townData?.bankBalance?.toLocaleString() || 0}
@@ -1696,7 +1696,7 @@ export default function TownPage({
                 selectedBuilding?.ownerId === currentUser.character.id && (
                   <div className="space-y-4 p-6 bg-white/5 border border-white/10 cyber-skew">
                     <h3 className="text-[10px] uppercase font-black text-brand-primary tracking-[0.2em] mb-4">
-                      Property_Administration
+                      Property Administration
                     </h3>
                     <div className="space-y-4">
                       <div className="space-y-1">
@@ -1704,7 +1704,7 @@ export default function TownPage({
                           htmlFor="property-title"
                           className="text-[9px] font-mono text-gray-500 uppercase tracking-widest block"
                         >
-                          Registry_Identifier
+                          Registry Identifier
                         </label>
                         <input
                           id="property-title"
@@ -1723,7 +1723,7 @@ export default function TownPage({
                             htmlFor="property-price"
                             className="text-[9px] font-mono text-gray-500 uppercase tracking-widest block"
                           >
-                            Market_Valuation ($)
+                            Market Valuation ($)
                           </label>
                           <input
                             id="property-price"
@@ -1861,7 +1861,7 @@ export default function TownPage({
                       {selectedBuilding?.employees !== undefined && (
                         <div className="p-3 bg-white/5 border border-white/5">
                           <span className="text-[8px] uppercase font-black text-gray-500 tracking-[0.4em] block mb-1">
-                            UNIT_STAFFING
+                            UNIT STAFFING
                           </span>
                           <p className="text-[10px] font-black uppercase text-white">
                             {selectedBuilding.employees} Neural Units
@@ -1917,8 +1917,8 @@ export default function TownPage({
                                 ? "Transacting..."
                                 : currentUser.character.wallet <
                                     selectedBuilding.price
-                                  ? "Insufficient_Liquidity"
-                                  : `Acquire_Asset // $${selectedBuilding.price.toLocaleString()}`}
+                                  ? "Insufficient Liquidity"
+                                  : `Acquire Asset // $${selectedBuilding.price.toLocaleString()}`}
                             </span>
                           </div>
                         </button>
@@ -1942,7 +1942,7 @@ export default function TownPage({
                 onClick={() => setSelectedBuilding(null)}
                 className="w-full h-10 bg-white/5 hover:bg-white/10 text-gray-500 hover:text-white border border-white/10 rounded-none cyber-skew font-black uppercase tracking-widest text-[10px]"
               >
-                Close_Registry
+                Close Registry
               </Button>
             </div>
           </div>

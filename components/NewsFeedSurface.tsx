@@ -90,7 +90,7 @@ export function NewsFeedSurface({ mode, townId, initialTab = "all" }: { mode: Fe
         <div className="flex items-center gap-4">
           {mode === "modal" && (
             <Link href={`/town/${townId}/news`} className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-brand-primary transition-colors">
-              [ Full_Interface ]
+              [ Full Interface ]
             </Link>
           )}
           <button onClick={refreshFeed} className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white flex items-center gap-2">

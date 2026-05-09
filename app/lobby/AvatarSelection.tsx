@@ -35,13 +35,13 @@ export function AvatarSelection({
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="w-full px-4 py-3 bg-black/60 border border-white/10 text-white font-mono focus:outline-none focus:border-brand-primary transition-colors"
-          placeholder="Subject_Name"
+          placeholder="Subject Name"
         />
       </div>
 
       <div className="space-y-4">
         <label className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest block">
-          Avatar_Selection
+          Avatar Selection
         </label>
         <div className="grid grid-cols-2 gap-4">
           {AVATARS.map((avatar) => (
@@ -87,7 +87,7 @@ export function AvatarSelection({
       {mode === "create" && (
         <div className="space-y-2">
           <label htmlFor="appearanceColor" className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest block">
-            Visual_Signature
+            Visual Signature
           </label>
           <div className="relative">
             <select
@@ -112,7 +112,7 @@ export function AvatarSelection({
         <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
         <div className="cyber-skew bg-brand-primary px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
            <span className="text-sm font-black uppercase tracking-[0.2em] text-white">
-             {mode === "create" ? "Initialize_Deployment" : "Update_Profile"}
+             {mode === "create" ? "Initialize Deployment" : "Update Profile"}
            </span>
         </div>
       </button>
