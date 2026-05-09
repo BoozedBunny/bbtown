@@ -24,7 +24,7 @@ import type {
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
-const port = parseInt(process.env.PORT || "3004", 10);
+const port = parseInt(process.env.PORT || "3000", 10);
 
 const ROUND_DURATION_SECONDS = 30;
 const TOTAL_ROUNDS = 30;
@@ -70,7 +70,7 @@ async function ensureCharacterLoanSchemaReady() {
   console.log("[SchemaGuard] Character loan columns restored successfully.");
 }
 
-const app = next({ dev, hostname, port });
+const app = (next as any)({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
 app.prepare().then(async () => {

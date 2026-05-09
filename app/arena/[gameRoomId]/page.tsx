@@ -15,6 +15,7 @@ import * as THREE from "three";
 import { Physics, RigidBody, useRapier } from "@react-three/rapier";
 import { Model as Player } from "@/components/Player";
 import { useRouter } from "next/navigation";
+import { ArenaGlobalToplist } from "@/components/ArenaGlobalToplist";
 import {
   DEFAULT_ROUND_TRANSITION_CONFIG,
   getRoundPhaseStateAt,
@@ -516,7 +517,9 @@ function MovingObstacle({
   });
 
   // Textur laden (Pfad bezieht sich auf den public-Ordner)
-  const texture = useTexture("https://www.boozedbunnytown.com/media/textures/planked_wood.webp");
+  const texture = useTexture(
+    "https://www.boozedbunnytown.com/media/textures/planked_wood.webp",
+  );
 
   // Optional: Textur-Wiederholung konfigurieren, falls die Box groß ist
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -562,8 +565,12 @@ function ArenaScene({
   obstaclesEnabled: boolean;
 }) {
   // Lade die Textur (R3F sucht automatisch im /public Ordner)
-  const floorTexture = useTexture("https://www.boozedbunnytown.com/media/textures/rocky_trail_02_diff_4k.jpg");
-  const grandStandTexture = useTexture("https://www.boozedbunnytown.com/media/textures/ground_v2.webp");
+  const floorTexture = useTexture(
+    "https://www.boozedbunnytown.com/media/textures/rocky_trail_02_diff_4k.jpg",
+  );
+  const grandStandTexture = useTexture(
+    "https://www.boozedbunnytown.com/media/textures/ground_v2.webp",
+  );
 
   // Bringe der Textur bei, dass sie sich wiederholen darf
   floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
@@ -709,12 +716,6 @@ export default function ArenaPage({
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [entryPhase, setEntryPhase] = useState<ArenaEntryPhase>("boot");
   const [roundNowMs, setRoundNowMs] = useState(Date.now());
-  const [globalToplistRows, setGlobalToplistRows] = useState<ToplistEntry[]>(
-    [],
-  );
-  const [toplistStatus, setToplistStatus] = useState<
-    "idle" | "loading" | "ready" | "unavailable"
-  >("idle");
 
   useEffect(() => {
     if (gameState.status !== "playing") {
@@ -782,51 +783,6 @@ export default function ArenaPage({
       document.body.style.cursor = "";
     };
   }, [gameState.status]);
-
-  useEffect(() => {
-    if (gameState.status !== "finished" || mode !== "MP") {
-      return;
-    }
-
-    let active = true;
-    const controller = new AbortController();
-
-    const fetchToplist = async () => {
-      setToplistStatus("loading");
-      try {
-        const timeout = setTimeout(() => controller.abort(), 2000);
-        const response = await fetch("/api/toplist/global?mode=mp&limit=50", {
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
-
-        if (!response.ok) {
-          throw new Error(`Toplist request failed: ${response.status}`);
-        }
-
-        const payload = await response.json();
-        if (!active) return;
-
-        const entries = Array.isArray(payload.entries) ? payload.entries : [];
-        setGlobalToplistRows(entries);
-        setToplistStatus("ready");
-      } catch (error) {
-        if (!active) return;
-        console.warn(
-          "Toplist unavailable, falling back to local results",
-          error,
-        );
-        setToplistStatus("unavailable");
-      }
-    };
-
-    fetchToplist();
-
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [gameState.status, mode]);
 
   useEffect(() => {
     setEntryPhase("boot");
@@ -1235,50 +1191,10 @@ export default function ArenaPage({
                 </div>
 
                 {mode === "MP" && (
-                  <div className="md:col-span-3 cyber-border bg-black/40 mt-2 overflow-hidden">
-                    <div className="bg-brand-primary/20 px-6 py-2 border-b border-brand-primary/30 flex justify-between items-center">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary">
-                        Global Leaderboard Extract
-                      </span>
-                      {toplistStatus === "loading" && (
-                        <div className="w-2 h-2 bg-brand-primary animate-ping" />
-                      )}
-                    </div>
-                    <div className="max-h-[240px] overflow-y-auto">
-                      <table className="w-full text-[10px]">
-                        <thead className="bg-white/5 text-left text-gray-500 uppercase">
-                          <tr>
-                            <th className="px-6 py-3">Pos</th>
-                            <th className="px-6 py-3">Subject</th>
-                            <th className="px-6 py-3">Cycles</th>
-                            <th className="px-6 py-3">Ref</th>
-                          </tr>
-                        </thead>
-                        <tbody className="font-mono">
-                          {(toplistStatus === "ready"
-                            ? globalToplistRows
-                            : localPostMatchRows
-                          ).map((row) => (
-                            <tr
-                              key={row.playerId}
-                              className={`${row.displayName === currentUser.username ? "bg-brand-primary/20 text-white" : "text-gray-400"} border-t border-white/5`}
-                            >
-                              <td className="px-6 py-2 font-black italic">
-                                #{String(row.rank).padStart(2, "0")}
-                              </td>
-                              <td className="px-6 py-2 font-bold uppercase">
-                                {row.displayName}
-                              </td>
-                              <td className="px-6 py-2">{row.roundsReached}</td>
-                              <td className="px-6 py-2 opacity-50">
-                                {row.tieBreakReason?.slice(0, 10) ?? "STABLE"}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
+                  <ArenaGlobalToplist
+                    currentUserUsername={currentUser?.username}
+                    localPostMatchRows={localPostMatchRows}
+                  />
                 )}
               </div>
 
