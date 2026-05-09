@@ -3,10 +3,21 @@
 import fs from "fs";
 import path from "path";
 
-export async function updateBuildingTransform(buildingId: string, position: [number, number, number], rotationY: number) {
-  if (process.env.NODE_ENV !== "development") return { success: false, error: "Not in dev mode" };
+export async function updateBuildingTransform(
+  buildingId: string,
+  position: [number, number, number],
+  rotationY: number,
+) {
+  if (process.env.NODE_ENV !== "development")
+    return { success: false, error: "Not in dev mode" };
 
-  const filePath = path.join(process.cwd(), "app", "town", "[townId]", "town-config.ts");
+  const filePath = path.join(
+    process.cwd(),
+    "app",
+    "town",
+    "[townId]",
+    "town-config.ts",
+  );
   let content = fs.readFileSync(filePath, "utf-8");
 
   // Find the exact ID string (e.g. id: "1",)
@@ -14,7 +25,8 @@ export async function updateBuildingTransform(buildingId: string, position: [num
   let idIndex = content.indexOf(idStr);
   if (idIndex === -1) {
     // Fallback if formatting is slightly different
-    const idMatch = new RegExp(`id:\\s*["']${buildingId}["']`);
+    const escapedBuildingId = buildingId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const idMatch = new RegExp(`id:\\s*["']${escapedBuildingId}["']`);
     idIndex = content.search(idMatch);
     if (idIndex === -1) return { success: false, error: "Building not found" };
   }
@@ -27,16 +39,18 @@ export async function updateBuildingTransform(buildingId: string, position: [num
     const replaceString = `position: [${position[0].toFixed(2)}, ${position[1].toFixed(2)}, ${position[2].toFixed(2)}]`;
     const start = idIndex + posMatch.index;
     const end = start + posMatch[0].length;
-    content = content.substring(0, start) + replaceString + content.substring(end);
+    content =
+      content.substring(0, start) + replaceString + content.substring(end);
   }
 
   // Update Rotation (we must re-calculate idIndex because the position replacement might have shifted string lengths)
   idIndex = content.indexOf(idStr);
   if (idIndex === -1) {
-    const idMatch = new RegExp(`id:\\s*["']${buildingId}["']`);
+    const escapedBuildingId = buildingId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const idMatch = new RegExp(`id:\\s*["']${escapedBuildingId}["']`);
     idIndex = content.search(idMatch);
   }
-  
+
   if (idIndex !== -1) {
     let remainingContent2 = content.slice(idIndex);
     let rotRegex = /rotationY:\s*([0-9.-]+)/;
@@ -45,7 +59,8 @@ export async function updateBuildingTransform(buildingId: string, position: [num
       const replaceString = `rotationY: ${Math.round(rotationY)}`;
       const start = idIndex + rotMatch.index;
       const end = start + rotMatch[0].length;
-      content = content.substring(0, start) + replaceString + content.substring(end);
+      content =
+        content.substring(0, start) + replaceString + content.substring(end);
     }
   }
 
