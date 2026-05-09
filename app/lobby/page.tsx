@@ -26,7 +26,7 @@ export default async function LobbyPage() {
           <div className="relative w-16 h-16 mb-4">
             <div className="absolute inset-0 bg-brand-secondary/20 blur-xl rounded-full" />
             <Image
-              src="/logo.png"
+              src="https://www.boozedbunnytown.com/media/logo.png"
               alt="BoozedBunny Logo"
               fill
               className="object-contain relative z-10"

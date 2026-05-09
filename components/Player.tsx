@@ -85,4 +85,4 @@ export function Model({ currentAction = "Idle_1", ...props }: any) {
   );
 }
 
-useGLTF.preload("/media/models/player.glb");
+useGLTF.preload("https://www.boozedbunnytown.com/media/models/player.glb");

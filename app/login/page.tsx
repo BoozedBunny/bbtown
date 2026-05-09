@@ -20,7 +20,7 @@ export default function LoginPage() {
           <div className="relative w-32 h-32 mb-6">
             <div className="absolute inset-0 bg-brand-primary/20 blur-2xl rounded-full animate-pulse" />
             <Image
-              src="/logo.png"
+              src="https://www.boozedbunnytown.com/media/logo.png"
               alt="BoozedBunny Logo"
               fill
               className="object-contain drop-shadow-[0_0_15px_rgba(189,0,255,0.5)] relative z-10"

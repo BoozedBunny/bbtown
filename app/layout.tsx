@@ -26,20 +26,20 @@ export const metadata: Metadata = {
   creator: "BoozedBunny",
   publisher: "BoozedBunny",
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-    apple: "/logo.png",
+    icon: "https://www.boozedbunnytown.com/media/favicon.ico",
+    shortcut: "https://www.boozedbunnytown.com/media/favicon.ico",
+    apple: "https://www.boozedbunnytown.com/media/logo.png",
   },
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://bbtown.ai",
-    title: "BoozedBunny AI Town",
+    url: "https://www.boozedbunnytown.com",
+    title: "BoozedBunny Town",
     description: "Enter the next generation of building and competition in BoozedBunny AI Town.",
     siteName: "BoozedBunny AI Town",
     images: [
       {
-        url: "/logo.png",
+        url: "https://www.boozedbunnytown.com/media/logo.png",
         width: 512,
         height: 512,
         alt: "BoozedBunny AI Town Logo",
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "BoozedBunny AI Town",
     description: "Enter the next generation of building and competition in BoozedBunny AI Town.",
-    images: ["/logo.png"],
+    images: ["https://www.boozedbunnytown.com/media/logo.png"],
     creator: "@BoozedBunny",
   },
 };

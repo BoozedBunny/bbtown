@@ -11,12 +11,12 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#BD00FF',
     icons: [
       {
-        src: '/favicon.ico',
+        src: 'https://www.boozedbunnytown.com/media/favicon.ico',
         sizes: 'any',
         type: 'image/x-icon',
       },
       {
-        src: '/logo.png',
+        src: 'https://www.boozedbunnytown.com/media/logo.png',
         sizes: '512x512',
         type: 'image/png',
       },

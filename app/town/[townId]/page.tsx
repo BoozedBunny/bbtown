@@ -253,7 +253,7 @@ function Scene({
       })}
 
       <ModelX
-        url="/media/models/bbtown_logo_optimized.glb"
+        url="https://www.boozedbunnytown.com/media/models/bbtown_logo_optimized.glb"
         position={[6, 0.69, 4.1]}
         opacity={!isXRay ? 1 : 0.5}
         rotationY={50}
@@ -262,7 +262,7 @@ function Scene({
       />
 
         <ModelX
-        url="/media/models/ground.glb"
+        url="https://www.boozedbunnytown.com/media/models/ground.glb"
         position={[0, -2.36, 0]}
         opacity={!isXRay ? 1 : 0.5}
         scale={20}
@@ -753,7 +753,7 @@ export default function TownPage({
               >
                 <div className="relative" style={{ width: "clamp(48px, 5.2vw, 78px)", height: "clamp(48px, 5.2vw, 78px)" }}>
                   <Image
-                    src="/logo.png"
+                    src="https://www.boozedbunnytown.com/media/logo.png"
                     alt="BB"
                     fill
                     className="object-contain drop-shadow-[0_0_10px_rgba(189,0,255,0.5)]"

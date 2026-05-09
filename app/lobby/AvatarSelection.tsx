@@ -5,8 +5,8 @@ import Image from "next/image";
 import { createCharacter, updateCharacter } from "../actions/character";
 
 const AVATARS = [
-  { id: "bunny", label: "Bunny", src: "/media/avatars/bunny_avatar.webp" },
-  { id: "cowie", label: "Cowie", src: "/media/avatars/cowie_avatar.webp" },
+  { id: "bunny", label: "Bunny", src: "https://www.boozedbunnytown.com/media/avatars/bunny_avatar.webp" },
+  { id: "cowie", label: "Cowie", src: "https://www.boozedbunnytown.com/media/avatars/cowie_avatar.webp" },
 ];
 
 export function AvatarSelection({

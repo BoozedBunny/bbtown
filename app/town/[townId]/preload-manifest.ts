@@ -1,8 +1,8 @@
 import { HARDCODED_BUILDINGS } from "./town-config";
 
 const STATIC_TOWN_ASSETS = [
-  "/media/textures/testground.png",
-  "/media/models/bbtown_logo_optimized.glb",
+  "https://www.boozedbunnytown.com/media/textures/testground.png",
+  "https://www.boozedbunnytown.com/media/models/bbtown_logo_optimized.glb",
 ] as const;
 
 export function getTownPreloadManifest() {
