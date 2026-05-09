@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useGLTF, Html } from "@react-three/drei";
@@ -81,19 +80,30 @@ export function ModelBuilding({
     return clone;
   }, [scene, opacity]);
 
-  const rotationInRadians = useMemo(() => (rotationY * Math.PI) / 180, [rotationY]);
+  const rotationInRadians = useMemo(
+    () => (rotationY * Math.PI) / 180,
+    [rotationY],
+  );
 
   useFrame((state) => {
     if (!isBalloon || !groupRef.current) return;
 
     const t = state.clock.getElapsedTime();
-    const bob = Math.sin(TWO_PI * BALLOON_BOB_HZ * t + BALLOON_PHASE_BOB) * BALLOON_BOB_AMP;
+    const bob =
+      Math.sin(TWO_PI * BALLOON_BOB_HZ * t + BALLOON_PHASE_BOB) *
+      BALLOON_BOB_AMP;
     const driftAngle = TWO_PI * BALLOON_DRIFT_HZ * t + BALLOON_PHASE_DRIFT;
     const driftX = Math.cos(driftAngle) * BALLOON_DRIFT_RADIUS;
     const driftZ = Math.sin(driftAngle) * BALLOON_DRIFT_RADIUS;
-    const yawSway = Math.sin(TWO_PI * BALLOON_YAW_SWAY_HZ * t + BALLOON_PHASE_YAW) * BALLOON_YAW_SWAY_AMP;
+    const yawSway =
+      Math.sin(TWO_PI * BALLOON_YAW_SWAY_HZ * t + BALLOON_PHASE_YAW) *
+      BALLOON_YAW_SWAY_AMP;
 
-    groupRef.current.position.set(position[0] + driftX, position[1] + bob, position[2] + driftZ);
+    groupRef.current.position.set(
+      position[0] + driftX,
+      position[1] + bob,
+      position[2] + driftZ,
+    );
     groupRef.current.rotation.y = rotationInRadians + yawSway;
   });
 
@@ -104,23 +114,46 @@ export function ModelBuilding({
   }, [id]);
 
   const iconBgColor = useMemo(() => {
-    if (id === "4") return "bg-brand-secondary shadow-[0_0_15px_rgba(255,184,0,0.8)]";
+    if (id === "4")
+      return "bg-brand-secondary shadow-[0_0_15px_rgba(255,184,0,0.8)]";
     return "bg-brand-primary shadow-[0_0_15px_rgba(189,0,255,0.8)]";
   }, [id]);
 
   const iconPosition = useMemo(() => {
     const box = new THREE.Box3().setFromObject(clonedScene);
     const h = box.max.y - box.min.y;
-    if (url.includes("up_up_balloon")) return [0, 0.7, 0] as [number, number, number]; // Slightly higher
+    if (url.includes("up_up_balloon"))
+      return [0, 0.7, 0] as [number, number, number]; // Slightly higher
     return [0, h * 0.9, 0] as [number, number, number]; // Increased to float elegantly above
   }, [clonedScene, url]);
 
+  const specialBuildingConfig = useMemo(() => {
+    if (id === "4") {
+      return {
+        title: "The Bank",
+        colorClass: "text-brand-secondary",
+        borderClass: "border-brand-secondary/30",
+        shadowClass: "shadow-[0_0_15px_rgba(255,184,0,0.3)]",
+      };
+    }
+    if (id === "21") {
+      return {
+        title: "The Arena",
+        colorClass: "text-brand-primary",
+        borderClass: "border-brand-primary/30",
+        shadowClass: "shadow-[0_0_15px_rgba(189,0,255,0.3)]",
+      };
+    }
+    return null;
+  }, [id]);
+
   return (
-    <group ref={groupRef} position={position} rotation={[0, rotationInRadians, 0]}>
-      <primitive
-        object={clonedScene}
-        scale={scale}
-      />
+    <group
+      ref={groupRef}
+      position={position}
+      rotation={[0, rotationInRadians, 0]}
+    >
+      <primitive object={clonedScene} scale={scale} />
 
       {!hoverSuppressed && (
         <Html position={iconPosition} center zIndexRange={[30, 0]}>
@@ -153,17 +186,37 @@ export function ModelBuilding({
 
             {/* Expandable Popover Container */}
             <div className="absolute left-1/2 ml-[24px] top-1/2 -translate-y-1/2 overflow-hidden w-0 opacity-0 transition-all duration-300 ease-out group-hover:w-[180px] group-hover:opacity-100">
-              <div className="w-[180px] cyber-panel px-3 py-2 text-left bg-[#0F021A]/95 rounded-r-lg border-y border-r border-brand-primary/30 shadow-[0_0_15px_rgba(189,0,255,0.3)]">
-                <div className="text-[10px] uppercase font-black text-brand-primary tracking-widest mb-1 truncate">
-                  {title || "Unknown Building"}
-                </div>
-                <div className="text-xs font-bold text-white truncate">
-                  {ownerName || "No Owner"}
-                </div>
-                {forSale && price !== undefined && (
-                  <div className="mt-1 text-[10px] text-green-400 font-bold tracking-wider">
-                    FOR SALE: ${price.toLocaleString()}
+              <div
+                className={`w-[180px] cyber-panel px-3 py-2 text-left bg-[#0F021A]/95 rounded-r-lg border-y border-r ${
+                  specialBuildingConfig
+                    ? specialBuildingConfig.borderClass
+                    : "border-brand-primary/30"
+                } ${
+                  specialBuildingConfig
+                    ? specialBuildingConfig.shadowClass
+                    : "shadow-[0_0_15px_rgba(189,0,255,0.3)]"
+                }`}
+              >
+                {specialBuildingConfig ? (
+                  <div
+                    className={`text-sm font-black tracking-widest uppercase mb-0 ${specialBuildingConfig.colorClass} truncate`}
+                  >
+                    {specialBuildingConfig.title}
                   </div>
+                ) : (
+                  <>
+                    <div className="text-[10px] uppercase font-black text-brand-primary tracking-widest mb-1 truncate">
+                      {title || "Unknown Building"}
+                    </div>
+                    <div className="text-xs font-bold text-white truncate">
+                      {ownerName || "No Owner"}
+                    </div>
+                    {forSale && price !== undefined && (
+                      <div className="mt-1 text-[10px] text-green-400 font-bold tracking-wider">
+                        FOR SALE: ${price.toLocaleString()}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
