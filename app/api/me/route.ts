@@ -11,7 +11,8 @@ export async function GET() {
     return NextResponse.json({
       username: user.username,
       wallet: user.character.wallet,
-      characterId: user.character.id
+      characterId: user.character.id,
+      avatar: user.character.avatar
     });
   } catch (error) {
     console.error(error);
