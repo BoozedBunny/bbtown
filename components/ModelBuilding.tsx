@@ -115,7 +115,7 @@ export function ModelBuilding({
       />
 
       {!hoverSuppressed && (
-        <Html position={iconPosition} center zIndexRange={[100, 0]}>
+        <Html position={iconPosition} center zIndexRange={[30, 0]}>
           <div
             className="pointer-events-auto flex items-center justify-center cursor-pointer transition-transform hover:scale-110"
             onClick={(e) => {
