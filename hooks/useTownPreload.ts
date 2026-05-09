@@ -26,12 +26,17 @@ export function useTownPreload({
   timeoutMs = DEFAULT_TIMEOUT_MS,
   prefetchRoute,
 }: UseTownPreloadParams) {
-  const [status, setStatus] = useState<PreloadStatus>(enabled ? "preloading" : "idle");
+  const [status, setStatus] = useState<PreloadStatus>(
+    enabled ? "preloading" : "idle",
+  );
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | undefined>();
   const attemptRef = useRef(0);
 
-  const cacheKey = useMemo(() => `town-preload:${townHref}:${buildVersion}`, [townHref, buildVersion]);
+  const cacheKey = useMemo(
+    () => `town-preload:${townHref}:${buildVersion}`,
+    [townHref, buildVersion],
+  );
 
   const markReady = useCallback(() => {
     sessionStorage.setItem(cacheKey, "ready");
@@ -90,13 +95,13 @@ export function useTownPreload({
       setTimeout(() => reject(new Error("Preload timeout")), timeoutMs);
     });
 
-    const preloadPromise = (async () => {
-      for (const task of tasks) {
+    const preloadPromise = Promise.all(
+      tasks.map(async (task) => {
         await task();
         completed += 1;
         updateProgress();
-      }
-    })();
+      }),
+    );
 
     try {
       await Promise.race([preloadPromise, timeoutPromise]);
@@ -106,9 +111,20 @@ export function useTownPreload({
       if (attemptRef.current !== attemptId) return;
       setStatus("error");
       setProgress(0);
-      setError(cause instanceof Error ? cause.message : "Unknown preload error");
+      setError(
+        cause instanceof Error ? cause.message : "Unknown preload error",
+      );
     }
-  }, [cacheKey, enabled, glbAssets, markReady, prefetchRoute, staticAssets, timeoutMs, townHref]);
+  }, [
+    cacheKey,
+    enabled,
+    glbAssets,
+    markReady,
+    prefetchRoute,
+    staticAssets,
+    timeoutMs,
+    townHref,
+  ]);
 
   useEffect(() => {
     runPreload();
