@@ -36,9 +36,21 @@ import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "../../actions/user";
 import { buyBuilding, updateBuildingSettings } from "../../actions/town";
 import { updateBuildingTransform } from "../../actions/dev";
-import { ARENA_BUILDING_ID, BANK_BUILDING_ID, HARDCODED_BUILDINGS } from "./town-config";
-import type { BuildingData, DbBuildingState, TownStateData, UserWithCharacter } from "./town-types";
-import type { CentralManagementIntent, CentralManagementTab } from "@/lib/ui/centralManagementIntent";
+import {
+  ARENA_BUILDING_ID,
+  BANK_BUILDING_ID,
+  HARDCODED_BUILDINGS,
+} from "./town-config";
+import type {
+  BuildingData,
+  DbBuildingState,
+  TownStateData,
+  UserWithCharacter,
+} from "./town-types";
+import type {
+  CentralManagementIntent,
+  CentralManagementTab,
+} from "@/lib/ui/centralManagementIntent";
 
 type WalletSummaryCategory = {
   key: string;
@@ -64,7 +76,10 @@ const WALLET_CATEGORY_DEFAULTS: Array<{ key: string; label: string }> = [
   { key: "other", label: "Other" },
 ];
 
-const formatCurrencyAmount = (value: number | null, currencyCode: string): string => {
+const formatCurrencyAmount = (
+  value: number | null,
+  currencyCode: string,
+): string => {
   if (value === null || Number.isNaN(value)) return "—";
   return new Intl.NumberFormat(undefined, {
     style: "currency",
@@ -140,13 +155,23 @@ function Scene({
       aspect?: number;
     };
 
-    if (typedCamera.isOrthographicCamera && typedCamera.right !== undefined && typedCamera.left !== undefined && typedCamera.zoom) {
+    if (
+      typedCamera.isOrthographicCamera &&
+      typedCamera.right !== undefined &&
+      typedCamera.left !== undefined &&
+      typedCamera.zoom
+    ) {
       return ((typedCamera.right - typedCamera.left) / typedCamera.zoom) * 0.5;
     }
 
-    if (typedCamera.isPerspectiveCamera && typedCamera.fov !== undefined && typedCamera.aspect !== undefined) {
+    if (
+      typedCamera.isPerspectiveCamera &&
+      typedCamera.fov !== undefined &&
+      typedCamera.aspect !== undefined
+    ) {
       const viewDistance = Math.abs(camera.position.y);
-      const verticalHalfSpan = Math.tan((typedCamera.fov * Math.PI) / 360) * viewDistance;
+      const verticalHalfSpan =
+        Math.tan((typedCamera.fov * Math.PI) / 360) * viewDistance;
       return verticalHalfSpan * typedCamera.aspect;
     }
 
@@ -161,15 +186,22 @@ function Scene({
       if (!controls) return;
 
       const halfWidth = getHorizontalFootprintHalfWidth(controls.object);
-      const minBound = cityBounds.minX + TOWN_CAMERA_PAN_CONFIG.cityMarginWorld + halfWidth;
-      const maxBound = cityBounds.maxX - TOWN_CAMERA_PAN_CONFIG.cityMarginWorld - halfWidth;
+      const minBound =
+        cityBounds.minX + TOWN_CAMERA_PAN_CONFIG.cityMarginWorld + halfWidth;
+      const maxBound =
+        cityBounds.maxX - TOWN_CAMERA_PAN_CONFIG.cityMarginWorld - halfWidth;
       const span = maxBound - minBound;
       const hasPanSpan = span > TOWN_CAMERA_PAN_CONFIG.minSoftSpan;
 
-      const effectiveMinX = hasPanSpan ? minBound : (cityBounds.minX + cityBounds.maxX) / 2;
+      const effectiveMinX = hasPanSpan
+        ? minBound
+        : (cityBounds.minX + cityBounds.maxX) / 2;
       const effectiveMaxX = hasPanSpan ? maxBound : effectiveMinX;
       const currentTargetX = controls.target.x;
-      const clampedTargetX = Math.min(effectiveMaxX, Math.max(effectiveMinX, currentTargetX));
+      const clampedTargetX = Math.min(
+        effectiveMaxX,
+        Math.max(effectiveMinX, currentTargetX),
+      );
       const appliedDeltaX = clampedTargetX - currentTargetX;
 
       if (Math.abs(appliedDeltaX) > 1e-6) {
@@ -187,7 +219,14 @@ function Scene({
         clampHits: clampHitsRef.current,
       });
     },
-    [cameraMode, cityBounds.maxX, cityBounds.minX, getHorizontalFootprintHalfWidth, horizontalPanEnabled, onPanDebugChange],
+    [
+      cameraMode,
+      cityBounds.maxX,
+      cityBounds.minX,
+      getHorizontalFootprintHalfWidth,
+      horizontalPanEnabled,
+      onPanDebugChange,
+    ],
   );
 
   useEffect(() => {
@@ -261,7 +300,7 @@ function Scene({
         tiltZ={70}
       />
 
-        <ModelX
+      <ModelX
         url="https://www.boozedbunnytown.com/media/models/ground.glb"
         position={[0, -2.36, 0]}
         opacity={!isXRay ? 1 : 0.5}
@@ -277,7 +316,10 @@ function Scene({
       />
       <OrbitControls
         ref={controlsRef}
-        enablePan={cameraMode === "dev" || (cameraMode === "game" && !!horizontalPanEnabled)}
+        enablePan={
+          cameraMode === "dev" ||
+          (cameraMode === "game" && !!horizontalPanEnabled)
+        }
         enableRotate={true}
         zoomSpeed={0.5}
         minZoom={cameraMode === "game" ? 80 : 0.1}
@@ -300,7 +342,9 @@ export default function TownPage({
   const searchParams = useSearchParams();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
-  const [activeHoverBuildingId, setActiveHoverBuildingId] = useState<string | null>(null);
+  const [activeHoverBuildingId, setActiveHoverBuildingId] = useState<
+    string | null
+  >(null);
   const [selectedBuilding, setSelectedBuilding] = useState<BuildingData | null>(
     null,
   );
@@ -322,25 +366,37 @@ export default function TownPage({
   const [rotationOverrides, setRotationOverrides] = useState<
     Record<string, number>
   >({});
-  const [dbBuildingStates, setDbBuildingStates] = useState<DbBuildingState[]>([]);
+  const [dbBuildingStates, setDbBuildingStates] = useState<DbBuildingState[]>(
+    [],
+  );
   const [townData, setTownData] = useState<TownStateData | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [serverTime, setServerTime] = useState<string | undefined>(undefined);
   const [showCombinedView, setShowCombinedView] = useState(false);
-  const [marketIntent, setMarketIntent] = useState<CentralManagementIntent | null>(null);
+  const [marketIntent, setMarketIntent] =
+    useState<CentralManagementIntent | null>(null);
   const [showArenaModal, setShowArenaModal] = useState(false);
-  const [matchmakingStatus, setMatchmakingStatus] = useState<"idle" | "searching" | "matched">("idle");
+  const [matchmakingStatus, setMatchmakingStatus] = useState<
+    "idle" | "searching" | "matched"
+  >("idle");
   const [isTopNavMenuOpen, setIsTopNavMenuOpen] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const burgerButtonRef = useRef<HTMLButtonElement | null>(null);
   const walletButtonRef = useRef<HTMLButtonElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
-  const menuItemRefs = useRef<Array<HTMLButtonElement | HTMLAnchorElement | null>>([]);
+  const menuItemRefs = useRef<
+    Array<HTMLButtonElement | HTMLAnchorElement | null>
+  >([]);
 
   const emitNavEvent = useCallback(
-    (eventName: "nav_menu_opened" | "nav_menu_closed" | "nav_item_clicked", payload?: Record<string, string>) => {
+    (
+      eventName: "nav_menu_opened" | "nav_menu_closed" | "nav_item_clicked",
+      payload?: Record<string, string>,
+    ) => {
       if (typeof window === "undefined") return;
-      window.dispatchEvent(new CustomEvent(eventName, { detail: payload ?? {} }));
+      window.dispatchEvent(
+        new CustomEvent(eventName, { detail: payload ?? {} }),
+      );
     },
     [],
   );
@@ -361,7 +417,11 @@ export default function TownPage({
         if (!prev) return prev;
         emitNavEvent("nav_menu_closed", {
           viewport:
-            typeof window === "undefined" ? "unknown" : window.innerWidth < 1024 ? "mobile" : "desktop",
+            typeof window === "undefined"
+              ? "unknown"
+              : window.innerWidth < 1024
+                ? "mobile"
+                : "desktop",
           page: pathname,
           auth_state: "unknown",
           reason,
@@ -389,26 +449,38 @@ export default function TownPage({
     price: 5000,
     forSale: false,
   });
-  const [currentUser, setCurrentUser] = useState<UserWithCharacter | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserWithCharacter | null>(
+    null,
+  );
   const topNavFeatureFlag =
-    process.env.NEXT_PUBLIC_HEADER_BURGER_NAV_V1 ?? process.env.NEXT_PUBLIC_TOPNAV_REFACTOR_V2 ?? "true";
+    process.env.NEXT_PUBLIC_HEADER_BURGER_NAV_V1 ??
+    process.env.NEXT_PUBLIC_TOPNAV_REFACTOR_V2 ??
+    "true";
   const isTopNavRefactorEnabled = topNavFeatureFlag !== "false";
-  const cameraPanFeatureFlag = process.env.NEXT_PUBLIC_TOWN_CAMERA_HORIZONTAL_PAN ?? "false";
+  const cameraPanFeatureFlag =
+    process.env.NEXT_PUBLIC_TOWN_CAMERA_HORIZONTAL_PAN ?? "false";
   const isTownCameraHorizontalPanEnabled = cameraPanFeatureFlag === "true";
-  const cameraPanDebugFeatureFlag = process.env.NEXT_PUBLIC_TOWN_CAMERA_HORIZONTAL_PAN_DEBUG ?? "false";
+  const cameraPanDebugFeatureFlag =
+    process.env.NEXT_PUBLIC_TOWN_CAMERA_HORIZONTAL_PAN_DEBUG ?? "false";
   const isTownCameraPanDebugEnabled = cameraPanDebugFeatureFlag === "true";
-  const [townCameraPanDebug, setTownCameraPanDebug] = useState<TownCameraPanDebug>({
-    targetX: 0,
-    minX: 0,
-    maxX: 0,
-    rawDeltaX: 0,
-    appliedDeltaX: 0,
-    clampHits: 0,
-  });
+  const [townCameraPanDebug, setTownCameraPanDebug] =
+    useState<TownCameraPanDebug>({
+      targetX: 0,
+      minX: 0,
+      maxX: 0,
+      rawDeltaX: 0,
+      appliedDeltaX: 0,
+      clampHits: 0,
+    });
 
   useEffect(() => {
-    if (!isTownCameraHorizontalPanEnabled || !isTownCameraPanDebugEnabled) return;
-    if (townCameraPanDebug.clampHits === 0 || townCameraPanDebug.clampHits % 10 !== 0) return;
+    if (!isTownCameraHorizontalPanEnabled || !isTownCameraPanDebugEnabled)
+      return;
+    if (
+      townCameraPanDebug.clampHits === 0 ||
+      townCameraPanDebug.clampHits % 10 !== 0
+    )
+      return;
     console.debug("[TownCameraPan]", {
       targetX: Number(townCameraPanDebug.targetX.toFixed(3)),
       minX: Number(townCameraPanDebug.minX.toFixed(3)),
@@ -417,12 +489,21 @@ export default function TownPage({
       appliedDeltaX: Number(townCameraPanDebug.appliedDeltaX.toFixed(3)),
       clampHits: townCameraPanDebug.clampHits,
     });
-  }, [isTownCameraHorizontalPanEnabled, isTownCameraPanDebugEnabled, townCameraPanDebug]);
-  const walletModalFeatureFlag = process.env.NEXT_PUBLIC_WALLET_MODAL_ENABLED ?? "true";
+  }, [
+    isTownCameraHorizontalPanEnabled,
+    isTownCameraPanDebugEnabled,
+    townCameraPanDebug,
+  ]);
+  const walletModalFeatureFlag =
+    process.env.NEXT_PUBLIC_WALLET_MODAL_ENABLED ?? "true";
   const isWalletModalEnabled = walletModalFeatureFlag !== "false";
-  const walletPositionFeatureFlag = process.env.NEXT_PUBLIC_HEADER_WALLET_POSITION_V2 ?? "true";
+  const walletPositionFeatureFlag =
+    process.env.NEXT_PUBLIC_HEADER_WALLET_POSITION_V2 ?? "true";
   const isWalletPositionV2Enabled = walletPositionFeatureFlag !== "false";
-  const chatFeatureFlag = process.env.NEXT_PUBLIC_CHAT_EPIC3_ENABLED ?? process.env.NEXT_PUBLIC_CHAT_EPIC1_ENABLED ?? "false";
+  const chatFeatureFlag =
+    process.env.NEXT_PUBLIC_CHAT_EPIC3_ENABLED ??
+    process.env.NEXT_PUBLIC_CHAT_EPIC1_ENABLED ??
+    "false";
   const isChatWhisperEnabled = chatFeatureFlag === "true";
 
   type HeaderNavItem = {
@@ -448,7 +529,8 @@ export default function TownPage({
         label: cameraMode === "game" ? "Dev Mode" : "Game Mode",
         group: "core",
         priority: 20,
-        onSelect: () => setCameraMode((prev) => (prev === "game" ? "dev" : "game")),
+        onSelect: () =>
+          setCameraMode((prev) => (prev === "game" ? "dev" : "game")),
       },
       {
         id: "news",
@@ -504,7 +586,11 @@ export default function TownPage({
 
   const getNavAnalyticsContext = useCallback(() => {
     const viewport =
-      typeof window === "undefined" ? "unknown" : window.innerWidth < 1024 ? "mobile" : "desktop";
+      typeof window === "undefined"
+        ? "unknown"
+        : window.innerWidth < 1024
+          ? "mobile"
+          : "desktop";
     return {
       viewport,
       page: pathname,
@@ -512,7 +598,10 @@ export default function TownPage({
     };
   }, [currentUser, pathname]);
 
-  const updateCentralManagementQuery = (tab: CentralManagementTab, symbol?: string | null) => {
+  const updateCentralManagementQuery = (
+    tab: CentralManagementTab,
+    symbol?: string | null,
+  ) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("cm", tab);
     if (tab === "market" && symbol?.trim()) {
@@ -521,7 +610,9 @@ export default function TownPage({
       params.delete("symbol");
     }
     const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
   };
 
   const openCentralManagement = (intent: CentralManagementIntent) => {
@@ -537,7 +628,9 @@ export default function TownPage({
     params.delete("cm");
     params.delete("symbol");
     const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
   };
 
   useEffect(() => {
@@ -545,7 +638,10 @@ export default function TownPage({
 
     const onPointerDown = (event: MouseEvent) => {
       const target = event.target as Node;
-      if (dropdownRef.current?.contains(target) || burgerButtonRef.current?.contains(target)) {
+      if (
+        dropdownRef.current?.contains(target) ||
+        burgerButtonRef.current?.contains(target)
+      ) {
         return;
       }
       closeTopNavMenu("outside_click");
@@ -728,7 +824,13 @@ export default function TownPage({
       }
       return { ...b, position: pos, rotationY: rot };
     });
-  }, [dbBuildingStates, freeMoveBuildingId, freeMovePosition, positionOverrides, rotationOverrides]);
+  }, [
+    dbBuildingStates,
+    freeMoveBuildingId,
+    freeMovePosition,
+    positionOverrides,
+    rotationOverrides,
+  ]);
 
   useEffect(() => {
     if (!hoverSuppressed) return;
@@ -737,199 +839,246 @@ export default function TownPage({
 
   return (
     <main className="flex min-h-screen flex-col items-center p-8 text-white font-sans overflow-hidden relative brand-bg-overlay">
-      <div className="z-10 w-full max-w-6xl mb-8 cyber-panel p-4 md:p-6 shadow-xl relative border-t-4 border-t-brand-primary">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="font-heading font-bold tracking-tight text-white flex items-center gap-3">
-              <button
-                className="flex items-center gap-3 hover:opacity-80 transition-opacity text-left focus:outline-none focus:ring-2 focus:ring-brand-primary rounded-lg p-1 -m-1"
-                onClick={() =>
-                  openCentralManagement({
-                    tab: "treasury",
-                    source: "manual",
-                  })
-                }
-                aria-label="Open Town Central Management"
-              >
-                <div className="relative" style={{ width: "clamp(48px, 5.2vw, 78px)", height: "clamp(48px, 5.2vw, 78px)" }}>
-                  <Image
-                    src="https://www.boozedbunnytown.com/media/logo.png"
-                    alt="BB"
-                    fill
-                    className="object-contain drop-shadow-[0_0_10px_rgba(189,0,255,0.5)]"
-                  />
-                </div>
-                <span className="text-[clamp(1.1rem,2vw,1.85rem)] leading-tight font-black italic tracking-tighter cyber-glitch-text" data-text={`BoozedBunnyTown #${townId}`}>
-                  BoozedBunnyTown <span className="text-brand-secondary">#{townId}</span>
-                </span>
-              </button>
-            </h1>
-            {!isWalletPositionV2Enabled && currentUser?.character && (
-              <div className="mt-2">
+      <div className="relative z-10 w-full max-w-6xl mb-8">
+        <div className="w-full cyber-panel p-4 md:p-6 shadow-xl relative border-t-4 border-t-brand-primary">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="font-heading font-bold tracking-tight text-white flex items-center gap-3">
                 <button
-                  ref={walletButtonRef}
-                  type="button"
-                  aria-label="Open wallet summary"
-                  onClick={() => {
-                    if (!isWalletModalEnabled) return;
-                    setIsWalletModalOpen(true);
-                  }}
-                  className="group relative min-h-11 inline-block"
+                  className="flex items-center gap-3 hover:opacity-80 transition-opacity text-left focus:outline-none focus:ring-2 focus:ring-brand-primary rounded-lg p-1 -m-1"
+                  onClick={() =>
+                    openCentralManagement({
+                      tab: "treasury",
+                      source: "manual",
+                    })
+                  }
+                  aria-label="Open Town Central Management"
                 >
-                  <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
-                  <div className="cyber-skew bg-brand-primary/20 border border-brand-primary/50 px-4 py-1 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1">
-                    <span className="text-sm font-black uppercase tracking-[0.2em] text-brand-secondary">
-                      💰 {formatCurrencyAmount(walletSummary.totalBalance, walletSummary.currencyCode)}
-                    </span>
+                  <div
+                    className="relative"
+                    style={{
+                      width: "clamp(48px, 5.2vw, 78px)",
+                      height: "clamp(48px, 5.2vw, 78px)",
+                    }}
+                  >
+                    <Image
+                      src="https://www.boozedbunnytown.com/media/logo.png"
+                      alt="BB"
+                      fill
+                      className="object-contain drop-shadow-[0_0_10px_rgba(189,0,255,0.5)]"
+                    />
                   </div>
+                  <span
+                    className="text-[clamp(1.1rem,2vw,1.85rem)] leading-tight font-black italic tracking-tighter cyber-glitch-text"
+                    data-text={`BoozedBunnyTown #${townId}`}
+                  >
+                    BoozedBunnyTown{" "}
+                    <span className="text-brand-secondary">#{townId}</span>
+                  </span>
                 </button>
-              </div>
-            )}
-          </div>
+              </h1>
+              {!isWalletPositionV2Enabled && currentUser?.character && (
+                <div className="mt-2">
+                  <button
+                    ref={walletButtonRef}
+                    type="button"
+                    aria-label="Open wallet summary"
+                    onClick={() => {
+                      if (!isWalletModalEnabled) return;
+                      setIsWalletModalOpen(true);
+                    }}
+                    className="group relative min-h-11 inline-block"
+                  >
+                    <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
+                    <div className="cyber-skew bg-brand-primary/20 border border-brand-primary/50 px-4 py-1 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1">
+                      <span className="text-sm font-black uppercase tracking-[0.2em] text-brand-secondary">
+                        💰{" "}
+                        {formatCurrencyAmount(
+                          walletSummary.totalBalance,
+                          walletSummary.currencyCode,
+                        )}
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
 
-          {isTopNavRefactorEnabled ? (
-            <div className="flex items-center gap-2 sm:gap-3">
-              <nav aria-label="Town navigation" className="hidden lg:flex items-center gap-2">
-                {headerNavItems.map((item) => {
-                  if (item.href) {
+            {isTopNavRefactorEnabled ? (
+              <div className="flex items-center gap-2 sm:gap-3">
+                <nav
+                  aria-label="Town navigation"
+                  className="hidden lg:flex items-center gap-2"
+                >
+                  {headerNavItems.map((item) => {
+                    if (item.href) {
+                      return (
+                        <Link
+                          key={item.id}
+                          href={item.href}
+                          onClick={() => {
+                            emitNavEvent("nav_item_clicked", {
+                              ...getNavAnalyticsContext(),
+                              item_key: item.id,
+                              href: item.href ?? "",
+                              position: String(
+                                headerNavItems.findIndex(
+                                  (menuItem) => menuItem.id === item.id,
+                                ) + 1,
+                              ),
+                            });
+                          }}
+                          className="min-h-11 rounded-lg px-3 text-[10px] font-black uppercase tracking-[0.2em] text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary inline-flex items-center"
+                        >
+                          <span className="max-w-full truncate">
+                            {item.label}
+                          </span>
+                        </Link>
+                      );
+                    }
+
                     return (
-                      <Link
+                      <button
                         key={item.id}
-                        href={item.href}
+                        type="button"
                         onClick={() => {
                           emitNavEvent("nav_item_clicked", {
                             ...getNavAnalyticsContext(),
                             item_key: item.id,
                             href: item.href ?? "",
-                            position: String(headerNavItems.findIndex((menuItem) => menuItem.id === item.id) + 1),
+                            position: String(
+                              headerNavItems.findIndex(
+                                (menuItem) => menuItem.id === item.id,
+                              ) + 1,
+                            ),
                           });
+                          item.onSelect?.();
                         }}
-                        className="min-h-11 rounded-lg px-3 text-[10px] font-black uppercase tracking-[0.2em] text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary inline-flex items-center"
+                        className="min-h-11 rounded-lg px-3 text-[10px] font-black uppercase tracking-[0.2em] text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary"
                       >
-                        <span className="max-w-full truncate">{item.label}</span>
-                      </Link>
+                        <span className="max-w-full block truncate">
+                          {item.label}
+                        </span>
+                      </button>
                     );
-                  }
-
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => {
-                        emitNavEvent("nav_item_clicked", {
-                          ...getNavAnalyticsContext(),
-                          item_key: item.id,
-                          href: item.href ?? "",
-                          position: String(headerNavItems.findIndex((menuItem) => menuItem.id === item.id) + 1),
-                        });
-                        item.onSelect?.();
-                      }}
-                      className="min-h-11 rounded-lg px-3 text-[10px] font-black uppercase tracking-[0.2em] text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                    >
-                      <span className="max-w-full block truncate">{item.label}</span>
-                    </button>
-                  );
-                })}
-              </nav>
-              <div className={`hidden lg:flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] ${connected ? "text-green-400" : "text-red-400"}`}>
-                <div className={`w-2 h-2 rounded-full ${connected ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
-                {connected ? "Live System" : "Offline"}
-              </div>
-              {isWalletPositionV2Enabled && (
-                <button
-                  ref={walletButtonRef}
-                  type="button"
-                  aria-label="Open wallet summary"
-                  onClick={() => {
-                    if (!isWalletModalEnabled) return;
-                    setIsWalletModalOpen(true);
-                  }}
-                  className="group relative min-h-11 inline-block"
+                  })}
+                </nav>
+                <div
+                  className={`hidden lg:flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] ${connected ? "text-green-400" : "text-red-400"}`}
                 >
-                  <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
-                  <div className="cyber-skew bg-brand-primary/20 border border-brand-primary/50 px-4 py-2 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1">
-                    <span className="text-sm font-black uppercase tracking-[0.2em] text-brand-secondary">
-                      {currentUser?.character
-                        ? `💰 ${formatCurrencyAmount(walletSummary.totalBalance, walletSummary.currencyCode)}`
-                        : "Wallet"}
-                    </span>
-                  </div>
-                </button>
-              )}
-              <button
-                ref={burgerButtonRef}
-                type="button"
-                onClick={() => {
-                  if (isTopNavMenuOpen) {
-                    closeTopNavMenu("toggle");
-                    return;
-                  }
-                  emitNavEvent("nav_menu_opened", getNavAnalyticsContext());
-                  setIsTopNavMenuOpen(true);
-                }}
-                aria-label={isTopNavMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-                aria-expanded={isTopNavMenuOpen}
-                aria-controls="top-nav-menu"
-                onKeyDown={(event) => {
-                  if (event.key !== "ArrowDown") return;
-                  event.preventDefault();
-                  if (!isTopNavMenuOpen) {
+                  <div
+                    className={`w-2 h-2 rounded-full ${connected ? "bg-green-400 animate-pulse" : "bg-red-400"}`}
+                  />
+                  {connected ? "Live System" : "Offline"}
+                </div>
+                {isWalletPositionV2Enabled && (
+                  <button
+                    ref={walletButtonRef}
+                    type="button"
+                    aria-label="Open wallet summary"
+                    onClick={() => {
+                      if (!isWalletModalEnabled) return;
+                      setIsWalletModalOpen(true);
+                    }}
+                    className="group relative min-h-11 inline-block"
+                  >
+                    <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
+                    <div className="cyber-skew bg-brand-primary/20 border border-brand-primary/50 px-4 py-2 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1">
+                      <span className="text-sm font-black uppercase tracking-[0.2em] text-brand-secondary">
+                        {currentUser?.character
+                          ? `💰 ${formatCurrencyAmount(walletSummary.totalBalance, walletSummary.currencyCode)}`
+                          : "Wallet"}
+                      </span>
+                    </div>
+                  </button>
+                )}
+                <button
+                  ref={burgerButtonRef}
+                  type="button"
+                  onClick={() => {
+                    if (isTopNavMenuOpen) {
+                      closeTopNavMenu("toggle");
+                      return;
+                    }
                     emitNavEvent("nav_menu_opened", getNavAnalyticsContext());
                     setIsTopNavMenuOpen(true);
-                    return;
+                  }}
+                  aria-label={
+                    isTopNavMenuOpen
+                      ? "Close navigation menu"
+                      : "Open navigation menu"
                   }
-                  const firstItem = menuItemRefs.current.find(Boolean);
-                  firstItem?.focus();
-                }}
-                className="lg:hidden min-h-11 min-w-11 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary inline-flex items-center justify-center"
-              >
-                {isTopNavMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-6">
-              <Button
-                variant="ghost"
-                onClick={() => setIsXRay(!isXRay)}
-                className={`text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full transition-all border ${isXRay ? "bg-brand-primary/20 border-brand-primary text-brand-primary" : "border-white/10 text-gray-400 hover:text-white hover:bg-white/5"}`}
-              >
-                {isXRay ? "X-Ray Active" : "X-Ray View"}
-              </Button>
-          <Button
-            variant={cameraMode === "dev" ? "default" : "outline"}
-            onClick={() =>
-              setCameraMode(cameraMode === "game" ? "dev" : "game")
-            }
-            className="text-xs"
-          >
-            {cameraMode === "game" ? "Dev Mode" : "Game Mode"}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() =>
-              openCentralManagement({
-                tab: "news",
-                source: "news",
-              })
-            }
-            className="text-xs border-white/10 text-gray-300 hover:text-white hover:bg-white/10"
-          >
-            News
-          </Button>
-              <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] ${connected ? "text-green-400" : "text-red-400"}`}>
-                <div className={`w-2 h-2 rounded-full ${connected ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
-                {connected ? "Live System" : "Offline"}
+                  aria-expanded={isTopNavMenuOpen}
+                  aria-controls="top-nav-menu"
+                  onKeyDown={(event) => {
+                    if (event.key !== "ArrowDown") return;
+                    event.preventDefault();
+                    if (!isTopNavMenuOpen) {
+                      emitNavEvent("nav_menu_opened", getNavAnalyticsContext());
+                      setIsTopNavMenuOpen(true);
+                      return;
+                    }
+                    const firstItem = menuItemRefs.current.find(Boolean);
+                    firstItem?.focus();
+                  }}
+                  className="lg:hidden min-h-11 min-w-11 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary inline-flex items-center justify-center"
+                >
+                  {isTopNavMenuOpen ? (
+                    <X className="w-5 h-5" />
+                  ) : (
+                    <Menu className="w-5 h-5" />
+                  )}
+                </button>
               </div>
-              <Link href="/lobby">
+            ) : (
+              <div className="flex items-center gap-6">
                 <Button
                   variant="ghost"
-                  className="text-xs hover:text-brand-secondary transition-colors text-gray-400 uppercase tracking-widest font-bold"
+                  onClick={() => setIsXRay(!isXRay)}
+                  className={`text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full transition-all border ${isXRay ? "bg-brand-primary/20 border-brand-primary text-brand-primary" : "border-white/10 text-gray-400 hover:text-white hover:bg-white/5"}`}
                 >
-                  Back to Lobby
+                  {isXRay ? "X-Ray Active" : "X-Ray View"}
                 </Button>
-              </Link>
-            </div>
-          )}
+                <Button
+                  variant={cameraMode === "dev" ? "default" : "outline"}
+                  onClick={() =>
+                    setCameraMode(cameraMode === "game" ? "dev" : "game")
+                  }
+                  className="text-xs"
+                >
+                  {cameraMode === "game" ? "Dev Mode" : "Game Mode"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    openCentralManagement({
+                      tab: "news",
+                      source: "news",
+                    })
+                  }
+                  className="text-xs border-white/10 text-gray-300 hover:text-white hover:bg-white/10"
+                >
+                  News
+                </Button>
+                <div
+                  className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] ${connected ? "text-green-400" : "text-red-400"}`}
+                >
+                  <div
+                    className={`w-2 h-2 rounded-full ${connected ? "bg-green-400 animate-pulse" : "bg-red-400"}`}
+                  />
+                  {connected ? "Live System" : "Offline"}
+                </div>
+                <Link href="/lobby">
+                  <Button
+                    variant="ghost"
+                    className="text-xs hover:text-brand-secondary transition-colors text-gray-400 uppercase tracking-widest font-bold"
+                  >
+                    Back to Lobby
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
 
         {isTopNavRefactorEnabled && isTopNavMenuOpen && (
@@ -937,10 +1086,12 @@ export default function TownPage({
             id="top-nav-menu"
             ref={dropdownRef}
             aria-label="Town navigation menu"
-            className="fixed left-4 right-4 top-4 z-[60] max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl border border-white/15 bg-[#0B0714]/95 backdrop-blur-xl p-3 shadow-2xl md:left-auto md:right-4 md:top-[calc(100%+0.75rem)] md:w-[min(28rem,calc(100vw-2rem))]"
+            className="fixed left-4 right-4 top-4 z-[60] max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl border border-white/15 bg-[#0B0714]/95 backdrop-blur-xl p-3 shadow-2xl md:absolute md:left-auto md:right-4 md:top-[calc(100%+0.75rem)] md:w-[min(28rem,calc(100vw-2rem))]"
           >
             <div className="mb-2 flex items-center justify-between px-2">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">Navigation</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
+                Navigation
+              </p>
               <button
                 type="button"
                 onClick={() => closeTopNavMenu("close_button", true)}
@@ -954,9 +1105,13 @@ export default function TownPage({
               <ul
                 className="flex flex-col gap-1"
                 onKeyDown={(event) => {
-                  const items = menuItemRefs.current.filter(Boolean) as Array<HTMLButtonElement | HTMLAnchorElement>;
+                  const items = menuItemRefs.current.filter(Boolean) as Array<
+                    HTMLButtonElement | HTMLAnchorElement
+                  >;
                   if (!items.length) return;
-                  const currentIndex = items.findIndex((item) => item === document.activeElement);
+                  const currentIndex = items.findIndex(
+                    (item) => item === document.activeElement,
+                  );
 
                   if (event.key === "Escape") {
                     event.preventDefault();
@@ -964,12 +1119,19 @@ export default function TownPage({
                     return;
                   }
 
-                  if (event.key === "Tab" && !event.shiftKey && currentIndex === items.length - 1) {
+                  if (
+                    event.key === "Tab" &&
+                    !event.shiftKey &&
+                    currentIndex === items.length - 1
+                  ) {
                     closeTopNavMenu("blur");
                     return;
                   }
 
-                  if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+                  if (
+                    !["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)
+                  )
+                    return;
                   event.preventDefault();
 
                   if (event.key === "Home") {
@@ -981,7 +1143,10 @@ export default function TownPage({
                     return;
                   }
                   const delta = event.key === "ArrowDown" ? 1 : -1;
-                  const nextIndex = currentIndex < 0 ? 0 : (currentIndex + delta + items.length) % items.length;
+                  const nextIndex =
+                    currentIndex < 0
+                      ? 0
+                      : (currentIndex + delta + items.length) % items.length;
                   items[nextIndex]?.focus();
                 }}
               >
@@ -997,7 +1162,9 @@ export default function TownPage({
                             <li key={item.id}>
                               <Link
                                 ref={(el) => {
-                                  const currentIndex = headerNavItems.findIndex((menuItem) => menuItem.id === item.id);
+                                  const currentIndex = headerNavItems.findIndex(
+                                    (menuItem) => menuItem.id === item.id,
+                                  );
                                   menuItemRefs.current[currentIndex] = el;
                                 }}
                                 title={item.label}
@@ -1007,13 +1174,19 @@ export default function TownPage({
                                     ...getNavAnalyticsContext(),
                                     item_key: item.id,
                                     href: item.href ?? "",
-                                    position: String(headerNavItems.findIndex((menuItem) => menuItem.id === item.id) + 1),
+                                    position: String(
+                                      headerNavItems.findIndex(
+                                        (menuItem) => menuItem.id === item.id,
+                                      ) + 1,
+                                    ),
                                   });
                                   closeTopNavMenu("item_click");
                                 }}
                                 className="w-full min-h-11 rounded-lg px-3 text-left text-sm font-semibold text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary inline-flex items-center"
                               >
-                                <span className="max-w-full truncate">{item.label}</span>
+                                <span className="max-w-full truncate">
+                                  {item.label}
+                                </span>
                               </Link>
                             </li>
                           );
@@ -1022,24 +1195,32 @@ export default function TownPage({
                           <li key={item.id}>
                             <button
                               ref={(el) => {
-                                const currentIndex = headerNavItems.findIndex((menuItem) => menuItem.id === item.id);
+                                const currentIndex = headerNavItems.findIndex(
+                                  (menuItem) => menuItem.id === item.id,
+                                );
                                 menuItemRefs.current[currentIndex] = el;
                               }}
                               title={item.label}
                               type="button"
                               onClick={() => {
                                 emitNavEvent("nav_item_clicked", {
-                                    ...getNavAnalyticsContext(),
-                                    item_key: item.id,
-                                    href: item.href ?? "",
-                                    position: String(headerNavItems.findIndex((menuItem) => menuItem.id === item.id) + 1),
-                                  });
+                                  ...getNavAnalyticsContext(),
+                                  item_key: item.id,
+                                  href: item.href ?? "",
+                                  position: String(
+                                    headerNavItems.findIndex(
+                                      (menuItem) => menuItem.id === item.id,
+                                    ) + 1,
+                                  ),
+                                });
                                 item.onSelect?.();
                                 closeTopNavMenu("item_click", true);
                               }}
                               className="w-full min-h-11 rounded-lg px-3 text-left text-sm font-semibold text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand-primary"
                             >
-                              <span className="max-w-full block truncate">{item.label}</span>
+                              <span className="max-w-full block truncate">
+                                {item.label}
+                              </span>
                             </button>
                           </li>
                         );
@@ -1048,8 +1229,12 @@ export default function TownPage({
                   </li>
                 ))}
                 <li className="mt-2 border-t border-white/10 pt-3">
-                  <div className={`flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] px-3 ${connected ? "text-green-400" : "text-red-400"}`}>
-                    <div className={`w-2 h-2 rounded-full ${connected ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
+                  <div
+                    className={`flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] px-3 ${connected ? "text-green-400" : "text-red-400"}`}
+                  >
+                    <div
+                      className={`w-2 h-2 rounded-full ${connected ? "bg-green-400 animate-pulse" : "bg-red-400"}`}
+                    />
                     {connected ? "Live System" : "Offline"}
                   </div>
                 </li>
@@ -1145,25 +1330,32 @@ export default function TownPage({
         </Canvas>
 
         {/* Overlay HUD elements */}
-        {isTownCameraHorizontalPanEnabled && isTownCameraPanDebugEnabled && cameraMode === "dev" && (
-          <div className="absolute top-4 left-4 z-40 rounded-lg border border-white/20 bg-black/70 px-3 py-2 text-[11px] font-mono text-white backdrop-blur">
-            <div>Town Pan Debug</div>
-            <div>targetX: {townCameraPanDebug.targetX.toFixed(2)}</div>
-            <div>minX: {townCameraPanDebug.minX.toFixed(2)}</div>
-            <div>maxX: {townCameraPanDebug.maxX.toFixed(2)}</div>
-            <div>rawΔx: {townCameraPanDebug.rawDeltaX.toFixed(2)}</div>
-            <div>appliedΔx: {townCameraPanDebug.appliedDeltaX.toFixed(2)}</div>
-            <div>clampHits: {townCameraPanDebug.clampHits}</div>
-          </div>
-        )}
-                {freeMoveBuildingId && (
+        {isTownCameraHorizontalPanEnabled &&
+          isTownCameraPanDebugEnabled &&
+          cameraMode === "dev" && (
+            <div className="absolute top-4 left-4 z-40 rounded-lg border border-white/20 bg-black/70 px-3 py-2 text-[11px] font-mono text-white backdrop-blur">
+              <div>Town Pan Debug</div>
+              <div>targetX: {townCameraPanDebug.targetX.toFixed(2)}</div>
+              <div>minX: {townCameraPanDebug.minX.toFixed(2)}</div>
+              <div>maxX: {townCameraPanDebug.maxX.toFixed(2)}</div>
+              <div>rawΔx: {townCameraPanDebug.rawDeltaX.toFixed(2)}</div>
+              <div>
+                appliedΔx: {townCameraPanDebug.appliedDeltaX.toFixed(2)}
+              </div>
+              <div>clampHits: {townCameraPanDebug.clampHits}</div>
+            </div>
+          )}
+        {freeMoveBuildingId && (
           <div className="absolute top-6 left-1/2 -translate-x-1/2 p-4 bg-yellow-500 text-black font-bold rounded-xl shadow-[0_0_20px_rgba(234,179,8,0.5)] z-50 animate-pulse text-center">
             Click anywhere on the ground to place the building
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="mt-2 block mx-auto border-black/20 hover:bg-black/10" 
-              onClick={() => { setFreeMoveBuildingId(null); setFreeMovePosition(null); }}
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-2 block mx-auto border-black/20 hover:bg-black/10"
+              onClick={() => {
+                setFreeMoveBuildingId(null);
+                setFreeMovePosition(null);
+              }}
             >
               Cancel
             </Button>
@@ -1184,13 +1376,15 @@ export default function TownPage({
                 Deselect
               </Button>
             </div>
-           <Button 
-              size="sm" 
-              className="w-full text-xs bg-yellow-500 hover:bg-yellow-400 text-black font-bold" 
+            <Button
+              size="sm"
+              className="w-full text-xs bg-yellow-500 hover:bg-yellow-400 text-black font-bold"
               onClick={() => {
                 setFreeMoveBuildingId(movingBuilding.id);
                 setMovingBuilding(null);
-                toast.info("Click anywhere on the ground to place the building.");
+                toast.info(
+                  "Click anywhere on the ground to place the building.",
+                );
               }}
             >
               Move House Freely
@@ -1331,7 +1525,10 @@ export default function TownPage({
         <DialogContent className="sm:max-w-[480px] cyber-panel text-white border-t-4 border-t-brand-secondary rounded-none shadow-[0_0_50px_rgba(255,184,0,0.15)] p-0 overflow-hidden">
           <div className="p-8 space-y-6">
             <DialogHeader>
-              <DialogTitle className="text-3xl font-heading font-black italic tracking-tighter text-brand-secondary cyber-glitch-text" data-text="NEURAL_WALLET">
+              <DialogTitle
+                className="text-3xl font-heading font-black italic tracking-tighter text-brand-secondary cyber-glitch-text"
+                data-text="NEURAL_WALLET"
+              >
                 NEURAL_WALLET
               </DialogTitle>
               <DialogDescription className="text-gray-500 font-mono text-[10px] uppercase tracking-[0.3em]">
@@ -1341,40 +1538,69 @@ export default function TownPage({
             <div className="grid gap-4">
               <div className="grid gap-3 p-6 bg-black/40 border border-white/5 cyber-skew">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-black">Total_Balance</span>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-black">
+                    Total_Balance
+                  </span>
                   <span className="text-3xl font-black italic tracking-tighter text-white">
-                    {formatCurrencyAmount(walletSummary.totalBalance, walletSummary.currencyCode)}
+                    {formatCurrencyAmount(
+                      walletSummary.totalBalance,
+                      walletSummary.currencyCode,
+                    )}
                   </span>
                 </div>
                 <div className="h-px bg-white/5 w-full" />
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-black">Net_Inflow</span>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-black">
+                    Net_Inflow
+                  </span>
                   <span className="text-sm font-mono font-bold text-green-400">
-                    {formatCurrencyAmount(walletSummary.income, walletSummary.currencyCode)}
+                    {formatCurrencyAmount(
+                      walletSummary.income,
+                      walletSummary.currencyCode,
+                    )}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-black">Net_Outflow</span>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-black">
+                    Net_Outflow
+                  </span>
                   <span className="text-sm font-mono font-bold text-brand-tertiary">
-                    {formatCurrencyAmount(walletSummary.expenses, walletSummary.currencyCode)}
+                    {formatCurrencyAmount(
+                      walletSummary.expenses,
+                      walletSummary.currencyCode,
+                    )}
                   </span>
                 </div>
               </div>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between px-2">
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-brand-primary font-black">Sector_Breakdown</p>
-                  <p className="text-[8px] uppercase tracking-[0.2em] text-gray-600 font-black">Sub_Ledger_v1.2</p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-brand-primary font-black">
+                    Sector_Breakdown
+                  </p>
+                  <p className="text-[8px] uppercase tracking-[0.2em] text-gray-600 font-black">
+                    Sub_Ledger_v1.2
+                  </p>
                 </div>
                 <ul className="grid gap-2">
-                  {walletSummary.categories.filter((category) => category.enabled).map((category) => (
-                    <li key={category.key} className="flex items-center justify-between bg-white/5 border border-white/5 px-4 py-3 cyber-skew group hover:bg-brand-primary/5 hover:border-brand-primary/30 transition-all">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-white transition-colors">{category.label}</span>
-                      <span className="text-sm font-mono font-bold text-white">
-                        {formatCurrencyAmount(category.amount, walletSummary.currencyCode)}
-                      </span>
-                    </li>
-                  ))}
+                  {walletSummary.categories
+                    .filter((category) => category.enabled)
+                    .map((category) => (
+                      <li
+                        key={category.key}
+                        className="flex items-center justify-between bg-white/5 border border-white/5 px-4 py-3 cyber-skew group hover:bg-brand-primary/5 hover:border-brand-primary/30 transition-all"
+                      >
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-white transition-colors">
+                          {category.label}
+                        </span>
+                        <span className="text-sm font-mono font-bold text-white">
+                          {formatCurrencyAmount(
+                            category.amount,
+                            walletSummary.currencyCode,
+                          )}
+                        </span>
+                      </li>
+                    ))}
                 </ul>
               </div>
             </div>
@@ -1405,7 +1631,10 @@ export default function TownPage({
         <DialogContent className="sm:max-w-[425px] cyber-panel text-white border-t-4 border-t-brand-primary rounded-none shadow-[0_0_50px_rgba(189,0,255,0.15)] p-0 overflow-hidden">
           <div className="p-8 space-y-6">
             <DialogHeader>
-              <DialogTitle className="text-3xl font-heading font-black italic tracking-tighter text-brand-secondary cyber-glitch-text" data-text={selectedBuilding?.title || selectedBuilding?.type}>
+              <DialogTitle
+                className="text-3xl font-heading font-black italic tracking-tighter text-brand-secondary cyber-glitch-text"
+                data-text={selectedBuilding?.title || selectedBuilding?.type}
+              >
                 {selectedBuilding?.title || selectedBuilding?.type}
               </DialogTitle>
               <DialogDescription className="text-gray-500 font-mono text-[10px] uppercase tracking-[0.3em]">
@@ -1447,7 +1676,9 @@ export default function TownPage({
                   >
                     <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
                     <div className="cyber-skew bg-brand-primary px-4 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
-                      <span className="text-xs font-black uppercase tracking-[0.2em] text-white">ACCESS_CENTRAL_COMMAND</span>
+                      <span className="text-xs font-black uppercase tracking-[0.2em] text-white">
+                        ACCESS_CENTRAL_COMMAND
+                      </span>
                     </div>
                   </button>
                 </div>
@@ -1463,7 +1694,10 @@ export default function TownPage({
                     </h3>
                     <div className="space-y-4">
                       <div className="space-y-1">
-                        <label htmlFor="property-title" className="text-[9px] font-mono text-gray-500 uppercase tracking-widest block">
+                        <label
+                          htmlFor="property-title"
+                          className="text-[9px] font-mono text-gray-500 uppercase tracking-widest block"
+                        >
                           Registry_Identifier
                         </label>
                         <input
@@ -1479,7 +1713,10 @@ export default function TownPage({
                       </div>
                       <div className="flex gap-4">
                         <div className="flex-1 space-y-1">
-                          <label htmlFor="property-price" className="text-[9px] font-mono text-gray-500 uppercase tracking-widest block">
+                          <label
+                            htmlFor="property-price"
+                            className="text-[9px] font-mono text-gray-500 uppercase tracking-widest block"
+                          >
                             Market_Valuation ($)
                           </label>
                           <input
@@ -1496,7 +1733,10 @@ export default function TownPage({
                           />
                         </div>
                         <div className="flex items-end pb-1">
-                          <label htmlFor="property-for-sale" className="flex items-center gap-2 cursor-pointer group">
+                          <label
+                            htmlFor="property-for-sale"
+                            className="flex items-center gap-2 cursor-pointer group"
+                          >
                             <input
                               id="property-for-sale"
                               type="checkbox"
@@ -1509,7 +1749,9 @@ export default function TownPage({
                               }
                               className="accent-brand-primary w-4 h-4 bg-black border-white/10"
                             />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 group-hover:text-brand-primary transition-colors">List_For_Sale</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 group-hover:text-brand-primary transition-colors">
+                              List_For_Sale
+                            </span>
                           </label>
                         </div>
                       </div>
@@ -1524,7 +1766,9 @@ export default function TownPage({
                               editForm.price,
                               editForm.forSale,
                             );
-                            const res = await fetch(`/api/town/${townId}/state`);
+                            const res = await fetch(
+                              `/api/town/${townId}/state`,
+                            );
                             if (res.ok) {
                               const data = await res.json();
                               setDbBuildingStates(data.buildings || []);
@@ -1542,7 +1786,9 @@ export default function TownPage({
                       >
                         <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
                         <div className="cyber-skew bg-brand-primary px-4 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
-                          <span className="text-xs font-black uppercase tracking-[0.2em] text-white">{isProcessing ? "Processing..." : "Commit_Changes"}</span>
+                          <span className="text-xs font-black uppercase tracking-[0.2em] text-white">
+                            {isProcessing ? "Processing..." : "Commit_Changes"}
+                          </span>
                         </div>
                       </button>
                     </div>
@@ -1622,7 +1868,11 @@ export default function TownPage({
                       currentUser &&
                       selectedBuilding.price && (
                         <button
-                          disabled={isProcessing || currentUser.character.wallet < selectedBuilding.price}
+                          disabled={
+                            isProcessing ||
+                            currentUser.character.wallet <
+                              selectedBuilding.price
+                          }
                           onClick={async () => {
                             setIsProcessing(true);
                             try {
@@ -1657,10 +1907,12 @@ export default function TownPage({
                           <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
                           <div className="cyber-skew bg-brand-primary px-4 py-5 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
                             <span className="text-sm font-black uppercase tracking-[0.2em] text-white">
-                              {isProcessing ? "Transacting..." :
-                               currentUser.character.wallet < selectedBuilding.price ?
-                               "Insufficient_Liquidity" :
-                               `Acquire_Asset // $${selectedBuilding.price.toLocaleString()}`}
+                              {isProcessing
+                                ? "Transacting..."
+                                : currentUser.character.wallet <
+                                    selectedBuilding.price
+                                  ? "Insufficient_Liquidity"
+                                  : `Acquire_Asset // $${selectedBuilding.price.toLocaleString()}`}
                             </span>
                           </div>
                         </button>
@@ -1737,13 +1989,19 @@ export default function TownPage({
               <div className="mx-auto w-20 h-20 bg-brand-primary/10 border border-brand-primary/30 flex items-center justify-center mb-6 cyber-skew group">
                 <Swords className="w-10 h-10 text-brand-primary group-hover:scale-110 transition-transform" />
               </div>
-              <DialogTitle className="text-3xl font-heading font-black italic tracking-tighter text-center cyber-glitch-text" data-text="THE_BATTLE_ARENA">
+              <DialogTitle
+                className="text-3xl font-heading font-black italic tracking-tighter text-center cyber-glitch-text"
+                data-text="THE_BATTLE_ARENA"
+              >
                 THE_BATTLE_ARENA
               </DialogTitle>
               <DialogDescription className="text-center text-gray-500 font-mono text-[10px] uppercase tracking-[0.2em] mt-2">
-                {matchmakingStatus === "idle" && "Combat Authorization: Pending // Target Selection Required"}
-                {matchmakingStatus === "searching" && "Neural Synchronization: Active // Finding Opponent"}
-                {matchmakingStatus === "matched" && "Signal Locked // Initializing Combat Grid"}
+                {matchmakingStatus === "idle" &&
+                  "Combat Authorization: Pending // Target Selection Required"}
+                {matchmakingStatus === "searching" &&
+                  "Neural Synchronization: Active // Finding Opponent"}
+                {matchmakingStatus === "matched" &&
+                  "Signal Locked // Initializing Combat Grid"}
               </DialogDescription>
             </DialogHeader>
 
@@ -1753,15 +2011,25 @@ export default function TownPage({
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 bg-white/5 border border-white/5 cyber-skew flex flex-col items-center text-center group hover:border-brand-secondary/30 transition-colors">
                       <Trophy className="w-6 h-6 text-brand-secondary mb-2 group-hover:scale-110 transition-transform" />
-                      <span className="text-[8px] uppercase font-black text-gray-600 tracking-[0.3em]">POTENTIAL_WIN</span>
-                      <span className="text-sm font-black italic text-brand-secondary">1,000 BBT</span>
+                      <span className="text-[8px] uppercase font-black text-gray-600 tracking-[0.3em]">
+                        POTENTIAL_WIN
+                      </span>
+                      <span className="text-sm font-black italic text-brand-secondary">
+                        1,000 BBT
+                      </span>
                     </div>
                     <div className="p-4 bg-white/5 border border-white/5 cyber-skew flex flex-col items-center text-center group hover:border-brand-primary/30 transition-colors">
                       <div className="w-6 h-6 flex items-center justify-center mb-2">
-                        <span className="text-brand-primary font-black italic">1v1</span>
+                        <span className="text-brand-primary font-black italic">
+                          1v1
+                        </span>
                       </div>
-                      <span className="text-[8px] uppercase font-black text-gray-600 tracking-[0.3em]">PROTO_MODE</span>
-                      <span className="text-sm font-black italic text-white">SURVIVOR</span>
+                      <span className="text-[8px] uppercase font-black text-gray-600 tracking-[0.3em]">
+                        PROTO_MODE
+                      </span>
+                      <span className="text-sm font-black italic text-white">
+                        SURVIVOR
+                      </span>
                     </div>
                   </div>
 
@@ -1774,7 +2042,9 @@ export default function TownPage({
                   >
                     <div className="absolute inset-0 bg-white/5 blur group-hover:bg-white/10 transition-all" />
                     <div className="cyber-skew bg-white/5 border border-white/10 px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
-                       <span className="text-xs font-black uppercase tracking-[0.2em] text-gray-400 group-hover:text-white transition-colors">SIMULATION_MODE (SOLO)</span>
+                      <span className="text-xs font-black uppercase tracking-[0.2em] text-gray-400 group-hover:text-white transition-colors">
+                        SIMULATION_MODE (SOLO)
+                      </span>
                     </div>
                   </button>
 
@@ -1787,7 +2057,9 @@ export default function TownPage({
                   >
                     <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
                     <div className="cyber-skew bg-brand-primary px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
-                       <span className="text-sm font-black uppercase tracking-[0.2em] text-white">INITIALIZE_COMBAT_SEQUENCE</span>
+                      <span className="text-sm font-black uppercase tracking-[0.2em] text-white">
+                        INITIALIZE_COMBAT_SEQUENCE
+                      </span>
                     </div>
                   </button>
                 </div>
@@ -1805,16 +2077,22 @@ export default function TownPage({
                   <div className="flex flex-col items-center gap-4">
                     <div className="flex items-center gap-6">
                       <div className="w-10 h-10 border border-brand-primary bg-brand-primary/20 flex items-center justify-center cyber-skew">
-                        <span className="text-brand-primary font-black italic text-xs">YOU</span>
+                        <span className="text-brand-primary font-black italic text-xs">
+                          YOU
+                        </span>
                       </div>
                       <div className="w-16 h-1 bg-white/5 relative overflow-hidden">
                         <div className="absolute inset-0 bg-brand-primary animate-scanline" />
                       </div>
                       <div className="w-10 h-10 border border-white/10 bg-white/5 flex items-center justify-center cyber-skew">
-                        <span className="text-gray-600 font-black italic text-xs">?</span>
+                        <span className="text-gray-600 font-black italic text-xs">
+                          ?
+                        </span>
                       </div>
                     </div>
-                    <p className="text-brand-primary font-mono text-[10px] font-black uppercase tracking-[0.4em] animate-pulse">SEARCHING_ACTIVE_NODES...</p>
+                    <p className="text-brand-primary font-mono text-[10px] font-black uppercase tracking-[0.4em] animate-pulse">
+                      SEARCHING_ACTIVE_NODES...
+                    </p>
                   </div>
                   <button
                     onClick={() => {
@@ -1833,13 +2111,19 @@ export default function TownPage({
                   <div className="flex items-center gap-12">
                     <div className="flex flex-col items-center gap-3">
                       <div className="w-20 h-20 bg-brand-primary border-2 border-white/20 flex items-center justify-center shadow-[0_0_30px_rgba(189,0,255,0.4)] cyber-skew">
-                        <span className="text-white font-black italic text-2xl">YOU</span>
+                        <span className="text-white font-black italic text-2xl">
+                          YOU
+                        </span>
                       </div>
                     </div>
-                    <div className="text-4xl font-black italic text-brand-secondary tracking-tighter animate-pulse">VS</div>
+                    <div className="text-4xl font-black italic text-brand-secondary tracking-tighter animate-pulse">
+                      VS
+                    </div>
                     <div className="flex flex-col items-center gap-3">
                       <div className="w-20 h-20 bg-brand-secondary border-2 border-white/20 flex items-center justify-center shadow-[0_0_30px_rgba(255,184,0,0.4)] cyber-skew">
-                        <span className="text-black font-black italic text-2xl">OPP</span>
+                        <span className="text-black font-black italic text-2xl">
+                          OPP
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -1850,7 +2134,9 @@ export default function TownPage({
                       NEURAL_LINK_ESTABLISHED
                     </p>
                   </div>
-                  <p className="text-gray-600 text-[10px] uppercase font-black tracking-[0.5em] animate-pulse">TELEPORTING_IN_2.0s</p>
+                  <p className="text-gray-600 text-[10px] uppercase font-black tracking-[0.5em] animate-pulse">
+                    TELEPORTING_IN_2.0s
+                  </p>
                 </div>
               )}
             </div>
