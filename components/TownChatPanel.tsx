@@ -6,6 +6,7 @@ import { buildWhisperChannelKey } from "@/lib/chat/channel";
 import type { ChatMessage, ChatSendAckPayload } from "@/lib/chat/chatTypes";
 import { parseChatInput } from "@/lib/chat/parseChatInput";
 import { filterCommandItems, filterRecipients, RecipientItem } from "@/lib/chat/suggestions";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 const normalize = (value: string) => value.trim().toLowerCase();
 
@@ -26,6 +27,7 @@ export function TownChatPanel({
   const [commandIndex, setCommandIndex] = useState(0);
   const [recipientIndex, setRecipientIndex] = useState(0);
   const [compositionActive, setCompositionActive] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
 
   const townRoomId = `town:${townId}`;
 
@@ -180,15 +182,26 @@ export function TownChatPanel({
 
   return (
     <div className="pointer-events-auto fixed bottom-14 left-4 z-40 w-[min(28rem,calc(100vw-2rem))] cyber-panel border-l-4 border-l-brand-primary p-3 text-white shadow-2xl">
-      <div className="mb-2 flex items-center justify-between px-1">
-        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-brand-primary">Neural_Chat_Link</span>
+      <div className={`flex items-center justify-between px-1 ${isMinimized ? '' : 'mb-2'}`}>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsMinimized(!isMinimized)}
+            className="text-brand-primary hover:text-white transition-colors"
+            title={isMinimized ? "Maximize Chat" : "Minimize Chat"}
+          >
+            {isMinimized ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
+          <span className="text-[9px] font-black uppercase tracking-[0.3em] text-brand-primary">Neural_Chat_Link</span>
+        </div>
         <div className="flex gap-1">
           <div className="w-1.5 h-1.5 bg-brand-primary animate-pulse" />
           <div className="w-1.5 h-1.5 bg-brand-primary/30" />
         </div>
       </div>
 
-      <div className="mb-3 max-h-40 overflow-y-auto border border-white/5 bg-black/40 p-2 text-[11px] font-mono scrollbar-hide">
+      {!isMinimized && (
+        <>
+          <div className="mb-3 max-h-40 overflow-y-auto border border-white/5 bg-black/40 p-2 text-[11px] font-mono scrollbar-hide">
         {messages.length === 0 ? <p className="text-gray-600 uppercase tracking-widest text-[9px]">Initializing encrypted feed...</p> : (
           <ul className="space-y-1.5">
             {messages.map((message) => {
@@ -277,48 +290,50 @@ export function TownChatPanel({
         </div>
       </div>
 
-      {(commandMenuOpen || recipientMenuOpen) && (
-        <div role="listbox" className="mt-2 max-h-40 overflow-y-auto border border-brand-primary/30 bg-[#0F021A] p-1 text-[10px] font-black uppercase tracking-widest cyber-skew">
-          {recipientMenuOpen ? (
-            recipientItems.length === 0 ? <div className="px-2 py-1 text-gray-400">No recipients</div> : recipientItems.map((item, index) => (
-              <button
-                key={item.playerId}
-                type="button"
-                role="option"
-                aria-selected={index === recipientIndex}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  setRecipientIndex(index);
-                  commitRecipient();
-                }}
-                className={`block w-full rounded px-2 py-1 text-left ${index === recipientIndex ? "bg-brand-primary/30" : "hover:bg-white/10"}`}
-              >
-                {item.label}
-              </button>
-            ))
-          ) : (
-            commandItems.length === 0 ? <div className="px-2 py-1 text-gray-400">No commands</div> : commandItems.map((item, index) => (
-              <button
-                key={item.command}
-                type="button"
-                role="option"
-                aria-selected={index === commandIndex}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  setCommandIndex(index);
-                  commitCommand();
-                }}
-                className={`flex w-full items-center justify-between rounded px-2 py-1 text-left ${index === commandIndex ? "bg-brand-primary/30" : "hover:bg-white/10"}`}
-              >
-                <span>{item.command}</span>
-                <span className="text-xs text-gray-400">{item.help}</span>
-              </button>
-            ))
+          {(commandMenuOpen || recipientMenuOpen) && (
+            <div role="listbox" className="mt-2 max-h-40 overflow-y-auto border border-brand-primary/30 bg-[#0F021A] p-1 text-[10px] font-black uppercase tracking-widest cyber-skew">
+              {recipientMenuOpen ? (
+                recipientItems.length === 0 ? <div className="px-2 py-1 text-gray-400">No recipients</div> : recipientItems.map((item, index) => (
+                  <button
+                    key={item.playerId}
+                    type="button"
+                    role="option"
+                    aria-selected={index === recipientIndex}
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      setRecipientIndex(index);
+                      commitRecipient();
+                    }}
+                    className={`block w-full rounded px-2 py-1 text-left ${index === recipientIndex ? "bg-brand-primary/30" : "hover:bg-white/10"}`}
+                  >
+                    {item.label}
+                  </button>
+                ))
+              ) : (
+                commandItems.length === 0 ? <div className="px-2 py-1 text-gray-400">No commands</div> : commandItems.map((item, index) => (
+                  <button
+                    key={item.command}
+                    type="button"
+                    role="option"
+                    aria-selected={index === commandIndex}
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      setCommandIndex(index);
+                      commitCommand();
+                    }}
+                    className={`flex w-full items-center justify-between rounded px-2 py-1 text-left ${index === commandIndex ? "bg-brand-primary/30" : "hover:bg-white/10"}`}
+                  >
+                    <span>{item.command}</span>
+                    <span className="text-xs text-gray-400">{item.help}</span>
+                  </button>
+                ))
+              )}
+            </div>
           )}
-        </div>
-      )}
 
-      {inlineError ? <p className="mt-1 text-xs text-red-400">{inlineError}</p> : null}
+          {inlineError ? <p className="mt-1 text-xs text-red-400">{inlineError}</p> : null}
+        </>
+      )}
     </div>
   );
 }
