@@ -40,6 +40,7 @@ interface PlayerState {
   anim: string;
   spawnReason?: SpawnReason;
   spawnSequence?: number;
+  avatar?: string;
 }
 
 interface Obstacle {
@@ -68,10 +69,12 @@ function LocalPlayer({
   onMove,
   onFall,
   initialSpawn,
+  avatar = "bunny",
 }: {
   onMove: (pos: [number, number, number], rot: number, anim: string) => void;
   onFall: () => void;
   initialSpawn?: Pick<PlayerState, "position" | "rotation" | "spawnSequence">;
+  avatar?: string;
 }) {
   const rigidBodyRef = useRef<any>(null);
   const modelRef = useRef<THREE.Group>(null);
@@ -335,7 +338,7 @@ function LocalPlayer({
       friction={0}
     >
       <group ref={modelRef}>
-        <Player currentAction={currentAnim} position={[0, -0.92, 0]} />
+        <Player currentAction={currentAnim} position={[0, -0.92, 0]} avatar={avatar} />
       </group>
     </RigidBody>
   );
@@ -346,11 +349,13 @@ function RemotePlayer({
   rotation,
   username,
   anim, // NEW: Receive animation state
+  avatar = "bunny",
 }: {
   position: [number, number, number];
   rotation: number;
   username: string;
   anim?: string; // NEW
+  avatar?: string;
 }) {
   const rbRef = useRef<any>(null);
 
@@ -371,7 +376,7 @@ function RemotePlayer({
     <RigidBody ref={rbRef} type="kinematicPosition" colliders="cuboid">
       <group>
         {/* NEW: Replaced Capsule with the actual Player model and correct animation */}
-        <Player currentAction={anim || "Idle_1"} position={[0, -0.92, 0]} />
+        <Player currentAction={anim || "Idle_1"} position={[0, -0.92, 0]} avatar={avatar} />
       </group>
     </RigidBody>
   );
@@ -674,6 +679,7 @@ function ArenaScene({
                   }
                 : undefined
             }
+            avatar={localPlayerState?.avatar || "bunny"}
           />
         )}
         {players
@@ -685,6 +691,7 @@ function ArenaScene({
               rotation={p.rotation}
               username={p.username}
               anim={p.anim}
+              avatar={p.avatar}
             />
           ))}
       </Physics>

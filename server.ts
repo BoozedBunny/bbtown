@@ -148,6 +148,7 @@ app.prepare().then(async () => {
     anim: string;
     spawnReason: "initial_join" | "respawn" | "landing_reset" | "zone_transfer";
     spawnSequence: number;
+    avatar: string;
   }
 
   type SpawnFinalizeReason = PlayerState["spawnReason"];
@@ -275,6 +276,7 @@ app.prepare().then(async () => {
     reason: SpawnFinalizeReason,
     cameraYaw?: number,
     forcedSequence?: number,
+    avatar: string = "bunny",
   ): PlayerState => {
     const sequence = forcedSequence ?? Date.now();
     return {
@@ -285,6 +287,7 @@ app.prepare().then(async () => {
       anim: "Idle_1",
       spawnReason: reason,
       spawnSequence: sequence,
+      avatar,
     };
   };
 
@@ -882,7 +885,7 @@ app.prepare().then(async () => {
       }
     });
 
-    socket.on("join_arena_room", (payload: JoinArenaRoomPayload) => {
+    socket.on("join_arena_room", async (payload: JoinArenaRoomPayload) => {
       if (!mockUser) return;
 
       const roomId = payload?.roomId;
@@ -908,6 +911,15 @@ app.prepare().then(async () => {
       const sequence = game.nextSpawnSequence++;
       const isSolo = roomId.startsWith("solo-");
 
+      let avatar = "bunny";
+      const user = await prisma.user.findUnique({
+        where: { username: mockUser },
+        include: { character: true },
+      });
+      if (user?.character?.avatar) {
+        avatar = user.character.avatar;
+      }
+
       game.players[socket.id] = buildSpawnPlayerState(
         socket.id,
         mockUser,
@@ -915,6 +927,7 @@ app.prepare().then(async () => {
         "initial_join",
         payload?.cameraYaw,
         sequence,
+        avatar,
       );
 
       console.log(

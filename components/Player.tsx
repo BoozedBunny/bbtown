@@ -46,9 +46,9 @@ type GLTFResult = GLTF & {
   animations: GLTFAction[];
 };
 
-export function Model({ currentAction = "Idle_1", ...props }: any) {
+export function Model({ currentAction = "Idle_1", avatar = "bunny", ...props }: any) {
   const group = React.useRef<THREE.Group>(null);
-  const { scene, animations } = useGLTF("https://www.boozedbunnytown.com/media/models/player.glb");
+  const { scene, animations } = useGLTF(`https://www.boozedbunnytown.com/media/models/player_${avatar}.glb`);
   const clone = React.useMemo(() => SkeletonUtils.clone(scene), [scene]);
   const { nodes, materials } = useGraph(clone) as unknown as GLTFResult;
   const { actions } = useAnimations(animations, group);
@@ -85,4 +85,5 @@ export function Model({ currentAction = "Idle_1", ...props }: any) {
   );
 }
 
-useGLTF.preload("https://www.boozedbunnytown.com/media/models/player.glb");
+useGLTF.preload("https://www.boozedbunnytown.com/media/models/player_bunny.glb");
+useGLTF.preload("https://www.boozedbunnytown.com/media/models/player_cowie.glb");
