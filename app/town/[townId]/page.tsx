@@ -10,7 +10,8 @@ import {
   OrthographicCamera,
   PerspectiveCamera,
 } from "@react-three/drei";
-import { LoaderWrapper } from "@/components/ui/LoaderWrapper";
+import dynamic from "next/dynamic";
+const LoaderWrapper = dynamic(() => import("@/components/ui/LoaderWrapper").then((mod) => mod.LoaderWrapper), { ssr: false });
 import { useEffect, useState, use, useMemo, useRef, useCallback } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { Camera } from "three";
