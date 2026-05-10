@@ -6,7 +6,7 @@ export const ARENA_BUILDING_ID = "21";
 export const HARDCODED_BUILDINGS: BuildingData[] = [
   {
     id: "1",
-    position: [-1.00, 0.90, -0.57],
+    position: [-11.02, 0.90, 1.03],
     rotationY: 80,
     glb: "https://www.boozedbunnytown.com/media/models/rustic_stein.glb",
     type: "Town Hall",

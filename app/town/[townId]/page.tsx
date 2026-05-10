@@ -299,12 +299,10 @@ function Scene({
       })}
 
       <ModelX
-        url="https://www.boozedbunnytown.com/media/models/bbtown_logo_optimized.glb"
-        position={[6, 0.69, 4.1]}
+        url="https://www.boozedbunnytown.com/media/models/bbtown_sign1-v3-v5.glb"
+        position={[5.8, 0.69, 4.2]}
         opacity={!isXRay ? 1 : 0.5}
-        rotationY={50}
-        tiltX={-76}
-        tiltZ={70}
+        rotationY={90}
       />
 
       <ModelX
