@@ -7,6 +7,7 @@ import { useRef } from "react";
 export function GlobalCanvas() {
   return (
     <Canvas
+      className="select-none"
       style={{
         position: "fixed",
         top: 0,

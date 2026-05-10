@@ -158,7 +158,7 @@ export function ModelBuilding({
       {!hoverSuppressed && (
         <Html position={iconPosition} center zIndexRange={[30, 0]}>
           <div
-            className="pointer-events-auto group flex items-center cursor-pointer transition-all duration-300 opacity-70 hover:opacity-100 hover:scale-110"
+            className="select-none pointer-events-auto group flex items-center cursor-pointer transition-all duration-300 opacity-70 hover:opacity-100 hover:scale-110"
             onClick={(e) => {
               e.stopPropagation();
               if (onClick) onClick();
@@ -172,6 +172,7 @@ export function ModelBuilding({
                     src={`https://www.boozedbunnytown.com/media/avatars/${ownerAvatar}_avatar.webp`}
                     alt="Owner Avatar"
                     fill
+                    draggable={false}
                     className="object-cover"
                   />
                 </div>

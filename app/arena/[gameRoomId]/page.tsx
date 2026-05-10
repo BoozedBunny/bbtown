@@ -1234,7 +1234,7 @@ export default function ArenaPage({
       <div className="absolute inset-0 z-0">
         <Suspense fallback={<div className="absolute inset-0 bg-[#05010a]" />}>
           <KeyboardControls map={keyboardMap}>
-            <Canvas shadows onCreated={handleCanvasCreated}>
+            <Canvas className="select-none" shadows onCreated={handleCanvasCreated}>
               <ArenaScene
                 players={gameState.players}
                 onMove={handleMove}

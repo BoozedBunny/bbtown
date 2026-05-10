@@ -99,7 +99,7 @@ export function PlayerProfileModal({
             {/* Header / Avatar Area */}
             <div className="h-48 relative bg-black/40 border-b border-brand-primary/30 flex items-center justify-center overflow-hidden">
               <div className="absolute inset-0 z-0">
-                <Canvas shadows>
+                <Canvas className="select-none" shadows>
                   <PerspectiveCamera
                     makeDefault
                     position={[0, 1, 3]}
