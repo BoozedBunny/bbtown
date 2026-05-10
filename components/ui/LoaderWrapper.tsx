@@ -7,16 +7,18 @@ export function LoaderWrapper() {
   const { active, progress, errors, item, loaded, total } = useProgress();
   const [shown, setShown] = useState(true);
 
+  const safeProgress = Number.isFinite(progress) && !Number.isNaN(progress) ? progress : (active ? 0 : 100);
+
   useEffect(() => {
     // If we've loaded everything and active is false, fade out after a short delay
-    if (!active && progress === 100) {
+    if (!active) {
       const t = setTimeout(() => setShown(false), 500);
       return () => clearTimeout(t);
-    } else if (active || progress < 100) {
+    } else {
       // Ensure it stays shown if it starts loading again
       setShown(true);
     }
-  }, [active, progress]);
+  }, [active]);
 
   if (!shown) return null;
 
@@ -36,7 +38,7 @@ export function LoaderWrapper() {
         justifyContent: "center",
         pointerEvents: "none",
         transition: "opacity 300ms ease",
-        opacity: active || progress < 100 ? 1 : 0,
+        opacity: active ? 1 : 0,
       }}
     >
       <div style={{ color: "#bd00ff", fontFamily: "monospace", fontSize: "14px", fontWeight: "bold", marginBottom: "0.5rem" }}>
@@ -46,14 +48,14 @@ export function LoaderWrapper() {
         <div
           style={{
             height: "100%",
-            width: `${progress}%`,
+            width: `${safeProgress}%`,
             background: "#bd00ff",
             transition: "width 200ms ease",
           }}
         />
       </div>
       <div style={{ marginTop: "1rem", color: "#bd00ff", fontFamily: "monospace", fontSize: "14px", fontWeight: "bold" }}>
-        {progress.toFixed(0)}%
+        {safeProgress.toFixed(0)}%
       </div>
     </div>
   );
