@@ -1,6 +1,6 @@
 # BoozedBunnyTown is a 3D browser based Multiplayer Game
 
-<img alt="BB Frontend" src="[https://www.boozedbunnytown.com/media/logo.png">
+<img alt="BB Frontend" src="https://www.boozedbunnytown.com/media/logo.png">
 
 This project is a browser-based 3D multiplayer game built with Next.js, React Three Fiber, Prisma, and Socket.io.
 
