@@ -1,0 +1,24 @@
+I will update the codebase to use a "Global Canvas" architecture via @react-three/drei, ensuring that 3D assets are preserved between route changes.
+
+**Plan:**
+
+1.  **Add `GlobalCanvas` component:**
+    *   Create `components/GlobalCanvas.tsx` to host the global `<Canvas>` from `@react-three/fiber` and `<View.Port />` from `@react-three/drei`.
+    *   Set it to `position: "fixed", pointerEvents: "none"` and `eventSource` pointing to the root element.
+
+2.  **Move Canvas to Root Layout:**
+    *   Import and render `GlobalCanvas` inside `app/layout.tsx`.
+
+3.  **Refactor Town Page to use `<View>`:**
+    *   In `app/town/[townId]/page.tsx`, replace the `<Canvas>` wrapper with `<View>` from `@react-three/drei`.
+    *   Give `<View>` class names (e.g., `h-full w-full`) to define the spatial area.
+
+4.  **Refactor Arena Page to use `<View>`:**
+    *   In `app/arena/[gameRoomId]/page.tsx`, replace the `<Canvas>` wrapper with `<View>`.
+    *   Adjust `onCreated` canvas event to adapt to standard React event if necessary.
+
+5.  **Preload Assets Globally:**
+    *   Update `components/PreloadAssets.tsx` to preload heavy model files (`.glb`) at the layout level or independently of page lifecycles. I'll make sure it mounts once and preloads assets like the arena, player models, and common town buildings. Include this component in `app/layout.tsx`.
+
+6.  **Pre-commit checks**
+    *   Complete pre commit steps to make sure proper testing, verifications, reviews and reflections are done.

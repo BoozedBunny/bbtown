@@ -19,8 +19,16 @@ export const metadata: Metadata = {
     default: "BoozedBunny AI Town",
     template: "%s | BoozedBunny AI Town",
   },
-  description: "A browser-based 3D multiplayer game where you build and compete in an isometric empire.",
-  keywords: ["AI Town", "Multiplayer", "3D Game", "Simulation", "Isometric", "BoozedBunny"],
+  description:
+    "A browser-based 3D multiplayer game where you build and compete in an isometric empire.",
+  keywords: [
+    "AI Town",
+    "Multiplayer",
+    "3D Game",
+    "Simulation",
+    "Isometric",
+    "BoozedBunny",
+  ],
   authors: [{ name: "BoozedBunny Team" }],
   metadataBase: new URL("https://bbtown.ai"),
   creator: "BoozedBunny",
@@ -35,7 +43,8 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://www.boozedbunnytown.com",
     title: "BoozedBunny Town",
-    description: "Enter the next generation of building and competition in BoozedBunny AI Town.",
+    description:
+      "Enter the next generation of building and competition in BoozedBunny AI Town.",
     siteName: "BoozedBunny AI Town",
     images: [
       {
@@ -49,7 +58,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "BoozedBunny AI Town",
-    description: "Enter the next generation of building and competition in BoozedBunny AI Town.",
+    description:
+      "Enter the next generation of building and competition in BoozedBunny AI Town.",
     images: ["https://www.boozedbunnytown.com/media/logo.png"],
     creator: "@BoozedBunny",
   },
@@ -62,7 +72,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${beVietnamPro.className} ${spaceGrotesk.variable} ${beVietnamPro.variable} antialiased`}>
+      <body
+        className={`${beVietnamPro.className} ${spaceGrotesk.variable} ${beVietnamPro.variable} antialiased`}
+      >
         {children}
         <Toaster theme="dark" position="bottom-right" richColors />
       </body>

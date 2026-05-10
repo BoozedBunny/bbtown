@@ -338,7 +338,11 @@ function LocalPlayer({
       friction={0}
     >
       <group ref={modelRef}>
-        <Player currentAction={currentAnim} position={[0, -0.92, 0]} avatar={avatar} />
+        <Player
+          currentAction={currentAnim}
+          position={[0, -0.92, 0]}
+          avatar={avatar}
+        />
       </group>
     </RigidBody>
   );
@@ -376,7 +380,11 @@ function RemotePlayer({
     <RigidBody ref={rbRef} type="kinematicPosition" colliders="cuboid">
       <group>
         {/* NEW: Replaced Capsule with the actual Player model and correct animation */}
-        <Player currentAction={anim || "Idle_1"} position={[0, -0.92, 0]} avatar={avatar} />
+        <Player
+          currentAction={anim || "Idle_1"}
+          position={[0, -0.92, 0]}
+          avatar={avatar}
+        />
       </group>
     </RigidBody>
   );
