@@ -104,11 +104,13 @@ export default async function LobbyPage() {
                 <div className="px-6 py-2 bg-brand-primary/10 border-x border-brand-primary text-brand-secondary font-black font-mono tracking-tighter">
                    CREDITS: ${user.character.wallet.toLocaleString()}
                 </div>
-                <form action={doWork}>
-                  <button type="submit" className="text-[10px] font-mono font-bold text-gray-400 hover:text-brand-primary transition-colors flex items-center gap-2 uppercase tracking-widest border border-white/5 px-4 py-2 hover:bg-white/5">
-                    ⚒️ Go to Work (+ $500)
-                  </button>
-                </form>
+                {process.env.NODE_ENV !== "production" && (
+                  <form action={doWork}>
+                    <button type="submit" className="text-[10px] font-mono font-bold text-gray-400 hover:text-brand-primary transition-colors flex items-center gap-2 uppercase tracking-widest border border-white/5 px-4 py-2 hover:bg-white/5">
+                      ⚒️ Go to Work (+ $500)
+                    </button>
+                  </form>
+                )}
               </div>
             </div>
 
