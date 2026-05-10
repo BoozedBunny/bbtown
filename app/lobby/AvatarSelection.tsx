@@ -7,6 +7,7 @@ import { createCharacter, updateCharacter } from "../actions/character";
 const AVATARS = [
   { id: "bunny", label: "Bunny", src: "https://www.boozedbunnytown.com/media/avatars/bunny_avatar.webp" },
   { id: "cowie", label: "Cowie", src: "https://www.boozedbunnytown.com/media/avatars/cowie_avatar.webp" },
+  { id: "skunky", label: "Skunky", src: "https://www.boozedbunnytown.com/media/avatars/skunky_avatar.webp" },
 ];
 
 export function AvatarSelection({
@@ -43,7 +44,7 @@ export function AvatarSelection({
         <label className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest block">
           Avatar Selection
         </label>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           {AVATARS.map((avatar) => (
             <label
               key={avatar.id}
