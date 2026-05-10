@@ -21,6 +21,14 @@ export function AvatarSelection({
 }) {
   const [selectedAvatar, setSelectedAvatar] = useState(initialAvatar);
   const [name, setName] = useState(initialName);
+  const [lastSavedName, setLastSavedName] = useState(initialName);
+
+  const handleUpdate = (newName: string, newAvatar: string) => {
+    const formData = new FormData();
+    formData.append("name", newName);
+    formData.append("avatar", newAvatar);
+    updateCharacter(formData);
+  };
 
   return (
     <form action={mode === "create" ? createCharacter : updateCharacter} className="space-y-6">
@@ -35,6 +43,12 @@ export function AvatarSelection({
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
+          onBlur={() => {
+            if (mode === "edit" && name !== lastSavedName) {
+              handleUpdate(name, selectedAvatar);
+              setLastSavedName(name);
+            }
+          }}
           className="w-full px-4 py-3 bg-black/60 border border-white/10 text-white font-mono focus:outline-none focus:border-brand-primary transition-colors"
           placeholder="Subject Name"
         />
@@ -59,7 +73,12 @@ export function AvatarSelection({
                 name="avatar"
                 value={avatar.id}
                 checked={selectedAvatar === avatar.id}
-                onChange={() => setSelectedAvatar(avatar.id)}
+                onChange={() => {
+                  setSelectedAvatar(avatar.id);
+                  if (mode === "edit") {
+                    handleUpdate(name, avatar.id);
+                  }
+                }}
                 className="sr-only"
               />
               <div className="relative w-32 h-32 overflow-hidden cyber-skew">
@@ -106,17 +125,19 @@ export function AvatarSelection({
         </div>
       )}
 
-      <button
-        type="submit"
-        className="group relative w-full block"
-      >
-        <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
-        <div className="cyber-skew bg-brand-primary px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
-           <span className="text-sm font-black uppercase tracking-[0.2em] text-white">
-             {mode === "create" ? "Initialize Deployment" : "Update Profile"}
-           </span>
-        </div>
-      </button>
+      {mode === "create" && (
+        <button
+          type="submit"
+          className="group relative w-full block"
+        >
+          <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
+          <div className="cyber-skew bg-brand-primary px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
+            <span className="text-sm font-black uppercase tracking-[0.2em] text-white">
+              Initialize Deployment
+            </span>
+          </div>
+        </button>
+      )}
     </form>
   );
 }
