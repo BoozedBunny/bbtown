@@ -7,6 +7,7 @@ import { useEffect } from "react";
 const assetsToPreload = [
   "https://www.boozedbunnytown.com/media/models/player_bunny.glb",
   "https://www.boozedbunnytown.com/media/models/player_cowie.glb",
+  "https://www.boozedbunnytown.com/media/models/player_skunky.glb",
   // TODO: Add other heavy models (buildings, environment)
 ];
 
