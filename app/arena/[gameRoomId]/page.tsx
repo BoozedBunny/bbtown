@@ -8,6 +8,7 @@ import {
   Gltf,
   useKeyboardControls,
   useTexture,
+  OrbitControls,
 } from "@react-three/drei";
 import { io, Socket } from "socket.io-client";
 import { Loader2, Swords, Trophy, Users } from "lucide-react";
@@ -567,6 +568,7 @@ function ArenaScene({
   currentRound,
   isSuddenDeath,
   obstaclesEnabled,
+  isDevMode,
 }: {
   players: PlayerState[];
   onMove: (pos: [number, number, number], rot: number, anim: string) => void;
@@ -576,6 +578,7 @@ function ArenaScene({
   currentRound: number;
   isSuddenDeath: boolean;
   obstaclesEnabled: boolean;
+  isDevMode?: boolean;
 }) {
   // Lade die Textur (R3F sucht automatisch im /public Ordner)
   const floorTexture = useTexture(
@@ -660,7 +663,7 @@ function ArenaScene({
           </RigidBody>
         )}
 
-        {obstaclesEnabled &&
+        {obstaclesEnabled && !isDevMode &&
           activeObstaclePresets.map((preset) => (
             <MovingObstacle
               key={`${preset.id}-wave-${preset.waveId}`}
@@ -674,7 +677,8 @@ function ArenaScene({
             />
           ))}
 
-        {status === "playing" && (
+        {isDevMode && <OrbitControls makeDefault />}
+        {status === "playing" && !isDevMode && (
           <LocalPlayer
             onMove={onMove}
             onFall={onFall}
@@ -713,6 +717,7 @@ export default function ArenaPage({
   params: Promise<{ gameRoomId: string }>;
 }) {
   const { gameRoomId } = use(params);
+  const isDevMode = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('devMode') === 'true';
   const router = useRouter();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [gameState, setGameState] = useState<{
@@ -926,7 +931,7 @@ export default function ArenaPage({
     });
   };
 
-  const showEntryOverlay = entryPhase !== "playing";
+  const showEntryOverlay = entryPhase !== "playing" && !isDevMode;
 
   return (
     <main className="flex min-h-screen flex-col bg-[#05010a] text-white font-sans overflow-hidden relative">
@@ -953,7 +958,7 @@ export default function ArenaPage({
           </div>
         </div>
 
-        {gameState.status === "playing" && (
+        {gameState.status === "playing" && !isDevMode && (
           <div className="flex flex-col items-center gap-4">
             <div className="relative">
               <div className="absolute inset-0 bg-brand-secondary/5 blur-lg" />
@@ -999,22 +1004,24 @@ export default function ArenaPage({
         )}
 
         <div className="flex gap-4 items-start">
-          <div className="cyber-skew bg-white/5 backdrop-blur-md px-6 py-4 border-r border-brand-primary/30">
-            <div className="flex items-center gap-3">
-              <Users className="w-4 h-4 text-brand-primary" />
-              <div>
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
-                  Nodes
-                </p>
-                <p className="text-sm font-black font-mono">
-                  0{gameState.players.length}
-                  <span className="opacity-30">
-                    /0{gameRoomId.startsWith("solo-") ? "1" : "2"}
-                  </span>
-                </p>
+          {!isDevMode && (
+            <div className="cyber-skew bg-white/5 backdrop-blur-md px-6 py-4 border-r border-brand-primary/30">
+              <div className="flex items-center gap-3">
+                <Users className="w-4 h-4 text-brand-primary" />
+                <div>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
+                    Nodes
+                  </p>
+                  <p className="text-sm font-black font-mono">
+                    0{gameState.players.length}
+                    <span className="opacity-30">
+                      /0{gameRoomId.startsWith("solo-") ? "1" : "2"}
+                    </span>
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
           <button
             onClick={() => router.push("/")}
             className="group relative pointer-events-auto"
@@ -1030,7 +1037,7 @@ export default function ArenaPage({
       </div>
 
       {gameState.status === "playing" &&
-        authoritativePhase.phase !== "ACTIVE_ROUND" && (
+        authoritativePhase.phase !== "ACTIVE_ROUND" && !isDevMode && (
           <div className="absolute inset-x-0 top-1/3 z-20 pointer-events-none">
             <div className="relative h-32 w-full flex items-center justify-center overflow-hidden">
               <div className="absolute inset-0 bg-brand-primary/10 backdrop-blur-sm skew-y-1" />
@@ -1065,7 +1072,7 @@ export default function ArenaPage({
           </div>
         )}
 
-      {gameState.status === "waiting" && !gameRoomId.startsWith("solo-") && (
+      {gameState.status === "waiting" && !gameRoomId.startsWith("solo-") && !isDevMode && (
         <div
           id="waiting-overlay"
           className={`absolute inset-0 z-20 flex flex-col items-center justify-center backdrop-blur-md transition-colors duration-200 ${entryPhase === "playing" ? "bg-[#05010a]/90" : "bg-[#05010a]"}`}
@@ -1244,6 +1251,7 @@ export default function ArenaPage({
                 currentRound={currentRound}
                 isSuddenDeath={isSuddenDeath}
                 obstaclesEnabled={authoritativePhase.obstaclesEnabled}
+                isDevMode={isDevMode}
               />
             </Canvas>
           </KeyboardControls>
@@ -1294,43 +1302,45 @@ export default function ArenaPage({
         )}
       </div>
 
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-4 pointer-events-none">
-        <div className="cyber-skew bg-black/60 backdrop-blur-xl px-8 py-3 border-b-2 border-brand-primary/50 flex items-center gap-6">
-          <div className="flex gap-2">
-            {["W", "A", "S", "D"].map((k) => (
-              <div
-                key={k}
-                className="w-9 h-9 bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-black text-brand-secondary skew-x-[-10deg]"
-              >
-                {k}
+      {!isDevMode && (
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-4 pointer-events-none">
+          <div className="cyber-skew bg-black/60 backdrop-blur-xl px-8 py-3 border-b-2 border-brand-primary/50 flex items-center gap-6">
+            <div className="flex gap-2">
+              {["W", "A", "S", "D"].map((k) => (
+                <div
+                  key={k}
+                  className="w-9 h-9 bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-black text-brand-secondary skew-x-[-10deg]"
+                >
+                  {k}
+                </div>
+              ))}
+            </div>
+            <div className="h-4 w-px bg-white/10" />
+            <div className="flex items-center gap-2">
+              <div className="px-3 py-1 bg-brand-primary/20 border border-brand-primary/40 text-[10px] font-black text-brand-primary skew-x-[-10deg]">
+                SPACE
               </div>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                Neural Jump
+              </span>
+            </div>
+            <div className="h-4 w-px bg-white/10" />
+            <div className="flex items-center gap-2">
+              <div className="px-3 py-1 bg-brand-secondary/20 border border-brand-secondary/40 text-[10px] font-black text-brand-secondary skew-x-[-10deg]">
+                SHIFT
+              </div>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                Overdrive
+              </span>
+            </div>
+          </div>
+          <div className="flex gap-2 opacity-30">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="w-12 h-[2px] bg-brand-primary" />
             ))}
           </div>
-          <div className="h-4 w-px bg-white/10" />
-          <div className="flex items-center gap-2">
-            <div className="px-3 py-1 bg-brand-primary/20 border border-brand-primary/40 text-[10px] font-black text-brand-primary skew-x-[-10deg]">
-              SPACE
-            </div>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              Neural Jump
-            </span>
-          </div>
-          <div className="h-4 w-px bg-white/10" />
-          <div className="flex items-center gap-2">
-            <div className="px-3 py-1 bg-brand-secondary/20 border border-brand-secondary/40 text-[10px] font-black text-brand-secondary skew-x-[-10deg]">
-              SHIFT
-            </div>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              Overdrive
-            </span>
-          </div>
         </div>
-        <div className="flex gap-2 opacity-30">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="w-12 h-[2px] bg-brand-primary" />
-          ))}
-        </div>
-      </div>
+      )}
     </main>
   );
 }
