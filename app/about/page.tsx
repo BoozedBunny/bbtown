@@ -150,6 +150,46 @@ export default function AboutPage() {
               </div>
             </Link>
           </div>
+
+          {/* 
+          TODO Jules -> wrap up the information with icons / real (target blank) links:
+          <section className="bg-black/40 border border-white/10 p-6 md:p-8 relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <h2 className="text-3xl font-heading font-bold text-white mb-4 border-b border-brand-primary/30 pb-2">
+              The Code
+            </h2>
+            <p>
+
+BoozedBunnyTown is a side project where I wanted to see just how much artificial intelligence I could incorporate without making the game unplayable in the end. So the main goal is to keep the code as clean and logical as possible. I try to make the best use of all the code the AI generates, while fixing bugs that it creates the same way.
+
+Used AI:
+
+- Google's Jules (Gemini 3 Flash & 3.1 Pro)
+- Google AI Studio
+- Hermes Agent (Hermes Workspace / Orchestrator)
+- ChatGPT Images 2.0
+- runpod.io with lokal ComfyUI (some image and image to mesh models)
+- meshy.ai (buildings / characters / rigging and animations)
+
+Used Third Party:
+
+            - **Node.js**: 22
+- **Next.js**: 15 (App Router)
+- **3D Engine**: React Three Fiber, @react-three/drei
+- **Database**: Prisma with SQLite
+- **Multiplayer**: Socket.io with a custom Express server
+- **UI**: Tailwind CSS, shadcn/ui
+
+Hands on 3D / Image / Video Editing
+
+- blender.org
+- photopea.com
+- pikimov.com
+
+Public github repo (MIT licensed)
+              https://github.com/BoozedBunny/bbtown
+            </p>
+          </section> */}
         </div>
       </div>
 

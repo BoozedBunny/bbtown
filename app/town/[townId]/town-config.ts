@@ -158,7 +158,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "20",
-    position: [3.21, 0.97, 0.92],
+    position: [-4.97, 0.97, 6.65],
     rotationY: 41,
     glb: "https://www.boozedbunnytown.com/media/models/vulcan_temple.glb",
     type: "Commercial",
