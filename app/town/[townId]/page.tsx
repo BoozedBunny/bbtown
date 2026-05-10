@@ -10,6 +10,7 @@ import {
   OrthographicCamera,
   PerspectiveCamera,
 } from "@react-three/drei";
+import { LoaderWrapper } from "@/components/ui/LoaderWrapper";
 import { useEffect, useState, use, useMemo, useRef, useCallback } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { Camera } from "three";
@@ -1358,6 +1359,7 @@ export default function TownPage({
             }}
           />
         </Canvas>
+        <LoaderWrapper />
 
         {/* Overlay HUD elements */}
         {isTownCameraHorizontalPanEnabled &&
