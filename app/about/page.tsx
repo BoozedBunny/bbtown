@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { Bot, Code, PenTool, GitFork, ExternalLink } from "lucide-react";
 
 export default function AboutPage() {
   return (
@@ -151,45 +152,130 @@ export default function AboutPage() {
             </Link>
           </div>
 
-          {/* 
-          TODO Jules -> wrap up the information with icons / real (target blank) links:
-          <section className="bg-black/40 border border-white/10 p-6 md:p-8 relative overflow-hidden group">
+          {/* The Code Section */}
+          <section className="bg-black/40 border border-white/10 p-6 md:p-8 relative overflow-hidden group mt-12">
             <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <h2 className="text-3xl font-heading font-bold text-white mb-4 border-b border-brand-primary/30 pb-2">
-              The Code
+            <h2 className="text-3xl font-heading font-bold text-white mb-4 border-b border-brand-primary/30 pb-2 flex items-center gap-2">
+              <Code className="text-brand-primary" /> The Code
             </h2>
-            <p>
+            <div className="space-y-8">
+              <p className="text-gray-300 leading-relaxed">
+                BoozedBunnyTown is a side project where I wanted to see just how
+                much artificial intelligence I could incorporate without making
+                the game unplayable in the end. So the main goal is to keep the
+                code as clean and logical as possible. I try to make the best
+                use of all the code the AI generates, while fixing bugs that it
+                creates the same way.
+              </p>
 
-BoozedBunnyTown is a side project where I wanted to see just how much artificial intelligence I could incorporate without making the game unplayable in the end. So the main goal is to keep the code as clean and logical as possible. I try to make the best use of all the code the AI generates, while fixing bugs that it creates the same way.
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Used AI */}
+                <div className="bg-white/5 p-4 border border-white/10 rounded-lg">
+                  <h3 className="text-xl font-bold text-white flex items-center gap-2 mb-4">
+                    <Bot className="text-brand-secondary" /> Used AI
+                  </h3>
+                  <ul className="space-y-2 text-sm text-gray-400">
+                    <li>- Google's Jules (Gemini 3 Flash & 3.1 Pro)</li>
+                    <li>- Google AI Studio</li>
+                    <li>- Hermes Agent (Workspace / Orchestrator)</li>
+                    <li>- ChatGPT Images 2.0</li>
+                    <li>- runpod.io with local ComfyUI</li>
+                    <li>- meshy.ai</li>
+                  </ul>
+                </div>
 
-Used AI:
+                {/* Used Third Party */}
+                <div className="bg-white/5 p-4 border border-white/10 rounded-lg">
+                  <h3 className="text-xl font-bold text-white flex items-center gap-2 mb-4">
+                    <Code className="text-brand-primary" /> Tech Stack
+                  </h3>
+                  <ul className="space-y-2 text-sm text-gray-400">
+                    <li>
+                      - <strong>Node.js</strong>: 22
+                    </li>
+                    <li>
+                      - <strong>Next.js</strong>: 15 (App Router)
+                    </li>
+                    <li>
+                      - <strong>3D Engine</strong>: React Three Fiber,
+                      @react-three/drei
+                    </li>
+                    <li>
+                      - <strong>Database</strong>: Prisma with SQLite
+                    </li>
+                    <li>
+                      - <strong>Multiplayer</strong>: Socket.io with Express
+                    </li>
+                    <li>
+                      - <strong>UI</strong>: Tailwind CSS, shadcn/ui
+                    </li>
+                  </ul>
+                </div>
 
-- Google's Jules (Gemini 3 Flash & 3.1 Pro)
-- Google AI Studio
-- Hermes Agent (Hermes Workspace / Orchestrator)
-- ChatGPT Images 2.0
-- runpod.io with lokal ComfyUI (some image and image to mesh models)
-- meshy.ai (buildings / characters / rigging and animations)
+                {/* Hands on Editing */}
+                <div className="bg-white/5 p-4 border border-white/10 rounded-lg">
+                  <h3 className="text-xl font-bold text-white flex items-center gap-2 mb-4">
+                    <PenTool className="text-purple-400" /> Hands-on Editing
+                  </h3>
+                  <ul className="space-y-2 text-sm text-gray-400">
+                    <li>
+                      -{" "}
+                      <a
+                        href="https://blender.org"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-white flex items-center gap-1"
+                      >
+                        blender.org <ExternalLink size={12} />
+                      </a>
+                    </li>
+                    <li>
+                      -{" "}
+                      <a
+                        href="https://photopea.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-white flex items-center gap-1"
+                      >
+                        photopea.com <ExternalLink size={12} />
+                      </a>
+                    </li>
+                    <li>
+                      -{" "}
+                      <a
+                        href="https://pikimov.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-white flex items-center gap-1"
+                      >
+                        pikimov.com <ExternalLink size={12} />
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </div>
 
-Used Third Party:
-
-            - **Node.js**: 22
-- **Next.js**: 15 (App Router)
-- **3D Engine**: React Three Fiber, @react-three/drei
-- **Database**: Prisma with SQLite
-- **Multiplayer**: Socket.io with a custom Express server
-- **UI**: Tailwind CSS, shadcn/ui
-
-Hands on 3D / Image / Video Editing
-
-- blender.org
-- photopea.com
-- pikimov.com
-
-Public github repo (MIT licensed)
-              https://github.com/BoozedBunny/bbtown
-            </p>
-          </section> */}
+              {/* GitHub Repo */}
+              <div className="bg-gradient-to-r from-brand-primary/20 to-brand-secondary/20 p-6 border border-brand-primary/30 rounded-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    <GitFork className="text-brand-primary" /> Open Source
+                  </h3>
+                  <p className="text-sm text-gray-400 mt-1">
+                    MIT Licensed Repository
+                  </p>
+                </div>
+                <a
+                  href="https://github.com/BoozedBunny/bbtown"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="cyber-panel px-6 py-3 flex items-center gap-2 hover:bg-white/10 transition-colors text-white font-bold"
+                >
+                  <GitFork size={20} /> View on GitHub
+                </a>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
 
