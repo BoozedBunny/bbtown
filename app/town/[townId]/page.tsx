@@ -108,7 +108,6 @@ const TOWN_CAMERA_PAN_CONFIG = {
 
 function Scene({
   buildings,
-  isXRay,
   onBuildingClick,
   cameraMode,
   freeMoveBuildingId,
@@ -122,7 +121,6 @@ function Scene({
   onPanDebugChange,
 }: {
   buildings: BuildingData[];
-  isXRay: boolean;
   onBuildingClick: (b: BuildingData) => void;
   cameraMode: "game" | "dev";
   freeMoveBuildingId?: string | null;
@@ -271,7 +269,7 @@ function Scene({
       </gridHelper> */}
 
       {buildings.map((b) => {
-        const isXRayActive = isXRay || freeMoveBuildingId === b.id;
+        const isXRayActive = freeMoveBuildingId === b.id;
 
         return (
           <ModelBuilding
@@ -301,14 +299,14 @@ function Scene({
       <ModelX
         url="https://www.boozedbunnytown.com/media/models/bbtown_sign1-v3-v5.glb"
         position={[5.8, 0.69, 4.2]}
-        opacity={!isXRay ? 1 : 0.5}
+        opacity={1}
         rotationY={90}
       />
 
       <ModelX
         url="https://www.boozedbunnytown.com/media/models/ground.glb"
         position={[0, -2.36, 0]}
-        opacity={!isXRay ? 1 : 0.5}
+        opacity={1}
         scale={20}
       />
 
@@ -353,7 +351,6 @@ export default function TownPage({
   const [selectedBuilding, setSelectedBuilding] = useState<BuildingData | null>(
     null,
   );
-  const [isXRay, setIsXRay] = useState(false);
   const [cameraMode, setCameraMode] = useState<"game" | "dev">("game");
   const [movingBuilding, setMovingBuilding] = useState<BuildingData | null>(
     null,
@@ -527,13 +524,6 @@ export default function TownPage({
 
   const headerNavItems = useMemo<HeaderNavItem[]>(
     () => [
-      {
-        id: "xray",
-        label: isXRay ? "X-Ray Active" : "X-Ray View",
-        group: "core",
-        priority: 10,
-        onSelect: () => setIsXRay((prev) => !prev),
-      },
       ...(process.env.NODE_ENV !== "production"
         ? [
             {
@@ -575,7 +565,7 @@ export default function TownPage({
         href: "/lobby",
       },
     ],
-    [cameraMode, isXRay, townId],
+    [cameraMode, townId],
   );
 
   const groupedHeaderNavItems = useMemo(() => {
@@ -1060,13 +1050,6 @@ export default function TownPage({
               </div>
             ) : (
               <div className="flex items-center gap-6">
-                <Button
-                  variant="ghost"
-                  onClick={() => setIsXRay(!isXRay)}
-                  className={`text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full transition-all border ${isXRay ? "bg-brand-primary/20 border-brand-primary text-brand-primary" : "border-white/10 text-gray-400 hover:text-white hover:bg-white/5"}`}
-                >
-                  {isXRay ? "X-Ray Active" : "X-Ray View"}
-                </Button>
                 {process.env.NODE_ENV !== "production" && (
                   <Button
                     variant={cameraMode === "dev" ? "default" : "outline"}
@@ -1295,7 +1278,6 @@ export default function TownPage({
           )}
           <Scene
             buildings={mergedBuildings}
-            isXRay={isXRay}
             serverTime={serverTime}
             activeHoverBuildingId={activeHoverBuildingId}
             onHoverBuildingChange={setActiveHoverBuildingId}
