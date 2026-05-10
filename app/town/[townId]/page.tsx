@@ -575,7 +575,7 @@ export default function TownPage({
         href: "/lobby",
       },
     ],
-    [cameraMode, isXRay, townId],
+    [cameraMode, isXRay, townId, currentUser],
   );
 
   const groupedHeaderNavItems = useMemo(() => {
