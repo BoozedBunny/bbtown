@@ -104,7 +104,7 @@
   .brand-bg-overlay::before {
     content: "";
     @apply absolute inset-0 z-[-1] bg-cover bg-center bg-no-repeat transition-transform duration-1000;
-    background-image: url("https://www.boozedbunnytown.com/media/arena.png");
+    background-image: url("https://www.boozedbunnytown.com/media/arena.webp");
   }
 
   .brand-bg-overlay::after {
