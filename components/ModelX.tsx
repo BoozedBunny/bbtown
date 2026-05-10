@@ -1,6 +1,7 @@
 "use client";
 
 import { useGLTF } from "@react-three/drei";
+import { ThreeEvent } from "@react-three/fiber";
 import { useMemo } from "react";
 import * as THREE from "three";
 
@@ -55,7 +56,7 @@ export function ModelX({
       // Rotation: X = Kippen, Y = Drehen, Z = 0
       rotation={[radX, radY, radZ]}
       scale={scale} // Hier wird der neue Scale-Parameter angewendet
-      onClick={(e: any) => {
+      onClick={(e: ThreeEvent<PointerEvent>) => {
         e.stopPropagation();
         if (onClick) onClick();
       }}
