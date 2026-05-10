@@ -11,7 +11,7 @@ import {
   PerspectiveCamera,
 } from "@react-three/drei";
 import dynamic from "next/dynamic";
-const LoaderWrapper = dynamic(() => import("@/components/ui/LoaderWrapper").then((mod) => mod.LoaderWrapper), { ssr: false });
+/* const LoaderWrapper = dynamic(() => import("@/components/ui/LoaderWrapper").then((mod) => mod.LoaderWrapper), { ssr: false }); */
 import { useEffect, useState, use, useMemo, useRef, useCallback } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { Camera } from "three";
@@ -1342,7 +1342,7 @@ export default function TownPage({
             }}
           />
         </Canvas>
-        <LoaderWrapper />
+       {/*  <LoaderWrapper /> */}
 
         {/* Overlay HUD elements */}
         {isTownCameraHorizontalPanEnabled &&
