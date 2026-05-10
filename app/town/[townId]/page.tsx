@@ -1276,7 +1276,7 @@ export default function TownPage({
       </div>
 
       <div className="relative w-full h-[75vh] border-2 border-brand-primary/30 rounded-none overflow-hidden bg-[#05010a] shadow-[0_0_50px_rgba(189,0,255,0.2)]">
-        <Canvas shadows>
+        <Canvas className="select-none" shadows>
           {cameraMode === "game" ? (
             <OrthographicCamera
               makeDefault
