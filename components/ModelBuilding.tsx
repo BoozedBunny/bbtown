@@ -1,15 +1,16 @@
 "use client";
 
-import { useGLTF, Html } from "@react-three/drei";
+import { Html, useTexture } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { Search, Landmark, Swords } from "lucide-react";
 import Image from "next/image";
+import { ImageBuildingProps } from "../app/town/[townId]/town-types";
 
 const TWO_PI = Math.PI * 2;
 
-// up_up_balloon.glb motion tuning (QA/product):
+// Motion tuning (falls das Bild wie der Ballon animiert werden soll)
 const BALLOON_BOB_AMP = 0.16;
 const BALLOON_BOB_HZ = 0.22;
 const BALLOON_DRIFT_RADIUS = 0.09;
@@ -20,34 +21,15 @@ const BALLOON_PHASE_BOB = 0;
 const BALLOON_PHASE_DRIFT = 1.2;
 const BALLOON_PHASE_YAW = 2.1;
 
-type ModelBuildingProps = {
-  id?: string;
-  url: string;
-  position: [number, number, number];
-  rotationY?: number;
-  opacity?: number;
-  onClick?: () => void;
-  activeHoverBuildingId?: string | null;
-  onHoverBuildingChange?: (id: string | null) => void;
-  hoverSuppressed?: boolean;
-  scale?: number | [number, number, number];
-  ownerId?: string;
-  ownerAvatar?: string;
-  title?: string;
-  ownerName?: string;
-  forSale?: boolean;
-  price?: number;
-};
-
-export function ModelBuilding({
+export function ImageBuilding({
   id,
   url,
   position,
   rotationY = 0,
+  rotationX = 0,
+  rotationZ = 0,
   opacity = 1,
   onClick,
-  activeHoverBuildingId,
-  onHoverBuildingChange,
   hoverSuppressed = false,
   scale = 1,
   ownerId,
@@ -56,33 +38,28 @@ export function ModelBuilding({
   ownerName,
   forSale,
   price,
-}: ModelBuildingProps) {
-  const { scene } = useGLTF(url);
+  iconPosition = 0.7,
+}: ImageBuildingProps) {
+  // Lade das webp-Bild als Textur
+  const texture = useTexture(url);
+
+  // Stelle sicher, dass die Farben korrekt dargestellt werden
+  texture.colorSpace = THREE.SRGBColorSpace;
+
   const groupRef = useRef<THREE.Group>(null);
   const isBalloon = url.includes("up_up_balloon");
 
-  const clonedScene = useMemo(() => {
-    const clone = scene.clone();
-    clone.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh;
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-
-        if (mesh.material) {
-          mesh.material = (mesh.material as THREE.Material).clone();
-          const mat = mesh.material as THREE.MeshStandardMaterial;
-          mat.transparent = true;
-          mat.opacity = opacity;
-        }
-      }
-    });
-    return clone;
-  }, [scene, opacity]);
-
-  const rotationInRadians = useMemo(
+  const rotationInRadiansY = useMemo(
     () => (rotationY * Math.PI) / 180,
     [rotationY],
+  );
+  const rotationInRadiansX = useMemo(
+    () => (rotationX * Math.PI) / 180,
+    [rotationX],
+  );
+  const rotationInRadiansZ = useMemo(
+    () => (rotationZ * Math.PI) / 180,
+    [rotationZ],
   );
 
   useFrame((state) => {
@@ -104,7 +81,9 @@ export function ModelBuilding({
       position[1] + bob,
       position[2] + driftZ,
     );
-    groupRef.current.rotation.y = rotationInRadians + yawSway;
+    groupRef.current.rotation.y = rotationInRadiansY + yawSway;
+    groupRef.current.rotation.x = rotationInRadiansX + yawSway;
+    groupRef.current.rotation.z = rotationInRadiansZ + yawSway;
   });
 
   const Icon = useMemo(() => {
@@ -119,13 +98,12 @@ export function ModelBuilding({
     return "bg-brand-primary shadow-[0_0_15px_rgba(189,0,255,0.8)]";
   }, [id]);
 
-  const iconPosition = useMemo(() => {
-    const box = new THREE.Box3().setFromObject(clonedScene);
-    const h = box.max.y - box.min.y;
-    if (url.includes("up_up_balloon"))
-      return [0, 0.7, 0] as [number, number, number]; // Slightly higher
-    return [0, h * 0.9, 0] as [number, number, number]; // Increased to float elegantly above
-  }, [clonedScene, url]);
+  const iconPositionRes = useMemo(() => {
+    // Da wir jetzt eine 1x1 Plane haben, können wir die Höhe über den scale ableiten.
+    // Eine Plane von 1 Einheit Höhe reicht von Y -0.5 bis +0.5.
+    const h = typeof scale === "number" ? scale : scale[1];
+    return [0, h * iconPosition, 0] as [number, number, number];
+  }, [scale, url]);
 
   const specialBuildingConfig = useMemo(() => {
     if (id === "4") {
@@ -151,12 +129,22 @@ export function ModelBuilding({
     <group
       ref={groupRef}
       position={position}
-      rotation={[0, rotationInRadians, 0]}
+      rotation={[rotationInRadiansX, rotationInRadiansY, rotationInRadiansZ]}
     >
-      <primitive object={clonedScene} scale={scale} />
+      {/* 2D Plane anstelle des 3D Modells */}
+      <mesh castShadow receiveShadow scale={scale}>
+        <planeGeometry args={[1, 1]} />
+        <meshStandardMaterial
+          map={texture}
+          transparent={true}
+          opacity={opacity}
+          side={THREE.DoubleSide}
+          alphaTest={0.1} // Verhindert, dass völlig transparente Pixel Schatten werfen
+        />
+      </mesh>
 
       {!hoverSuppressed && (
-        <Html position={iconPosition} center zIndexRange={[30, 0]}>
+        <Html position={iconPositionRes} center zIndexRange={[30, 0]}>
           <div
             className="select-none pointer-events-auto group flex items-center cursor-pointer transition-all duration-300 opacity-70 hover:opacity-100 hover:scale-110"
             onClick={(e) => {

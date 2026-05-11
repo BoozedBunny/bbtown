@@ -5,6 +5,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
   KeyboardControls,
   Sky,
+  Environment,
   Gltf,
   useKeyboardControls,
   useTexture,
@@ -632,6 +633,7 @@ function ArenaScene({
   Y steuert die Höhe der Sonne. Wenn Y nah an 0 ist, bekommst du einen Sonnenuntergang. 
   Wenn Y hoch ist (z.B. 2), hast du Mittagssonne.
 */}
+<Environment preset="sunset" />
       <Sky
         distance={450000}
         sunPosition={[5, 1, 8]}
@@ -645,7 +647,7 @@ function ArenaScene({
         src="https://www.boozedbunnytown.com/media/models/arena_inside.glb"
       />
 
-      <mesh receiveShadow position={[0, -5.5, 0]}>
+      <mesh receiveShadow position={[0, -6, 0]}>
         <boxGeometry args={[140, 1, 170]} />
         {/* Hier kommt die Textur drauf! */}
         <meshStandardMaterial map={floorTexture} />

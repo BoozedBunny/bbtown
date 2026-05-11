@@ -1,7 +1,7 @@
 "use client";
 
 import { ArenaGlobalToplist } from "@/components/ArenaGlobalToplist";
-
+import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import {
   OrbitControls,
@@ -20,7 +20,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Swords, Trophy, Loader2, X, Menu } from "lucide-react";
-import { ModelBuilding } from "@/components/ModelBuilding";
+import { ImageBuilding } from "@/components/ModelBuilding";
 import { ModelX } from "@/components/ModelX";
 import { TexturedGround } from "@/components/TexturedGround";
 import { DayNightCycle } from "@/components/DayNightCycle";
@@ -103,8 +103,8 @@ type TownCameraPanDebug = {
 };
 
 const TOWN_CAMERA_PAN_CONFIG = {
-  dragSensitivity: 0.012,
-  cityMarginWorld: 2,
+  dragSensitivity: 1.5,
+  cityMarginWorld: 7,
   minSoftSpan: 1,
 };
 
@@ -116,9 +116,6 @@ function Scene({
   onGroundPointerMove,
   onGroundClick,
   serverTime,
-  activeHoverBuildingId,
-  onHoverBuildingChange,
-  hoverSuppressed,
   horizontalPanEnabled,
   onPanDebugChange,
 }: {
@@ -139,98 +136,101 @@ function Scene({
   const clampHitsRef = useRef(0);
   const panLastTargetXRef = useRef<number | null>(null);
 
+  // Berechnet jetzt X- und Z-Grenzen der Stadt
   const cityBounds = useMemo(() => {
     if (!buildings.length) {
-      return { minX: -12, maxX: 12 };
+      return { minX: -12, maxX: 12, minZ: -12, maxZ: 12 };
     }
     const xs = buildings.map((building) => building.position[0]);
-    return { minX: Math.min(...xs), maxX: Math.max(...xs) };
+    const zs = buildings.map((building) => building.position[2]);
+    return {
+      minX: Math.min(...xs),
+      maxX: Math.max(...xs),
+      minZ: Math.min(...zs),
+      maxZ: Math.max(...zs),
+    };
   }, [buildings]);
 
   const getHorizontalFootprintHalfWidth = useCallback((camera: Camera) => {
-    const typedCamera = camera as Camera & {
-      isOrthographicCamera?: boolean;
-      isPerspectiveCamera?: boolean;
-      right?: number;
-      left?: number;
-      zoom?: number;
-      fov?: number;
-      aspect?: number;
-    };
-
-    if (
-      typedCamera.isOrthographicCamera &&
-      typedCamera.right !== undefined &&
-      typedCamera.left !== undefined &&
-      typedCamera.zoom
-    ) {
+    const typedCamera = camera as any;
+    if (typedCamera.isOrthographicCamera && typedCamera.zoom) {
       return ((typedCamera.right - typedCamera.left) / typedCamera.zoom) * 0.5;
     }
-
-    if (
-      typedCamera.isPerspectiveCamera &&
-      typedCamera.fov !== undefined &&
-      typedCamera.aspect !== undefined
-    ) {
-      const viewDistance = Math.abs(camera.position.y);
-      const verticalHalfSpan =
-        Math.tan((typedCamera.fov * Math.PI) / 360) * viewDistance;
-      return verticalHalfSpan * typedCamera.aspect;
-    }
-
     return 0;
   }, []);
 
-  const applyHorizontalPanClamp = useCallback(
-    (rawDeltaX = 0) => {
-      if (!horizontalPanEnabled || cameraMode !== "game") return;
+  const getVerticalFootprintHalfHeight = useCallback((camera: Camera) => {
+    const typedCamera = camera as any;
+    if (typedCamera.isOrthographicCamera && typedCamera.zoom) {
+      return ((typedCamera.top - typedCamera.bottom) / typedCamera.zoom) * 0.5;
+    }
+    return 0;
+  }, []);
 
-      const controls = controlsRef.current;
-      if (!controls) return;
+  // Neue 2D-Clamp Funktion für X und Z
+  const applyPanClamp = useCallback(() => {
+    if (!horizontalPanEnabled || cameraMode !== "game") return;
 
-      const halfWidth = getHorizontalFootprintHalfWidth(controls.object);
-      const minBound =
-        cityBounds.minX + TOWN_CAMERA_PAN_CONFIG.cityMarginWorld + halfWidth;
-      const maxBound =
-        cityBounds.maxX - TOWN_CAMERA_PAN_CONFIG.cityMarginWorld - halfWidth;
-      const span = maxBound - minBound;
-      const hasPanSpan = span > TOWN_CAMERA_PAN_CONFIG.minSoftSpan;
+    const controls = controlsRef.current;
+    if (!controls) return;
 
-      const effectiveMinX = hasPanSpan
-        ? minBound
-        : (cityBounds.minX + cityBounds.maxX) / 2;
-      const effectiveMaxX = hasPanSpan ? maxBound : effectiveMinX;
-      const currentTargetX = controls.target.x;
-      const clampedTargetX = Math.min(
-        effectiveMaxX,
-        Math.max(effectiveMinX, currentTargetX),
-      );
-      const appliedDeltaX = clampedTargetX - currentTargetX;
+    const halfWidth = getHorizontalFootprintHalfWidth(controls.object);
+    const halfHeight = getVerticalFootprintHalfHeight(controls.object);
 
-      if (Math.abs(appliedDeltaX) > 1e-6) {
-        clampHitsRef.current += 1;
-        controls.target.x = clampedTargetX;
-        controls.object.position.x += appliedDeltaX;
-      }
+    // X-Axis Clamp mit Schutz vor Überschneidung
+    let minXBound =
+      cityBounds.minX - TOWN_CAMERA_PAN_CONFIG.cityMarginWorld + halfWidth;
+    let maxXBound =
+      cityBounds.maxX + TOWN_CAMERA_PAN_CONFIG.cityMarginWorld - halfWidth;
 
-      onPanDebugChange?.({
-        targetX: clampedTargetX,
-        minX: effectiveMinX,
-        maxX: effectiveMaxX,
-        rawDeltaX,
-        appliedDeltaX,
-        clampHits: clampHitsRef.current,
-      });
-    },
-    [
-      cameraMode,
-      cityBounds.maxX,
-      cityBounds.minX,
-      getHorizontalFootprintHalfWidth,
-      horizontalPanEnabled,
-      onPanDebugChange,
-    ],
-  );
+    // Wenn wir zu weit rauszoomen (min > max), zentrieren wir die Kamera auf der X-Achse
+    if (minXBound > maxXBound) {
+      const center = (cityBounds.minX + cityBounds.maxX) / 2;
+      minXBound = center;
+      maxXBound = center;
+    }
+
+    const currentTargetX = controls.target.x;
+    const clampedTargetX = Math.min(
+      Math.max(currentTargetX, minXBound),
+      maxXBound,
+    );
+
+    // Z-Axis Clamp (Depth) mit Schutz vor Überschneidung
+    let minZBound =
+      cityBounds.minZ - TOWN_CAMERA_PAN_CONFIG.cityMarginWorld + halfHeight;
+    let maxZBound =
+      cityBounds.maxZ + TOWN_CAMERA_PAN_CONFIG.cityMarginWorld - halfHeight;
+    // Wenn wir zu weit rauszoomen (min > max), zentrieren wir die Kamera auf der Z-Achse
+    if (minZBound > maxZBound) {
+      const center = (cityBounds.minZ + cityBounds.maxZ) / 2;
+      minZBound = center;
+      maxZBound = center;
+    }
+
+    const currentTargetZ = controls.target.z;
+    const clampedTargetZ = Math.min(
+      Math.max(currentTargetZ, minZBound),
+      maxZBound,
+    );
+
+    const deltaX = clampedTargetX - currentTargetX;
+    const deltaZ = clampedTargetZ - currentTargetZ;
+
+    // Apply corrections if out of bounds
+if (Math.abs(deltaX) > 1e-6 || Math.abs(deltaZ) > 1e-6) {
+      clampHitsRef.current += 1;
+      controls.target.set(clampedTargetX, controls.target.y, clampedTargetZ);
+      controls.object.position.x += deltaX;
+      controls.object.position.z += deltaZ;
+    }
+  }, [
+    cameraMode,
+    cityBounds,
+    getHorizontalFootprintHalfWidth,
+    getVerticalFootprintHalfHeight,
+    horizontalPanEnabled,
+  ]);
 
   useEffect(() => {
     if (!horizontalPanEnabled || cameraMode !== "game") return;
@@ -239,21 +239,17 @@ function Scene({
     if (!controls) return;
 
     const onControlsChange = () => {
-      const lastX = panLastTargetXRef.current;
-      const nextX = controls.target.x;
-      const rawDeltaX = lastX === null ? 0 : nextX - lastX;
-      panLastTargetXRef.current = nextX;
-      applyHorizontalPanClamp(rawDeltaX);
+      applyPanClamp();
     };
 
     controls.panSpeed = TOWN_CAMERA_PAN_CONFIG.dragSensitivity;
     controls.addEventListener("change", onControlsChange);
-    applyHorizontalPanClamp(0);
+    applyPanClamp();
 
     return () => {
       controls.removeEventListener("change", onControlsChange);
     };
-  }, [applyHorizontalPanClamp, cameraMode, horizontalPanEnabled]);
+  }, [applyPanClamp, cameraMode, horizontalPanEnabled]);
 
   return (
     <>
@@ -261,7 +257,7 @@ function Scene({
 
       {/* Dein neues Bild als Boden */}
       <TexturedGround
-        url="https://www.boozedbunnytown.com/media/textures/testground.png"
+        url="https://www.boozedbunnytown.com/media/textures/open_bg.webp"
         onPointerMove={onGroundPointerMove}
         onClick={onGroundClick}
       />
@@ -274,16 +270,15 @@ function Scene({
         const isXRayActive = freeMoveBuildingId === b.id;
 
         return (
-          <ModelBuilding
+          <ImageBuilding
             key={b.id}
             id={b.id}
-            url={b.glb!}
+            url={b.image!} // Hier wird jetzt das webp übergeben
             position={b.position}
             opacity={!isXRayActive ? 1 : 0.4}
             rotationY={b.rotationY || 0}
-            activeHoverBuildingId={activeHoverBuildingId}
-            onHoverBuildingChange={onHoverBuildingChange}
-            hoverSuppressed={hoverSuppressed}
+            rotationX={b.rotationX || 0}
+            rotationZ={b.rotationZ || 0}
             onClick={() => {
               if (!freeMoveBuildingId) onBuildingClick(b);
             }}
@@ -294,11 +289,12 @@ function Scene({
             ownerName={b.owner}
             forSale={b.forSale}
             price={b.price}
+            iconPosition={b.iconPosition}
           />
         );
       })}
 
-      <ModelX
+      {/* <ModelX
         url="https://www.boozedbunnytown.com/media/models/bbtown_sign1-v3-v5.glb"
         position={[5.8, 0.69, 4.2]}
         opacity={1}
@@ -310,7 +306,7 @@ function Scene({
         position={[0, -2.36, 0]}
         opacity={1}
         scale={20}
-      />
+      /> */}
 
       <ContactShadows
         position={[0, 0, 0]}
@@ -325,12 +321,27 @@ function Scene({
           cameraMode === "dev" ||
           (cameraMode === "game" && !!horizontalPanEnabled)
         }
-        enableRotate={true}
+        enableRotate={cameraMode === "dev"} // Im Game-Modus darf nicht mehr rotiert werden
         zoomSpeed={0.5}
         minZoom={cameraMode === "game" ? 80 : 0.1}
         maxZoom={cameraMode === "game" ? 120 : 1000}
-        minPolarAngle={cameraMode === "game" ? Math.PI / 3.5 : 0}
-        maxPolarAngle={cameraMode === "game" ? Math.PI / 2.9 : Math.PI}
+        // PolarAngles auf 0 zwingt die Kamera direkt von oben nach unten zu schauen
+        minPolarAngle={cameraMode === "game" ? 0 : 0}
+        maxPolarAngle={cameraMode === "game" ? 0 : Math.PI}
+        // Maus-Belegung: Linksklick zieht die Karte (wie Google Maps)
+        mouseButtons={
+          cameraMode === "game"
+            ? {
+                LEFT: THREE.MOUSE.PAN,
+                MIDDLE: THREE.MOUSE.DOLLY,
+                RIGHT: THREE.MOUSE.ROTATE,
+              }
+            : {
+                LEFT: THREE.MOUSE.ROTATE,
+                MIDDLE: THREE.MOUSE.DOLLY,
+                RIGHT: THREE.MOUSE.PAN,
+              }
+        }
       />
     </>
   );
@@ -467,7 +478,7 @@ export default function TownPage({
     "true";
   const isTopNavRefactorEnabled = topNavFeatureFlag !== "false";
   const cameraPanFeatureFlag =
-    process.env.NEXT_PUBLIC_TOWN_CAMERA_HORIZONTAL_PAN ?? "false";
+    process.env.NEXT_PUBLIC_TOWN_CAMERA_HORIZONTAL_PAN ?? "true";
   const isTownCameraHorizontalPanEnabled = cameraPanFeatureFlag === "true";
   const cameraPanDebugFeatureFlag =
     process.env.NEXT_PUBLIC_TOWN_CAMERA_HORIZONTAL_PAN_DEBUG ?? "false";
@@ -851,11 +862,6 @@ export default function TownPage({
     positionOverrides,
     rotationOverrides,
   ]);
-
-  useEffect(() => {
-    if (!hoverSuppressed) return;
-    setActiveHoverBuildingId(null);
-  }, [hoverSuppressed]);
 
   return (
     <main className="flex min-h-screen flex-col items-center p-8 text-white font-sans overflow-hidden relative brand-bg-overlay">
@@ -1264,7 +1270,7 @@ export default function TownPage({
           {cameraMode === "game" ? (
             <OrthographicCamera
               makeDefault
-              position={[10, 10, 10]}
+              position={[0, 20, 0]} // Geändert: Kamera schaut direkt von oben herab
               zoom={80}
               near={0.1}
               far={1000}
@@ -1282,7 +1288,6 @@ export default function TownPage({
             buildings={mergedBuildings}
             serverTime={serverTime}
             activeHoverBuildingId={activeHoverBuildingId}
-            onHoverBuildingChange={setActiveHoverBuildingId}
             hoverSuppressed={hoverSuppressed}
             horizontalPanEnabled={isTownCameraHorizontalPanEnabled}
             onPanDebugChange={setTownCameraPanDebug}
@@ -1342,7 +1347,7 @@ export default function TownPage({
             }}
           />
         </Canvas>
-       {/*  <LoaderWrapper /> */}
+        {/*  <LoaderWrapper /> */}
 
         {/* Overlay HUD elements */}
         {isTownCameraHorizontalPanEnabled &&
