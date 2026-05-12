@@ -1,5 +1,6 @@
 export interface BuildingData {
   id: string;
+  name?: string;
   position: [number, number, number];
   rotationY?: number;
   rotationZ?: number;
