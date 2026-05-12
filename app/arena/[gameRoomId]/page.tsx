@@ -10,11 +10,17 @@ import {
   useKeyboardControls,
   useTexture,
   OrbitControls,
+  RoundedBox,
 } from "@react-three/drei";
 import { io, Socket } from "socket.io-client";
 import { Loader2, Swords, Trophy, Users } from "lucide-react";
 import * as THREE from "three";
-import { Physics, RigidBody, useRapier } from "@react-three/rapier";
+import {
+  Physics,
+  RigidBody,
+  useRapier,
+  CuboidCollider,
+} from "@react-three/rapier";
 import { Model as Player } from "@/components/Player";
 import { useRouter } from "next/navigation";
 import { ArenaGlobalToplist } from "@/components/ArenaGlobalToplist";
@@ -261,7 +267,7 @@ function LocalPlayer({
     const ray = new rapier.Ray(rayOrigin, rayDir);
 
     // Laser schießt 0.2 Meter (20cm) nach unten
-    const hit = world.castRay(ray, 0.2, true);
+    const hit = world.castRay(ray, 0.5, true);
 
     // Wir sind NUR "Grounded", wenn der Laser den Boden trifft
     // UND wir nicht gerade durch den Sprung steil nach oben/unten fliegen
@@ -332,12 +338,10 @@ function LocalPlayer({
   return (
     <RigidBody
       ref={rigidBodyRef}
-      /* colliders="capsule"  */
       mass={1}
       type="dynamic"
-      position={[0, 5, 0]}
       enabledRotations={[false, false, false]}
-      friction={0}
+      friction={1}
     >
       <group ref={modelRef}>
         <Player
@@ -423,41 +427,59 @@ type ObstaclePreset = {
 const OBSTACLE_Z_MIN = -35;
 const OBSTACLE_Z_MAX = 35;
 const OBSTACLE_DEPTH = 1.2;
-const OBSTACLE_BASE_Y = -0.5;
+const OBSTACLE_BASE_Y = -0.02;
 
 const OBSTACLE_PRESETS: ObstaclePreset[] = [
   {
     id: "jump-gate-full",
     startZ: -35,
-    speed: 12,
-    width: 20,
+    speed: 8,
+    width: 38, 
     height: 1.8,
     centerX: 0,
     phaseOffsetMs: 0,
   },
   {
     id: "short-left-block",
-    startZ: -20,
-    speed: 9,
-    width: 8,
+    startZ: -35,
+    speed: 6,
+    width: 28, 
     height: 2.2,
-    centerX: -6,
+    centerX: -12,
     phaseOffsetMs: 1100,
   },
   {
     id: "short-right-block",
-    startZ: -5,
-    speed: 10,
-    width: 8,
+    startZ: -35,
+    speed: 5,
+    width: 26, 
     height: 2.2,
-    centerX: 6,
+    centerX: 12,
+    phaseOffsetMs: 2200,
+  },
+{
+    id: "short-xtra-block-a",
+    startZ: -35,
+    speed: 12,
+    width: 10,
+    height: 2.2,
+    centerX: Math.random() * 24 - 12,
+    phaseOffsetMs: 2200,
+  },
+  {
+    id: "short-xtra-block-b",
+    startZ: -35,
+    speed: 12,
+    width: 9,
+    height: 2.2,
+    centerX: Math.random() * 24 - 12,
     phaseOffsetMs: 2200,
   },
 ];
 
 const ROUND_DURATION_SECONDS = 30;
 const TOTAL_ROUNDS = 30;
-const ROUND_SPEED_MULTIPLIER_MAX = 2.8;
+const ROUND_SPEED_MULTIPLIER_MAX = 5.2;
 const PRESSURE_PHASE_REDUCTION_MAX = 0.7;
 const ROUND_CURVE_EXPONENT = 1.35;
 
@@ -490,7 +512,7 @@ function MovingObstacle({
   speed,
   width,
   height,
-  centerX,
+  centerX: initialX,
   phaseOffsetMs = 0,
   round,
 }: {
@@ -502,8 +524,12 @@ function MovingObstacle({
   phaseOffsetMs?: number;
   round: number;
 }) {
-  const rbRef = useRef<any>(null);
+const rbRef = useRef<any>(null);
   const elapsedMsRef = useRef(0);
+  
+  // Wir speichern den aktuellen X-Wert in einem Ref, damit er zwischen den Frames bleibt
+  const currentX = useRef(initialX);
+
   const speedMultiplier = getSpeedMultiplierForRound(round);
   const phaseScale = getPhaseScaleForRound(round);
   const scaledSpeed = speed * speedMultiplier;
@@ -513,48 +539,51 @@ function MovingObstacle({
     if (!rbRef.current) return;
 
     elapsedMsRef.current += delta * 1000;
-    if (elapsedMsRef.current < scaledPhaseOffsetMs) {
-      return;
-    }
+    if (elapsedMsRef.current < scaledPhaseOffsetMs) return;
 
     const currentPos = rbRef.current.translation();
-    let newZ = currentPos.z + scaledSpeed * delta;
+    let nextZ = currentPos.z + scaledSpeed * delta;
 
-    if (newZ > OBSTACLE_Z_MAX) {
-      newZ = OBSTACLE_Z_MIN;
+    if (nextZ > OBSTACLE_Z_MAX) {
+      // RESET LOGIK
+      nextZ = OBSTACLE_Z_MIN;
+      
+      // NEU: Hier würfeln wir die neue Position zwischen -12 und 12
+      currentX.current = Math.random() * 24 - 12;
+
+      // Wir "beamen" das Hindernis an die neue X-Position und zurück zum Start-Z
+      rbRef.current.setTranslation(
+        { x: currentX.current, y: OBSTACLE_BASE_Y, z: nextZ }, 
+        true
+      );
+    } else {
+      // Bewegung mit dem aktuell gültigen X-Wert
+      rbRef.current.setNextKinematicTranslation({
+        x: currentX.current,
+        y: OBSTACLE_BASE_Y,
+        z: nextZ,
+      });
     }
-
-    rbRef.current.setNextKinematicTranslation({
-      x: centerX,
-      y: OBSTACLE_BASE_Y,
-      z: newZ,
-    });
   });
 
-  // Textur laden (Pfad bezieht sich auf den public-Ordner)
+// Textur laden
   const texture = useTexture(
     "https://www.boozedbunnytown.com/media/textures/planked_wood.webp",
   );
 
-  // Optional: Textur-Wiederholung konfigurieren, falls die Box groß ist
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(1, 1);
 
   return (
     <RigidBody
       ref={rbRef}
       type="kinematicPosition"
       colliders="cuboid"
-      position={[centerX, OBSTACLE_BASE_Y, startZ]}
+      position={[currentX.current, OBSTACLE_BASE_Y, startZ]}
+      friction={2} // Erhöhte Reibung für besseren Grip
+      restitution={0} // Verhindert, dass der Charakter beim Landen bouncet
     >
       <mesh castShadow receiveShadow>
         <boxGeometry args={[width, height, OBSTACLE_DEPTH]} />
-        <meshStandardMaterial
-          map={texture}
-          // Falls du den rötlichen Schimmer behalten willst,
-          // kannst du 'color' zusätzlich zur Textur setzen.
-          // color="#FF0055"
-        />
+        <meshStandardMaterial map={texture} />
       </mesh>
     </RigidBody>
   );
@@ -633,7 +662,7 @@ function ArenaScene({
   Y steuert die Höhe der Sonne. Wenn Y nah an 0 ist, bekommst du einen Sonnenuntergang. 
   Wenn Y hoch ist (z.B. 2), hast du Mittagssonne.
 */}
-<Environment preset="sunset" />
+      <Environment preset="sunset" />
       <Sky
         distance={450000}
         sunPosition={[5, 1, 8]}
@@ -650,22 +679,49 @@ function ArenaScene({
       <mesh receiveShadow position={[0, -6, 0]}>
         <boxGeometry args={[140, 1, 170]} />
         {/* Hier kommt die Textur drauf! */}
-        <meshStandardMaterial map={floorTexture} />
+        <meshStandardMaterial map={grandStandTexture} />
       </mesh>
 
-      {/* 1. DEBUG MODUS AKTIVIERT! Zeigt alle Physik-Boxen als rote Linien an */}
+      {/* 1. wenn DEBUG MODUS = Zeigt alle Physik-Boxen als rote Linien an */}
       <Physics gravity={[0, -9.81, 0]} timeStep="vary" /* debug */>
         {!isSuddenDeath && (
-          <RigidBody type="fixed">
-            <mesh receiveShadow position={[0, -3.5, 0]}>
-              <boxGeometry args={[20, 5, 70]} />
-              {/* Hier kommt die Textur drauf! */}
+          <group position={[0, -2, 0]}>
+            {/* 1. DIE PHYSIK (Unsichtbar) */}
+
+            {/*  <RigidBody type="fixed">
+
+            <mesh  receiveShadow position={[0, 0, 0]}>
+
+              <boxGeometry args={[36, 2.3, 65]} />
+
               <meshStandardMaterial map={grandStandTexture} />
+
             </mesh>
-          </RigidBody>
+
+          </RigidBody> */}
+
+            <RigidBody type="fixed">
+              {/* args: [halbe Breite, halbe Höhe, halbe Tiefe] */}
+              {/* 10, 0.5, 35 erzeugt eine Box von 20x1x70 Einheiten */}
+              <CuboidCollider args={[18.2, 1.4, 33.3]} />
+            </RigidBody>
+
+            {/* 2. DIE OPTIK (Keine eigene Physik!) */}
+            <Gltf
+              src="https://www.boozedbunnytown.com/media/models/podest.glb"
+              receiveShadow
+              castShadow
+              rotation={[0, (90 * Math.PI) / 180, 0]}
+              scale={35}
+              /* Wichtig: Wenn das Gltf keine Physik haben soll, 
+         einfach außerhalb eines RigidBodys platzieren oder 
+         im Gltf-onLoad alle Collider entfernen. */
+            />
+          </group>
         )}
 
-        {obstaclesEnabled && !isDevMode &&
+        {obstaclesEnabled &&
+          !isDevMode &&
           activeObstaclePresets.map((preset) => (
             <MovingObstacle
               key={`${preset.id}-wave-${preset.waveId}`}
@@ -719,7 +775,9 @@ export default function ArenaPage({
   params: Promise<{ gameRoomId: string }>;
 }) {
   const { gameRoomId } = use(params);
-  const isDevMode = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('devMode') === 'true';
+  const isDevMode =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("devMode") === "true";
   const router = useRouter();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [gameState, setGameState] = useState<{
@@ -1039,7 +1097,8 @@ export default function ArenaPage({
       </div>
 
       {gameState.status === "playing" &&
-        authoritativePhase.phase !== "ACTIVE_ROUND" && !isDevMode && (
+        authoritativePhase.phase !== "ACTIVE_ROUND" &&
+        !isDevMode && (
           <div className="absolute inset-x-0 top-1/3 z-20 pointer-events-none">
             <div className="relative h-32 w-full flex items-center justify-center overflow-hidden">
               <div className="absolute inset-0 bg-brand-primary/10 backdrop-blur-sm skew-y-1" />
@@ -1074,44 +1133,46 @@ export default function ArenaPage({
           </div>
         )}
 
-      {gameState.status === "waiting" && !gameRoomId.startsWith("solo-") && !isDevMode && (
-        <div
-          id="waiting-overlay"
-          className={`absolute inset-0 z-20 flex flex-col items-center justify-center backdrop-blur-md transition-colors duration-200 ${entryPhase === "playing" ? "bg-[#05010a]/90" : "bg-[#05010a]"}`}
-        >
-          <div className="max-w-md w-full px-6">
-            <div className="cyber-border bg-black/80 p-8 rounded-sm">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 bg-brand-primary/20 flex items-center justify-center border border-brand-primary/50">
-                  <Users className="w-6 h-6 text-brand-primary" />
+      {gameState.status === "waiting" &&
+        !gameRoomId.startsWith("solo-") &&
+        !isDevMode && (
+          <div
+            id="waiting-overlay"
+            className={`absolute inset-0 z-20 flex flex-col items-center justify-center backdrop-blur-md transition-colors duration-200 ${entryPhase === "playing" ? "bg-[#05010a]/90" : "bg-[#05010a]"}`}
+          >
+            <div className="max-w-md w-full px-6">
+              <div className="cyber-border bg-black/80 p-8 rounded-sm">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 bg-brand-primary/20 flex items-center justify-center border border-brand-primary/50">
+                    <Users className="w-6 h-6 text-brand-primary" />
+                  </div>
+                  <div>
+                    <h2
+                      className="text-2xl font-heading font-bold tracking-tighter cyber-glitch-text"
+                      data-text="AWAITING OPPONENT"
+                    >
+                      AWAITING OPPONENT
+                    </h2>
+                    <p className="text-[10px] uppercase tracking-[0.3em] text-brand-primary/60 font-bold">
+                      Establishing Secure Link...
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2
-                    className="text-2xl font-heading font-bold tracking-tighter cyber-glitch-text"
-                    data-text="AWAITING OPPONENT"
-                  >
-                    AWAITING OPPONENT
-                  </h2>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-brand-primary/60 font-bold">
-                    Establishing Secure Link...
-                  </p>
-                </div>
-              </div>
 
-              <div className="space-y-4">
-                <div className="h-1 bg-white/5 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-brand-primary animate-[cyber-loading_2s_infinite]" />
-                </div>
-                <div className="flex justify-between text-[10px] font-mono text-gray-500">
-                  <span>PING: 24MS</span>
-                  <span className="animate-pulse">ENCRYPTING...</span>
-                  <span>SSL: ACTIVE</span>
+                <div className="space-y-4">
+                  <div className="h-1 bg-white/5 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-brand-primary animate-[cyber-loading_2s_infinite]" />
+                  </div>
+                  <div className="flex justify-between text-[10px] font-mono text-gray-500">
+                    <span>PING: 24MS</span>
+                    <span className="animate-pulse">ENCRYPTING...</span>
+                    <span>SSL: ACTIVE</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {gameState.status === "finished" && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#05010a]/95 backdrop-blur-xl animate-in fade-in duration-700 text-center p-6">
@@ -1243,7 +1304,11 @@ export default function ArenaPage({
       <div className="absolute inset-0 z-0">
         <Suspense fallback={<div className="absolute inset-0 bg-[#05010a]" />}>
           <KeyboardControls map={keyboardMap}>
-            <Canvas className="select-none" shadows onCreated={handleCanvasCreated}>
+            <Canvas
+              className="select-none"
+              shadows
+              onCreated={handleCanvasCreated}
+            >
               <ArenaScene
                 players={gameState.players}
                 onMove={handleMove}

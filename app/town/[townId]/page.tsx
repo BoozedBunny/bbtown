@@ -3,6 +3,7 @@
 import { ArenaGlobalToplist } from "@/components/ArenaGlobalToplist";
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
+import { VideoSkyBg } from "@/components/VideoSkyBg";
 import {
   OrbitControls,
   ContactShadows,
@@ -104,7 +105,7 @@ type TownCameraPanDebug = {
 
 const TOWN_CAMERA_PAN_CONFIG = {
   dragSensitivity: 1.5,
-  cityMarginWorld: 7,
+  cityMarginWorld: 2,
   minSoftSpan: 1,
 };
 
@@ -255,6 +256,13 @@ if (Math.abs(deltaX) > 1e-6 || Math.abs(deltaZ) > 1e-6) {
     <>
       <DayNightCycle serverTime={serverTime} />
 
+      {/* Looping WebM Video Background */}
+      <VideoSkyBg
+        url="https://www.boozedbunnytown.com/media/textures/sky.webm"
+        onPointerMove={onGroundPointerMove}
+        onClick={onGroundClick}
+      />
+
       {/* Dein neues Bild als Boden */}
       <TexturedGround
         url="https://www.boozedbunnytown.com/media/textures/open_bg.webp"
@@ -285,7 +293,7 @@ if (Math.abs(deltaX) > 1e-6 || Math.abs(deltaZ) > 1e-6) {
             scale={b.scale || 1}
             ownerId={b.ownerId}
             ownerAvatar={b.ownerAvatar}
-            title={b.title}
+            title={b.title || b.name}
             ownerName={b.owner}
             forSale={b.forSale}
             price={b.price}

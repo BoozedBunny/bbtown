@@ -323,7 +323,7 @@ export function CombinedMarketView({
                       <button onClick={handleIssueLoan} disabled={loanBusy} className="group relative w-full">
                          <div className="absolute inset-0 bg-brand-secondary/20 blur group-hover:bg-brand-secondary/40 transition-all" />
                          <div className="cyber-skew bg-brand-secondary px-4 py-3 relative transition-transform group-active:scale-95 text-center">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-black">Initiate_Credit_Line</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-black">Initiate Credit Line</span>
                          </div>
                       </button>
                     </div>
@@ -450,13 +450,13 @@ export function CombinedMarketView({
                     <button onClick={() => buy(selectedStock.symbol, 1)} className="group relative w-full">
                        <div className="absolute inset-0 bg-brand-secondary/20 blur group-hover:bg-brand-secondary/40 transition-all" />
                        <div className="cyber-skew bg-brand-secondary px-4 py-4 relative transition-transform group-active:scale-95 text-center">
-                          <span className="text-xs font-black uppercase tracking-[0.2em] text-black">Execute_Buy_Order</span>
+                          <span className="text-xs font-black uppercase tracking-[0.2em] text-black">Execute Buy Order</span>
                        </div>
                     </button>
                     <button onClick={() => sell(selectedStock.symbol, 1)} disabled={currentHolding === 0} className="group relative w-full disabled:opacity-30">
                        <div className="absolute inset-0 bg-brand-tertiary/20 blur group-hover:bg-brand-tertiary/40 transition-all" />
                        <div className="cyber-skew bg-brand-tertiary px-4 py-4 relative transition-transform group-active:scale-95 text-center">
-                          <span className="text-xs font-black uppercase tracking-[0.2em] text-white">Execute_Sell_Order</span>
+                          <span className="text-xs font-black uppercase tracking-[0.2em] text-white">Execute Sell Order</span>
                        </div>
                     </button>
                   </div>

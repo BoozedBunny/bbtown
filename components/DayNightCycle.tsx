@@ -109,14 +109,14 @@ export function DayNightCycle({ serverTime }: { serverTime?: string }) {
         position={lighting.sunPosition}
         intensity={lighting.sunIntensity}
         color={lighting.sunColor}
-        castShadow={lighting.isDay}
+        castShadow={false}
         shadow-mapSize={[1024, 1024]}
         shadow-camera-left={-20}
         shadow-camera-right={20}
         shadow-camera-top={20}
         shadow-camera-bottom={-20}
       />
-      <Environment preset={lighting.environmentPreset} environmentIntensity={lighting.isDay ? 0.5 : 1.4} />
+      <Environment preset={lighting.environmentPreset} environmentIntensity={lighting.isDay ? 0.2 : 3.4} />
     </>
   );
 }

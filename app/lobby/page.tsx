@@ -23,7 +23,7 @@ export default async function LobbyPage() {
     <div className="flex flex-col items-center justify-center min-h-screen p-4 text-white overflow-hidden relative brand-bg-overlay font-sans">
       <div className="z-10 w-full max-w-md cyber-panel p-8 border-l-4 border-l-brand-secondary">
         <div className="flex flex-col items-center mb-8">
-          <div className="relative w-16 h-16 mb-4">
+          <div className="relative w-32 h-32 mb-4">
             <div className="absolute inset-0 bg-brand-secondary/20 blur-xl rounded-full" />
             <Image
               src="https://www.boozedbunnytown.com/media/logo.png"
@@ -87,8 +87,8 @@ export default async function LobbyPage() {
 
               <div className="mb-8 max-w-sm mx-auto">
                 <details className="group">
-                  <summary className="text-[10px] font-mono font-bold text-gray-500 hover:text-brand-primary transition-colors cursor-pointer list-none flex items-center justify-center gap-2 uppercase tracking-widest mb-4">
-                    <span>Edit Profile</span>
+                  <summary className="text-[16px] font-mono font-bold text-gray-500 hover:text-brand-primary transition-colors cursor-pointer list-none flex items-center justify-center gap-2 uppercase tracking-widest mb-4">
+                    <span>- Edit Profile -</span>
                   </summary>
                   <div className="mt-4 p-4 border border-white/5 bg-black/20 text-left">
                     <AvatarSelection

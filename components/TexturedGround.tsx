@@ -35,7 +35,7 @@ export function TexturedGround({
           da wir sie um -Math.PI / 2 rotieren.
       */}
       <planeGeometry args={[newWidth, newHeight]} />
-      <meshStandardMaterial map={texture} />
+      <meshStandardMaterial map={texture} transparent />
     </mesh>
   );
 }

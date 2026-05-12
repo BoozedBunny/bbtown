@@ -72,9 +72,9 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   }, */
   {
     id: "8",
-    position: [5.4, 1.50, 0],
+    position: [5.8, 1.50, 0.8],
     rotationX: -70,
-       rotationY: -20,
+       rotationY: -10,
         iconPosition: 0.54,
     glb: "https://www.boozedbunnytown.com/media/models/1001_nights.glb",
     name: "1001 Nights",
@@ -111,7 +111,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "11",
-    position: [-13, 1.8, -1.4],
+    position: [-12.6, 1.8, -1],
     rotationX: -70,
     rotationY: 10,
     scale: 4.5,
@@ -151,10 +151,10 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "14",
-    position: [12.08, 1.30, 2.70],
+    position: [8.8, 1.30, 4.3],
     rotationX: -70,
     rotationY: -15,
-    scale: 4,
+    scale: 5.5,
     iconPosition: 0.5,
     glb: "https://www.boozedbunnytown.com/media/models/hoppy_heaven.glb",
     name: "Hoppy Heaven",
@@ -164,10 +164,10 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "15",
-    position: [8.6, 1.30, 1.2],
+    position: [9.3, 1.50, .2],
     rotationX: -70,
     rotationY: -15,
-    scale: 3.5,
+    scale: 4.5,
     iconPosition: 0.4,
     glb: "https://www.boozedbunnytown.com/media/models/pipe_house.glb",
     name: "Pipe House",
@@ -189,10 +189,10 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "17",
-    position: [9.8, 1.3, -1.4],
+    position: [12.6, 1.3, 2.8],
     rotationX: -70,
     rotationY: -15,
-    scale: 2.5,
+    scale: 3.5,
     iconPosition: 0.64,
     glb: "https://www.boozedbunnytown.com/media/models/up_up_house.glb",
     name: "Up Up House",
@@ -230,7 +230,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
     id: "20",
     position: [-6, 2.6, 0.4],
    rotationX: -70,
-   rotationY: 15,
+   rotationY: 10,
     scale: 5.5,
         iconPosition: 0.56,
     glb: "https://www.boozedbunnytown.com/media/models/vulcan_temple.glb",
@@ -266,7 +266,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "23",
-    position: [7, 1.8, -1.8],
+    position: [7, 1.3, -1.8],
     rotationX: -70,
     rotationY: -10,
     scale: 3.4,
@@ -280,7 +280,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "24",
-    position: [8, 2.6, 4.8],
+    position: [5, 2.6, 4.8],
     rotationX: -70,
     rotationY: -20,
     scale: 7.5,
@@ -312,4 +312,18 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
     type: "Commercial",
     color: "#BD00FF",
   }, */
+    {
+    id: "25",
+    position: [9.3, 1, -3.3],
+    rotationX: -70,
+    rotationY: -10,
+    scale: 5.5,
+    iconPosition: 0.54,
+    glb: "https://www.boozedbunnytown.com/media/models/casino_pyramid.glb",
+    name: "Stock Exchange",
+    image:
+      "https://www.boozedbunnytown.com/media/buildings/stock.webp",
+    type: "Commercial",
+    color: "#BD00FF",
+  },
 ];
