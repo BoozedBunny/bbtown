@@ -5,9 +5,26 @@ import Image from "next/image";
 import { createCharacter, updateCharacter } from "../actions/character";
 
 const AVATARS = [
-  { id: "bunny", label: "Bunny", src: "https://www.boozedbunnytown.com/media/avatars/bunny_avatar.webp" },
-  { id: "cowie", label: "Cowie", src: "https://www.boozedbunnytown.com/media/avatars/cowie_avatar.webp" },
-  { id: "skunky", label: "Skunky", src: "https://www.boozedbunnytown.com/media/avatars/skunky_avatar.webp" },
+  {
+    id: "bunny",
+    label: "Bunny",
+    src: "https://www.boozedbunnytown.com/media/avatars/bunny_avatar.webp",
+  },
+  {
+    id: "cowie",
+    label: "Cowie",
+    src: "https://www.boozedbunnytown.com/media/avatars/cowie_avatar.webp",
+  },
+  {
+    id: "skunky",
+    label: "Skunky",
+    src: "https://www.boozedbunnytown.com/media/avatars/skunky_avatar.webp",
+  },
+  {
+    id: "nutty",
+    label: "Nutty",
+    src: "https://www.boozedbunnytown.com/media/avatars/nutty_avatar.webp",
+  },
 ];
 
 export function AvatarSelection({
@@ -31,9 +48,15 @@ export function AvatarSelection({
   };
 
   return (
-    <form action={mode === "create" ? createCharacter : updateCharacter} className="space-y-6">
+    <form
+      action={mode === "create" ? createCharacter : updateCharacter}
+      className="space-y-6"
+    >
       <div className="space-y-2">
-        <label htmlFor="name" className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest block">
+        <label
+          htmlFor="name"
+          className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest block"
+        >
           Identifier
         </label>
         <input
@@ -58,7 +81,7 @@ export function AvatarSelection({
         <label className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest block">
           Avatar Selection
         </label>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           {AVATARS.map((avatar) => (
             <label
               key={avatar.id}
@@ -89,9 +112,13 @@ export function AvatarSelection({
                   className="object-cover"
                 />
               </div>
-              <span className={`text-[10px] font-mono font-bold uppercase tracking-widest ${
-                selectedAvatar === avatar.id ? "text-brand-primary" : "text-gray-500"
-              }`}>
+              <span
+                className={`text-[10px] font-mono font-bold uppercase tracking-widest ${
+                  selectedAvatar === avatar.id
+                    ? "text-brand-primary"
+                    : "text-gray-500"
+                }`}
+              >
                 {avatar.label}
               </span>
               {selectedAvatar === avatar.id && (
@@ -106,7 +133,10 @@ export function AvatarSelection({
 
       {mode === "create" && (
         <div className="space-y-2">
-          <label htmlFor="appearanceColor" className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest block">
+          <label
+            htmlFor="appearanceColor"
+            className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest block"
+          >
             Visual Signature
           </label>
           <div className="relative">
@@ -120,16 +150,15 @@ export function AvatarSelection({
               <option value="#FFB800">Secondary Gold</option>
               <option value="#FF4D00">Tertiary Orange</option>
             </select>
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-brand-primary">▼</div>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-brand-primary">
+              ▼
+            </div>
           </div>
         </div>
       )}
 
       {mode === "create" && (
-        <button
-          type="submit"
-          className="group relative w-full block"
-        >
+        <button type="submit" className="group relative w-full block">
           <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
           <div className="cyber-skew bg-brand-primary px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
             <span className="text-sm font-black uppercase tracking-[0.2em] text-white">

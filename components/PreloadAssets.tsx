@@ -8,6 +8,7 @@ const assetsToPreload = [
   "https://www.boozedbunnytown.com/media/models/player_bunny.glb",
   "https://www.boozedbunnytown.com/media/models/player_cowie.glb",
   "https://www.boozedbunnytown.com/media/models/player_skunky.glb",
+  "https://www.boozedbunnytown.com/media/models/player_nutty.glb",
   // TODO: Add other heavy models (buildings, environment)
 ];
 
