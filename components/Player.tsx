@@ -88,3 +88,4 @@ export function Model({ currentAction = "Idle_1", avatar = "bunny", ...props }: 
 useGLTF.preload("https://www.boozedbunnytown.com/media/models/player_bunny.glb");
 useGLTF.preload("https://www.boozedbunnytown.com/media/models/player_cowie.glb");
 useGLTF.preload("https://www.boozedbunnytown.com/media/models/player_skunky.glb");
+useGLTF.preload("https://www.boozedbunnytown.com/media/models/player_nutty.glb");
