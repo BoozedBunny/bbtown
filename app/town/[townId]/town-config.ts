@@ -244,7 +244,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
     position: [0.5, 2.6, 1],
  rotationX: -70,
     scale: 8.5,
-    iconPosition: 0.1,
+    iconPosition: 0.05,
     glb: "https://www.boozedbunnytown.com/media/models/arena-v2.glb",
     name: "Arena V2",
     image: "https://www.boozedbunnytown.com/media/buildings/arena.webp",

@@ -21,7 +21,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Swords, Trophy, Loader2, X, Menu } from "lucide-react";
-import { ImageBuilding } from "@/components/ModelBuilding";
+import { ImageBuilding } from "@/components/ImageBuilding";
 import { ModelX } from "@/components/ModelX";
 import { TexturedGround } from "@/components/TexturedGround";
 import { DayNightCycle } from "@/components/DayNightCycle";
@@ -323,20 +323,18 @@ if (Math.abs(deltaX) > 1e-6 || Math.abs(deltaZ) > 1e-6) {
         blur={2}
         far={1}
       />
-      <OrbitControls
+<OrbitControls
         ref={controlsRef}
         enablePan={
           cameraMode === "dev" ||
           (cameraMode === "game" && !!horizontalPanEnabled)
         }
-        enableRotate={cameraMode === "dev"} // Im Game-Modus darf nicht mehr rotiert werden
+        enableRotate={cameraMode === "dev"}
         zoomSpeed={0.5}
         minZoom={cameraMode === "game" ? 80 : 0.1}
         maxZoom={cameraMode === "game" ? 120 : 1000}
-        // PolarAngles auf 0 zwingt die Kamera direkt von oben nach unten zu schauen
         minPolarAngle={cameraMode === "game" ? 0 : 0}
         maxPolarAngle={cameraMode === "game" ? 0 : Math.PI}
-        // Maus-Belegung: Linksklick zieht die Karte (wie Google Maps)
         mouseButtons={
           cameraMode === "game"
             ? {
