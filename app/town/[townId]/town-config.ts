@@ -177,7 +177,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "16",
-    position: [7, 1.3, -6.3],
+    position: [6, 1.3, -6.3],
     rotationX: -70,
     scale: 2.5,
     iconPosition: 0.64,
