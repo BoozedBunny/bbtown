@@ -41,7 +41,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "../../actions/user";
 import { buyBuilding, updateBuildingSettings } from "../../actions/town";
-import { updateBuildingTransform } from "../../actions/dev";
+import { updateBuildingTransform, updateMultipleBuildingTransforms } from "../../actions/dev";
 import {
   ARENA_BUILDING_ID,
   BANK_BUILDING_ID,
@@ -274,6 +274,13 @@ if (Math.abs(deltaX) > 1e-6 || Math.abs(deltaZ) > 1e-6) {
         url="https://www.boozedbunnytown.com/media/textures/open_bg.webp"
         onPointerMove={onGroundPointerMove}
         onClick={onGroundClick}
+      />
+      <TexturedGround
+        url="https://www.boozedbunnytown.com/media/textures/city_bg.webp"
+        onPointerMove={onGroundPointerMove}
+        onClick={onGroundClick}
+                height={15}
+        position={[0, 0.03, -6.8]}
       />
 
       {/* <gridHelper args={[30, 30, "#BD00FF", "#2A0A4E"]} position={[0, 0.02, 0]}>
@@ -1565,10 +1572,14 @@ export default function TownPage({
                     className="text-xs w-full bg-green-500 hover:bg-green-600 text-black font-bold"
                     onClick={async () => {
                       try {
-                        const promises = Object.entries(positionOverrides).map(([id, pos]) => 
-                          updateBuildingTransform(id, pos, rotationOverrides[id] ?? HARDCODED_BUILDINGS.find(b => b.id === id)?.rotationY ?? 0)
-                        );
-                        await Promise.all(promises);
+                        const updates = Object.entries(positionOverrides).map(([id, pos]) => ({
+                          buildingId: id,
+                          position: pos,
+                          rotationY: rotationOverrides[id] ?? HARDCODED_BUILDINGS.find(b => b.id === id)?.rotationY ?? 0
+                        }));
+                        if (updates.length > 0) {
+                          await updateMultipleBuildingTransforms(updates);
+                        }
                         toast.success("Positions saved successfully!");
                         setIsFreePositionMode(false);
                       } catch (e) {

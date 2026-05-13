@@ -8,10 +8,16 @@ export function TexturedGround({
   url,
   onPointerMove,
   onClick,
+  height = 13,
+  width = 36,
+  position = [0, 0, 4],
 }: {
   url: string;
   onPointerMove?: (e: ThreeEvent<PointerEvent>) => void;
   onClick?: (e: ThreeEvent<PointerEvent>) => void;
+  height?: number;
+  width?: number;
+  position?: [number,number,number];
 }) {
   const texture = useTexture(url);
 
@@ -19,13 +25,13 @@ export function TexturedGround({
   texture.repeat.set(1, 1);
 
   // Die berechneten Maße basierend auf der Pixel-Expansion
-  const newWidth = 36.923;
-  const newHeight = 24.615;
+  const newWidth = width;
+  const newHeight = height;
 
   return (
     <mesh
       rotation-x={-Math.PI / 2}
-      position={[0, 0, 0]}
+      position={position}
       receiveShadow
       onPointerMove={onPointerMove}
       onClick={onClick}
