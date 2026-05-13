@@ -1017,6 +1017,22 @@ app.prepare().then(async () => {
         try {
           if (!isSolo) {
             setGlobalToplist(toplistPayload);
+          } else {
+            const playerUsername = Object.values(game.players)[0]?.username;
+            if (playerUsername) {
+              const character = await prisma.character.findFirst({
+                where: { user: { username: playerUsername } },
+              });
+              if (character && roundsReached > character.arenaMaxRounds) {
+                await prisma.character.update({
+                  where: { id: character.id },
+                  data: { arenaMaxRounds: roundsReached },
+                });
+                console.log(
+                  `Updated arenaMaxRounds for ${playerUsername} to ${roundsReached}`,
+                );
+              }
+            }
           }
 
           if (winner && !isSolo) {

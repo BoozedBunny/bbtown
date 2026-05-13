@@ -2234,6 +2234,7 @@ export default function TownPage({
                   <div className="mt-8">
                     <ArenaGlobalToplist
                       currentUserUsername={currentUser?.username}
+                      personalMaxRounds={currentUser?.character?.arenaMaxRounds}
                     />
                   </div>
                 </div>

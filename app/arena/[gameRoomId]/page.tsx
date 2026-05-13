@@ -1278,6 +1278,7 @@ export default function ArenaPage({
                   <ArenaGlobalToplist
                     currentUserUsername={currentUser?.username}
                     localPostMatchRows={localPostMatchRows}
+                    personalMaxRounds={currentUser?.arenaMaxRounds}
                   />
                 )}
               </div>

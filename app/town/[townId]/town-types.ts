@@ -67,5 +67,6 @@ export interface UserWithCharacter {
     name: string;
     avatar: string;
     wallet: number;
+    arenaMaxRounds: number;
   } | null;
 }

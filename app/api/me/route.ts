@@ -14,6 +14,7 @@ export async function GET() {
       characterId: user.character.id,
       avatar: user.character.avatar,
       description: user.character.description,
+      arenaMaxRounds: user.character.arenaMaxRounds,
     });
   } catch (error) {
     console.error(error);
