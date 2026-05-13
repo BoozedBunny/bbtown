@@ -275,6 +275,13 @@ if (Math.abs(deltaX) > 1e-6 || Math.abs(deltaZ) > 1e-6) {
         onPointerMove={onGroundPointerMove}
         onClick={onGroundClick}
       />
+      <TexturedGround
+        url="https://www.boozedbunnytown.com/media/textures/city_bg.webp"
+        onPointerMove={onGroundPointerMove}
+        onClick={onGroundClick}
+                height={15}
+        position={[0, 0.03, -6.8]}
+      />
 
       {/* <gridHelper args={[30, 30, "#BD00FF", "#2A0A4E"]} position={[0, 0.02, 0]}>
          <meshBasicMaterial transparent opacity={0.2} />
