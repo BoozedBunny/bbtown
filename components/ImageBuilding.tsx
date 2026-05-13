@@ -4,7 +4,7 @@ import { Html, useTexture, TransformControls } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
-import { Search, Landmark, Swords } from "lucide-react";
+import { Search, Landmark, Swords, TrendingUp, Dices } from "lucide-react";
 import Image from "next/image";
 import { ImageBuildingProps } from "../app/town/[townId]/town-types";
 
@@ -91,11 +91,13 @@ export function ImageBuilding({
   const Icon = useMemo(() => {
     if (id === "4") return Landmark;
     if (id === "21") return Swords;
+    if (id === "24") return Dices;
+    if (id === "25") return TrendingUp;
     return Search;
   }, [id]);
 
   const iconBgColor = useMemo(() => {
-    if (id === "4")
+    if (id === "4" || id === "25")
       return "bg-brand-secondary shadow-[0_0_15px_rgba(255,184,0,0.8)]";
     return "bg-brand-primary shadow-[0_0_15px_rgba(189,0,255,0.8)]";
   }, [id]);
@@ -122,6 +124,22 @@ export function ImageBuilding({
         colorClass: "text-brand-primary",
         borderClass: "border-brand-primary/30",
         shadowClass: "shadow-[0_0_15px_rgba(189,0,255,0.3)]",
+      };
+    }
+    if (id === "24") {
+      return {
+        title: "The Casino",
+        colorClass: "text-brand-primary",
+        borderClass: "border-brand-primary/30",
+        shadowClass: "shadow-[0_0_15px_rgba(189,0,255,0.3)]",
+      };
+    }
+    if (id === "25") {
+      return {
+        title: "Stock Exchange",
+        colorClass: "text-brand-secondary",
+        borderClass: "border-brand-secondary/30",
+        shadowClass: "shadow-[0_0_15px_rgba(255,184,0,0.3)]",
       };
     }
     return null;

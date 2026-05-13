@@ -20,7 +20,7 @@ import { io, Socket } from "socket.io-client";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Swords, Trophy, Loader2, X, Menu } from "lucide-react";
+import { Swords, Trophy, Loader2, X, Menu, Dices } from "lucide-react";
 import { ImageBuilding } from "@/components/ImageBuilding";
 import { ModelX } from "@/components/ModelX";
 import { TexturedGround } from "@/components/TexturedGround";
@@ -45,6 +45,8 @@ import { updateBuildingTransform } from "../../actions/dev";
 import {
   ARENA_BUILDING_ID,
   BANK_BUILDING_ID,
+  CASINO_BUILDING_ID,
+  STOCK_EXCHANGE_BUILDING_ID,
   HARDCODED_BUILDINGS,
 } from "./town-config";
 import type {
@@ -405,6 +407,7 @@ export default function TownPage({
   const [marketIntent, setMarketIntent] =
     useState<CentralManagementIntent | null>(null);
   const [showArenaModal, setShowArenaModal] = useState(false);
+  const [showCasinoModal, setShowCasinoModal] = useState(false);
   const [matchmakingStatus, setMatchmakingStatus] = useState<
     "idle" | "searching" | "matched"
   >("idle");
@@ -470,8 +473,8 @@ export default function TownPage({
   const canViewGeoPosition = runtimeMode === "dev";
 
   const hoverSuppressed = useMemo(
-    () => !!selectedBuilding || showArenaModal || showCombinedView,
-    [selectedBuilding, showArenaModal, showCombinedView],
+    () => !!selectedBuilding || showArenaModal || showCasinoModal || showCombinedView,
+    [selectedBuilding, showArenaModal, showCasinoModal, showCombinedView],
   );
   const [editForm, setEditForm] = useState({
     title: "",
@@ -1315,6 +1318,17 @@ export default function TownPage({
                 setShowArenaModal(true);
                 return;
               }
+              if (b.id === CASINO_BUILDING_ID) {
+                setShowCasinoModal(true);
+                return;
+              }
+              if (b.id === STOCK_EXCHANGE_BUILDING_ID) {
+                openCentralManagement({
+                  tab: "market",
+                  source: "query" as any,
+                });
+                return;
+              }
               setSelectedBuilding(b);
               setEditForm({
                 title: b.title || "",
@@ -2058,6 +2072,42 @@ export default function TownPage({
         characterId={profileModalCharacterId || ""}
         currentUserId={currentUser?.character?.id}
       />
+
+      <Dialog
+        open={showCasinoModal}
+        onOpenChange={(open) => setShowCasinoModal(open)}
+      >
+        <DialogContent className="sm:max-w-[425px] cyber-panel text-white border-t-4 border-t-brand-primary rounded-none shadow-[0_0_50px_rgba(189,0,255,0.15)] p-0 overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-primary via-brand-secondary to-brand-primary animate-scanline z-50" />
+
+          <div className="p-8">
+            <DialogHeader className="pt-6">
+              <div className="mx-auto w-20 h-20 bg-brand-primary/10 border border-brand-primary/30 flex items-center justify-center mb-6 cyber-skew group">
+                <Dices className="w-10 h-10 text-brand-primary group-hover:scale-110 transition-transform" />
+              </div>
+              <DialogTitle
+                className="text-3xl font-heading font-black italic tracking-tighter text-center cyber-glitch-text"
+                data-text="THE CASINO"
+              >
+                THE CASINO
+              </DialogTitle>
+              <DialogDescription className="text-center text-gray-500 font-mono text-[10px] uppercase tracking-[0.2em] mt-2">
+                Casino functionality coming soon.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-8 flex justify-center">
+              <Button
+                onClick={() => setShowCasinoModal(false)}
+                className="w-full h-10 bg-white/5 hover:bg-white/10 text-gray-500 hover:text-white border border-white/10 rounded-none cyber-skew font-black uppercase tracking-widest text-[10px]"
+              >
+                Close Casino
+              </Button>
+            </div>
+          </div>
+          <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] z-40 bg-[length:100%_2px,3px_100%] opacity-50" />
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={showArenaModal}
