@@ -1710,7 +1710,9 @@ export default function TownPage({
               <DialogDescription className="text-gray-500 font-mono text-[10px] uppercase tracking-[0.3em]">
                 {selectedBuilding?.id === BANK_BUILDING_ID
                   ? "District Infrastructure // Asset node"
-                  : "Real Estate Registry // Property Data"}
+                  : selectedBuilding?.ownerId
+                    ? selectedBuilding?.name
+                    : "Real Estate Registry // Property Data"}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-6">
