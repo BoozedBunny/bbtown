@@ -434,7 +434,7 @@ const OBSTACLE_PRESETS: ObstaclePreset[] = [
     id: "jump-gate-full",
     startZ: -35,
     speed: 8,
-    width: 38, 
+    width: 38,
     height: 1.8,
     centerX: 0,
     phaseOffsetMs: 0,
@@ -443,7 +443,7 @@ const OBSTACLE_PRESETS: ObstaclePreset[] = [
     id: "short-left-block",
     startZ: -35,
     speed: 6,
-    width: 28, 
+    width: 28,
     height: 2.2,
     centerX: -12,
     phaseOffsetMs: 1100,
@@ -452,12 +452,12 @@ const OBSTACLE_PRESETS: ObstaclePreset[] = [
     id: "short-right-block",
     startZ: -35,
     speed: 5,
-    width: 26, 
+    width: 26,
     height: 2.2,
     centerX: 12,
     phaseOffsetMs: 2200,
   },
-{
+  {
     id: "short-xtra-block-a",
     startZ: -35,
     speed: 12,
@@ -524,9 +524,9 @@ function MovingObstacle({
   phaseOffsetMs?: number;
   round: number;
 }) {
-const rbRef = useRef<any>(null);
+  const rbRef = useRef<any>(null);
   const elapsedMsRef = useRef(0);
-  
+
   // Wir speichern den aktuellen X-Wert in einem Ref, damit er zwischen den Frames bleibt
   const currentX = useRef(initialX);
 
@@ -547,14 +547,14 @@ const rbRef = useRef<any>(null);
     if (nextZ > OBSTACLE_Z_MAX) {
       // RESET LOGIK
       nextZ = OBSTACLE_Z_MIN;
-      
+
       // NEU: Hier würfeln wir die neue Position zwischen -12 und 12
       currentX.current = Math.random() * 24 - 12;
 
       // Wir "beamen" das Hindernis an die neue X-Position und zurück zum Start-Z
       rbRef.current.setTranslation(
-        { x: currentX.current, y: OBSTACLE_BASE_Y, z: nextZ }, 
-        true
+        { x: currentX.current, y: OBSTACLE_BASE_Y, z: nextZ },
+        true,
       );
     } else {
       // Bewegung mit dem aktuell gültigen X-Wert
@@ -566,11 +566,10 @@ const rbRef = useRef<any>(null);
     }
   });
 
-// Textur laden
+  // Textur laden
   const texture = useTexture(
     "https://www.boozedbunnytown.com/media/textures/planked_wood.webp",
   );
-
 
   return (
     <RigidBody
@@ -1360,9 +1359,31 @@ export default function ArenaPage({
                 <div className="w-64 h-[2px] bg-white/5 relative overflow-hidden">
                   <div className="absolute inset-0 bg-brand-secondary animate-[cyber-loading_1.5s_infinite]" />
                 </div>
-                <p className="mt-4 text-[10px] uppercase tracking-[0.5em] text-gray-500 font-bold">
+                <p className="mt-4 text-[10px] uppercase tracking-[0.5em] text-gray-500 font-bold mb-8">
                   Loading Neural Assets
                 </p>
+
+                {gameState.players.length > 0 && (
+                  <div className="flex gap-8 items-center justify-center pt-8 border-t border-brand-primary/20 w-full max-w-2xl">
+                    {gameState.players.map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex flex-col items-center gap-3 relative group"
+                      >
+                        <div className="w-16 h-16 relative border border-white/10 cyber-skew bg-black/40 p-1">
+                          <img
+                            src={`https://www.boozedbunnytown.com/media/avatars/${p.avatar || "bunny"}_avatar.webp`}
+                            alt={p.username}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-brand-secondary bg-black/80 px-2 py-1">
+                          {p.username}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
