@@ -22,6 +22,7 @@ model Character {
   avatar          String              @default("bunny")
   description     String?
   wallet          Int                 @default(1000)
+  arenaMaxRounds  Int                 @default(0)
   loanStatus      CharacterLoanStatus @default(NONE)
   loanLockedUntil DateTime?
   userId          String              @unique

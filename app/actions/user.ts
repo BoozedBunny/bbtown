@@ -15,6 +15,7 @@ export async function getCurrentUser() {
       avatar: user.character.avatar,
       description: user.character.description,
       wallet: user.character.wallet,
+      arenaMaxRounds: user.character.arenaMaxRounds,
     },
   };
 }

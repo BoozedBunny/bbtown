@@ -4,9 +4,11 @@ import { ToplistEntry } from "@/lib/arena/toplist";
 export function ArenaGlobalToplist({
   currentUserUsername,
   localPostMatchRows,
+  personalMaxRounds,
 }: {
   currentUserUsername?: string;
   localPostMatchRows?: ToplistEntry[];
+  personalMaxRounds?: number;
 }) {
   const [globalToplistRows, setGlobalToplistRows] = useState<ToplistEntry[]>(
     [],
@@ -62,8 +64,8 @@ export function ArenaGlobalToplist({
       : localPostMatchRows;
 
   return (
-    <div className="md:col-span-3 cyber-border bg-black/40 mt-2 overflow-hidden">
-      <div className="bg-brand-primary/20 px-6 py-2 border-b border-brand-primary/30 flex justify-between items-center">
+    <div className="md:col-span-3 cyber-border bg-black/40 mt-2 overflow-hidden flex flex-col">
+      <div className="bg-brand-primary/20 px-6 py-2 border-b border-brand-primary/30 flex justify-between items-center shrink-0">
         <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary">
           Global Leaderboard Extract
         </span>
@@ -71,6 +73,18 @@ export function ArenaGlobalToplist({
           <div className="w-2 h-2 bg-brand-primary animate-ping" />
         )}
       </div>
+
+      {personalMaxRounds !== undefined && (
+        <div className="bg-white/5 px-6 py-1.5 border-b border-white/5 flex justify-between items-center shrink-0">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            Personal Best
+          </span>
+          <span className="text-[10px] font-black text-brand-primary font-mono bg-brand-primary/10 px-2 py-0.5 rounded">
+            {personalMaxRounds} CYCLES
+          </span>
+        </div>
+      )}
+
       <div className="max-h-[240px] overflow-y-auto">
         <table className="w-full text-[10px]">
           <thead className="bg-white/5 text-left text-gray-500 uppercase">
