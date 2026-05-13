@@ -306,7 +306,6 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
     rotationY: -10,
     scale: 4.5,
     iconPosition: 0.54,
-    glb: "https://www.boozedbunnytown.com/media/models/casino_pyramid.glb",
     name: "BBTown Bank",
     image:
       "https://www.boozedbunnytown.com/media/buildings/bank.webp",
