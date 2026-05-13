@@ -6,12 +6,8 @@ const STATIC_TOWN_ASSETS = [
 ] as const;
 
 export function getTownPreloadManifest() {
-  const glbAssets = Array.from(
-    new Set(HARDCODED_BUILDINGS.map((building) => building.glb).filter(Boolean)),
-  );
-
   return {
-    glbAssets,
+    glbAssets: [],
     staticAssets: [...STATIC_TOWN_ASSETS],
   };
 }

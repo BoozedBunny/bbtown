@@ -6,7 +6,6 @@ export interface BuildingData {
   rotationZ?: number;
   rotationX?: number;
   iconPosition?: number;
-  glb?: string;
   image?: string;
   type: string;
   owner?: string;
@@ -28,7 +27,6 @@ export type ImageBuildingProps = {
   rotationX?: number;
   rotationZ?: number;
   opacity?: number;
-    glb?: string;
   type?: string;
     color?: string;
   onClick?: () => void;
