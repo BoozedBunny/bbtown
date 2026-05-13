@@ -41,7 +41,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "../../actions/user";
 import { buyBuilding, updateBuildingSettings } from "../../actions/town";
-import { updateBuildingTransform } from "../../actions/dev";
+import { updateBuildingTransform, updateMultipleBuildingTransforms } from "../../actions/dev";
 import {
   ARENA_BUILDING_ID,
   BANK_BUILDING_ID,
@@ -1565,10 +1565,14 @@ export default function TownPage({
                     className="text-xs w-full bg-green-500 hover:bg-green-600 text-black font-bold"
                     onClick={async () => {
                       try {
-                        const promises = Object.entries(positionOverrides).map(([id, pos]) => 
-                          updateBuildingTransform(id, pos, rotationOverrides[id] ?? HARDCODED_BUILDINGS.find(b => b.id === id)?.rotationY ?? 0)
-                        );
-                        await Promise.all(promises);
+                        const updates = Object.entries(positionOverrides).map(([id, pos]) => ({
+                          buildingId: id,
+                          position: pos,
+                          rotationY: rotationOverrides[id] ?? HARDCODED_BUILDINGS.find(b => b.id === id)?.rotationY ?? 0
+                        }));
+                        if (updates.length > 0) {
+                          await updateMultipleBuildingTransforms(updates);
+                        }
                         toast.success("Positions saved successfully!");
                         setIsFreePositionMode(false);
                       } catch (e) {
