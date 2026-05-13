@@ -1,6 +1,6 @@
 "use client";
 
-import { Html, useTexture } from "@react-three/drei";
+import { Html, useTexture, TransformControls } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -39,6 +39,8 @@ export function ImageBuilding({
   forSale,
   price,
   iconPosition = 0.7,
+  isTransformable,
+  onTransform,
 }: ImageBuildingProps) {
   // Lade das webp-Bild als Textur
   const texture = useTexture(url);
@@ -125,12 +127,8 @@ export function ImageBuilding({
     return null;
   }, [id]);
 
-  return (
-    <group
-      ref={groupRef}
-      position={position}
-      rotation={[rotationInRadiansX, rotationInRadiansY, rotationInRadiansZ]}
-    >
+  const groupContent = (
+    <>
       {/* 2D Plane anstelle des 3D Modells */}
       <mesh castShadow receiveShadow scale={scale}>
         <planeGeometry args={[1, 1]} />
@@ -211,6 +209,30 @@ export function ImageBuilding({
             </div>
           </div>
         </Html>
+      )}
+    </>
+  );
+
+  return (
+    <group
+      ref={groupRef}
+      position={position}
+      rotation={[rotationInRadiansX, rotationInRadiansY, rotationInRadiansZ]}
+    >
+      {isTransformable ? (
+        <TransformControls
+          mode="translate"
+          onMouseUp={(e) => {
+            if (onTransform && id && groupRef.current) {
+              const pos = groupRef.current.position;
+              onTransform(id, [pos.x, pos.y, pos.z]);
+            }
+          }}
+        >
+          {groupContent}
+        </TransformControls>
+      ) : (
+        groupContent
       )}
     </group>
   );

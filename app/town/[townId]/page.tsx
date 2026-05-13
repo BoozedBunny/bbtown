@@ -119,6 +119,8 @@ function Scene({
   serverTime,
   horizontalPanEnabled,
   onPanDebugChange,
+  isFreePositionMode,
+  onTransform,
 }: {
   buildings: BuildingData[];
   onBuildingClick: (b: BuildingData) => void;
@@ -132,6 +134,8 @@ function Scene({
   hoverSuppressed?: boolean;
   horizontalPanEnabled?: boolean;
   onPanDebugChange?: (debug: TownCameraPanDebug) => void;
+  isFreePositionMode?: boolean;
+  onTransform?: (id: string, position: [number, number, number]) => void;
 }) {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const clampHitsRef = useRef(0);
@@ -298,6 +302,8 @@ if (Math.abs(deltaX) > 1e-6 || Math.abs(deltaZ) > 1e-6) {
             forSale={b.forSale}
             price={b.price}
             iconPosition={b.iconPosition}
+            isTransformable={cameraMode === "dev" && isFreePositionMode}
+            onTransform={onTransform}
           />
         );
       })}
@@ -323,7 +329,8 @@ if (Math.abs(deltaX) > 1e-6 || Math.abs(deltaZ) > 1e-6) {
         blur={2}
         far={1}
       />
-<OrbitControls
+      <OrbitControls
+        makeDefault
         ref={controlsRef}
         enablePan={
           cameraMode === "dev" ||
@@ -367,6 +374,7 @@ export default function TownPage({
   const [activeHoverBuildingId, setActiveHoverBuildingId] = useState<
     string | null
   >(null);
+  const [isFreePositionMode, setIsFreePositionMode] = useState(false);
   const [selectedBuilding, setSelectedBuilding] = useState<BuildingData | null>(
     null,
   );
@@ -1297,6 +1305,10 @@ export default function TownPage({
             hoverSuppressed={hoverSuppressed}
             horizontalPanEnabled={isTownCameraHorizontalPanEnabled}
             onPanDebugChange={setTownCameraPanDebug}
+            isFreePositionMode={isFreePositionMode}
+            onTransform={(id, pos) => {
+              setPositionOverrides((prev) => ({ ...prev, [id]: pos }));
+            }}
             onBuildingClick={(b) => {
               setActiveHoverBuildingId(null);
               if (b.id === ARENA_BUILDING_ID) {
@@ -1516,13 +1528,45 @@ export default function TownPage({
             </div>
           </div>
         ) : (
-          <div className="absolute bottom-6 left-6 p-4 bg-black/40 backdrop-blur-md border border-white/10 rounded-xl pointer-events-none">
+          <div className="absolute bottom-6 left-6 p-4 bg-black/40 backdrop-blur-md border border-white/10 rounded-xl pointer-events-none flex flex-col gap-2">
             <p className="text-[10px] text-gray-500 uppercase font-bold mb-1">
               Navigation Info
             </p>
             <p className="text-xs text-white/80">
               Right-click to rotate • Scroll to zoom
             </p>
+            {cameraMode === "dev" && (
+              <div className="pointer-events-auto flex flex-col gap-2 mt-2">
+                <Button
+                  size="sm"
+                  variant={isFreePositionMode ? "default" : "outline"}
+                  className={`text-xs w-full ${isFreePositionMode ? "bg-brand-primary text-white" : ""}`}
+                  onClick={() => setIsFreePositionMode(!isFreePositionMode)}
+                >
+                  {isFreePositionMode ? "Cancel Free Pos" : "Free Position Mode"}
+                </Button>
+                {isFreePositionMode && (
+                  <Button
+                    size="sm"
+                    className="text-xs w-full bg-green-500 hover:bg-green-600 text-black font-bold"
+                    onClick={async () => {
+                      try {
+                        const promises = Object.entries(positionOverrides).map(([id, pos]) => 
+                          updateBuildingTransform(id, pos, rotationOverrides[id] ?? HARDCODED_BUILDINGS.find(b => b.id === id)?.rotationY ?? 0)
+                        );
+                        await Promise.all(promises);
+                        toast.success("Positions saved successfully!");
+                        setIsFreePositionMode(false);
+                      } catch (e) {
+                        toast.error("Failed to save positions");
+                      }
+                    }}
+                  >
+                    Save Positions
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

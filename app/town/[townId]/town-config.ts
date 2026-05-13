@@ -77,7 +77,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "9",
-    position: [-2, 1.8, -3],
+    position: [-2.00, 1.80, -3.00],
     rotationX: -70,
     rotationY: 10,
     scale: 5.5,
@@ -185,7 +185,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "18",
-    position: [12.6, 1.3, -1],
+    position: [12.3, 1.3, -1],
     rotationX: -70,
     rotationY: -15,
     scale: 3.9,
@@ -221,7 +221,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "21",
-    position: [0.5, 2.6, 1],
+    position: [0.50, 2.60, 1.00],
  rotationX: -70,
     scale: 8.5,
     iconPosition: 0.05,
@@ -234,7 +234,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
     id: "22",
     position: [-8.6, 1.3, -1.4],
     rotationX: -70,
-    rotationY: 10,
+    rotationY: 0,
     scale: 3.9,
     iconPosition: 0.6,
     name: "Love Palace",
@@ -296,6 +296,20 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
     name: "Stock Exchange",
     image:
       "https://www.boozedbunnytown.com/media/buildings/stock.webp",
+    type: "Commercial",
+    color: "#BD00FF",
+  },
+    {
+    id: "26",
+    position: [14, 1, -2.8],
+    rotationX: -70,
+    rotationY: -10,
+    scale: 4.5,
+    iconPosition: 0.54,
+    glb: "https://www.boozedbunnytown.com/media/models/casino_pyramid.glb",
+    name: "BBTown Bank",
+    image:
+      "https://www.boozedbunnytown.com/media/buildings/bank.webp",
     type: "Commercial",
     color: "#BD00FF",
   },

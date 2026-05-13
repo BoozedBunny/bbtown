@@ -41,6 +41,8 @@ export type ImageBuildingProps = {
   forSale?: boolean;
   price?: number;
   iconPosition?: number;
+  isTransformable?: boolean;
+  onTransform?: (id: string, position: [number, number, number]) => void;
 };
 
 export interface DbBuildingState {
