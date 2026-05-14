@@ -794,7 +794,13 @@ app.prepare().then(async () => {
       room.messages.push(message);
       room.messages = sortChatMessages(room.messages).slice(-CHAT_MAX_HISTORY);
 
-      io.to(roomId).emit("chat:message", { message });
+      if (roomId.startsWith("whisper:")) {
+        const [, userA, userB] = roomId.split(":");
+        io.to(roomId).to(`user:${userA}`).to(`user:${userB}`).emit("chat:message", { message });
+      } else {
+        io.to(roomId).emit("chat:message", { message });
+      }
+
       emitChatAck(socket, {
         clientNonce,
         messageId: message.id,
