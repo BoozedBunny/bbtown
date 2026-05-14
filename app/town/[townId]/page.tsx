@@ -107,7 +107,7 @@ type TownCameraPanDebug = {
 
 const TOWN_CAMERA_PAN_CONFIG = {
   dragSensitivity: 1.5,
-  cityMarginWorld: 0.2,
+  cityMarginWorld: 2.7,
   minSoftSpan: 1,
 };
 
@@ -158,21 +158,37 @@ function Scene({
     };
   }, [buildings]);
 
-  const getHorizontalFootprintHalfWidth = useCallback((camera: Camera) => {
-    const typedCamera = camera as any;
-    if (typedCamera.isOrthographicCamera && typedCamera.zoom) {
-      return ((typedCamera.right - typedCamera.left) / typedCamera.zoom) * 0.5;
-    }
-    return 0;
-  }, []);
+const getHorizontalFootprintHalfWidth = useCallback((camera: Camera) => {
+  const typedCamera = camera as any;
+  if (typedCamera.isOrthographicCamera && typedCamera.zoom) {
+    return ((typedCamera.right - typedCamera.left) / typedCamera.zoom) * 0.5;
+  }
+  
+  // NEU: Berechnung für die PerspectiveCamera
+  if (typedCamera.isPerspectiveCamera) {
+    // Die Distanz zum Boden (angenommen dein OrbitControls Target Y liegt bei 0)
+    const distance = typedCamera.position.y;
+    const vFov = (typedCamera.fov * Math.PI) / 180; // FOV von Grad in Radiant umwandeln
+    const halfHeight = Math.tan(vFov / 2) * distance;
+    return halfHeight * typedCamera.aspect; // Breite ergibt sich aus Höhe mal Aspect-Ratio
+  }
+  return 0;
+}, []);
 
-  const getVerticalFootprintHalfHeight = useCallback((camera: Camera) => {
-    const typedCamera = camera as any;
-    if (typedCamera.isOrthographicCamera && typedCamera.zoom) {
-      return ((typedCamera.top - typedCamera.bottom) / typedCamera.zoom) * 0.5;
-    }
-    return 0;
-  }, []);
+const getVerticalFootprintHalfHeight = useCallback((camera: Camera) => {
+  const typedCamera = camera as any;
+  if (typedCamera.isOrthographicCamera && typedCamera.zoom) {
+    return ((typedCamera.top - typedCamera.bottom) / typedCamera.zoom) * 0.5;
+  }
+  
+  // NEU: Berechnung für die PerspectiveCamera
+  if (typedCamera.isPerspectiveCamera) {
+    const distance = typedCamera.position.y;
+    const vFov = (typedCamera.fov * Math.PI) / 180;
+    return Math.tan(vFov / 2) * distance;
+  }
+  return 0;
+}, []);
 
   // Neue 2D-Clamp Funktion für X und Z
   const applyPanClamp = useCallback(() => {

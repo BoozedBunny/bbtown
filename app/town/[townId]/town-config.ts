@@ -93,7 +93,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "15",
-    position: [9.3, 0.80, 2],
+    position: [9.3, 0.80, 5],
     rotationX: -70,
     rotationY: 0,
     scale: 4.5,
@@ -128,7 +128,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "18",
-    position: [11.8, 0.8, 0.3],
+    position: [11.4, 0.8, -0.3],
     rotationX: -70,
     rotationY: 0,
     scale: 5,
@@ -187,7 +187,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "23",
-    position: [12.00, 0.8, 6],
+    position: [12.50, 0.8, 6],
     rotationX: -70,
     rotationY: 0,
     scale: 3.4,

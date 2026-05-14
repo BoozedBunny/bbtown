@@ -89,7 +89,7 @@ export function ImageBuilding({
   });
 
   const Icon = useMemo(() => {
-    if (id === "4") return Landmark;
+    if (id === "26") return Landmark;
     if (id === "21") return Swords;
     if (id === "24") return Dices;
     if (id === "25") return TrendingUp;
@@ -97,7 +97,7 @@ export function ImageBuilding({
   }, [id]);
 
   const iconBgColor = useMemo(() => {
-    if (id === "4" || id === "25")
+    if (id === "26" || id === "25")
       return "bg-brand-secondary shadow-[0_0_15px_rgba(255,184,0,0.8)]";
     return "bg-brand-primary shadow-[0_0_15px_rgba(189,0,255,0.8)]";
   }, [id]);
