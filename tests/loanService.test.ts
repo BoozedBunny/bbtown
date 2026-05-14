@@ -513,6 +513,9 @@ test("loanService runLoanDelinquencySweep", async (t) => {
       return { count: 1 };
     }) as any;
 
+    const originalUpdateManyBuilding = prisma.buildingState.updateMany;
+    prisma.buildingState.updateMany = mock.fn(async () => { return { count: 1 }; }) as any;
+
     prisma.character.updateMany = mock.fn(async (args: any) => {
       charUpdates.push(args);
       return { count: 1 };
@@ -554,6 +557,7 @@ test("loanService runLoanDelinquencySweep", async (t) => {
       prisma.characterLoan.findMany = originalFindMany;
       prisma.characterLoan.updateMany = originalUpdateManyLoan;
       prisma.character.updateMany = originalUpdateManyChar;
+      prisma.buildingState.updateMany = originalUpdateManyBuilding;
     }
   });
 });

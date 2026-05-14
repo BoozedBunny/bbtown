@@ -72,7 +72,8 @@ export async function createLoanQuote(characterId: string, requestedPrincipal: n
 
 export async function issueLoan(characterId: string, quote: any, quoteHashValue: string, idempotencyKey: string) {
   if (!treasuryConfig.ffLoansIssue) throw new Error("Loan issue disabled");
-  const expectedHash = quoteHash(JSON.stringify(quote));
+  const { hash: _ignoredHash, ...quoteWithoutHash } = quote;
+  const expectedHash = quoteHash(JSON.stringify(quoteWithoutHash));
   if (expectedHash !== quoteHashValue || new Date(quote.expiresAt) < new Date()) {
     return { error: LoanReasonCode.QUOTE_EXPIRED };
   }
@@ -252,6 +253,14 @@ export async function runLoanDelinquencySweep(now = new Date()) {
       data: {
         loanStatus: "DELINQUENT",
         loanLockedUntil: addUtcDays(now, treasuryConfig.loanDefaultLockDays),
+      },
+    });
+
+    await prisma.buildingState.updateMany({
+      where: { ownerId: { in: Array.from(characterIdsToDefault) } },
+      data: {
+        ownerId: null,
+        forSale: true,
       },
     });
   }
