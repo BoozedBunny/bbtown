@@ -107,7 +107,7 @@ type TownCameraPanDebug = {
 
 const TOWN_CAMERA_PAN_CONFIG = {
   dragSensitivity: 1.5,
-  cityMarginWorld: 2,
+  cityMarginWorld: 0.2,
   minSoftSpan: 1,
 };
 
@@ -280,7 +280,7 @@ if (Math.abs(deltaX) > 1e-6 || Math.abs(deltaZ) > 1e-6) {
         onPointerMove={onGroundPointerMove}
         onClick={onGroundClick}
                 height={15}
-        position={[0, 0.03, -6.8]}
+        position={[0, 0.05, -6.8]}
       />
 
       {/* <gridHelper args={[30, 30, "#BD00FF", "#2A0A4E"]} position={[0, 0.02, 0]}>
@@ -338,33 +338,37 @@ if (Math.abs(deltaX) > 1e-6 || Math.abs(deltaZ) > 1e-6) {
         blur={2}
         far={1}
       />
+
+
       <OrbitControls
-        makeDefault
-        ref={controlsRef}
-        enablePan={
-          cameraMode === "dev" ||
-          (cameraMode === "game" && !!horizontalPanEnabled)
+  makeDefault
+  ref={controlsRef}
+  enablePan={
+    cameraMode === "dev" ||
+    (cameraMode === "game" && !!horizontalPanEnabled)
+  }
+  enableRotate={cameraMode === "dev"}
+  // Zoom-Einstellungen für PerspectiveCamera:
+  minDistance={cameraMode === "game" ? 25 : 0.1} // Passe diese Werte an dein gewünschtes Zoom-Level an
+  maxDistance={cameraMode === "game" ? 50 : 1000}
+  // Für DevMode (falls der mal Ortho ist, aber du nutzt hier ja auch Perspective) 
+  // kannst du minZoom/maxZoom theoretisch ganz rauswerfen.
+  minPolarAngle={cameraMode === "game" ? 0 : 0}
+  maxPolarAngle={cameraMode === "game" ? 0 : Math.PI}
+  mouseButtons={
+    cameraMode === "game"
+      ? {
+          LEFT: THREE.MOUSE.PAN,
+          MIDDLE: THREE.MOUSE.DOLLY,
+          RIGHT: THREE.MOUSE.ROTATE,
         }
-        enableRotate={cameraMode === "dev"}
-        zoomSpeed={0.5}
-        minZoom={cameraMode === "game" ? 80 : 0.1}
-        maxZoom={cameraMode === "game" ? 120 : 1000}
-        minPolarAngle={cameraMode === "game" ? 0 : 0}
-        maxPolarAngle={cameraMode === "game" ? 0 : Math.PI}
-        mouseButtons={
-          cameraMode === "game"
-            ? {
-                LEFT: THREE.MOUSE.PAN,
-                MIDDLE: THREE.MOUSE.DOLLY,
-                RIGHT: THREE.MOUSE.ROTATE,
-              }
-            : {
-                LEFT: THREE.MOUSE.ROTATE,
-                MIDDLE: THREE.MOUSE.DOLLY,
-                RIGHT: THREE.MOUSE.PAN,
-              }
+      : {
+          LEFT: THREE.MOUSE.ROTATE,
+          MIDDLE: THREE.MOUSE.DOLLY,
+          RIGHT: THREE.MOUSE.PAN,
         }
-      />
+  }
+/>
     </>
   );
 }
@@ -1292,13 +1296,22 @@ export default function TownPage({
       <div className="relative w-full h-[75vh] border-2 border-brand-primary/30 rounded-none overflow-hidden bg-[#05010a] shadow-[0_0_50px_rgba(189,0,255,0.2)]">
         <Canvas className="select-none" shadows>
           {cameraMode === "game" ? (
-            <OrthographicCamera
+<>
+<PerspectiveCamera
+      makeDefault
+      position={[0, 150, 0]} // Deutlich weiter weg auf der Y-Achse
+      fov={15} // Sehr kleiner FOV für den "flachen" Ortho-Look
+      near={0.1}
+      far={1000}
+    />
+            {/* <OrthographicCamera
               makeDefault
               position={[0, 20, 0]} // Geändert: Kamera schaut direkt von oben herab
               zoom={80}
               near={0.1}
               far={1000}
-            />
+            /> */}
+</>
           ) : (
             <PerspectiveCamera
               makeDefault

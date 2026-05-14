@@ -110,11 +110,11 @@ export function ImageBuilding({
   }, [scale, url]);
 
   const specialBuildingConfig = useMemo(() => {
-    if (id === "4") {
+    if (id === "26") {
       return {
         title: "The Bank",
-        colorClass: "text-brand-secondary",
-        borderClass: "border-brand-secondary/30",
+        colorClass: "text-brand-tertiary",
+        borderClass: "border-brand-tertiary/30",
         shadowClass: "shadow-[0_0_15px_rgba(255,184,0,0.3)]",
       };
     }
