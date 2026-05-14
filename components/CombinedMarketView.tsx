@@ -296,7 +296,7 @@ export function CombinedMarketView({
             <DialogTitle className="text-2xl font-heading font-black italic tracking-tighter text-white cyber-glitch-text" data-text="City Dashboard">
               City Dashboard
             </DialogTitle>
-            <TabsList className="bg-black/40 border border-white/10 p-1 cyber-skew">
+            <TabsList className="bg-black/40 border border-white/10 p-1 ">
               <TabsTrigger value="treasury" className="data-[state=active]:bg-brand-primary data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest">Treasury</TabsTrigger>
               <TabsTrigger value="market" className="data-[state=active]:bg-brand-primary data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest">Market</TabsTrigger>
               <TabsTrigger value="news" className="data-[state=active]:bg-brand-primary data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest">News</TabsTrigger>
@@ -322,7 +322,7 @@ export function CombinedMarketView({
                       </div>
                       <button onClick={handleIssueLoan} disabled={loanBusy} className="group relative w-full">
                          <div className="absolute inset-0 bg-brand-secondary/20 blur group-hover:bg-brand-secondary/40 transition-all" />
-                         <div className="cyber-skew bg-brand-secondary px-4 py-3 relative transition-transform group-active:scale-95 text-center">
+                         <div className=" bg-brand-secondary px-4 py-3 relative transition-transform group-active:scale-95 text-center">
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-black">Initiate Credit Line</span>
                          </div>
                       </button>
@@ -337,7 +337,7 @@ export function CombinedMarketView({
                         <input value={repayAmountInput} onChange={(e) => setRepayAmountInput(Number(e.target.value) || 0)} type="number" min={100} className="w-full bg-black/40 border border-white/10 px-3 py-2 text-white mb-2" />
                         <button onClick={handleRepayLoan} disabled={loanBusy} className="group relative w-full">
                            <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
-                           <div className="cyber-skew bg-brand-primary px-4 py-3 relative transition-transform group-active:scale-95 text-center">
+                           <div className=" bg-brand-primary px-4 py-3 relative transition-transform group-active:scale-95 text-center">
                               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Execute Repayment</span>
                            </div>
                         </button>
@@ -449,13 +449,13 @@ export function CombinedMarketView({
                   <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
                     <button onClick={() => buy(selectedStock.symbol, 1)} className="group relative w-full">
                        <div className="absolute inset-0 bg-brand-secondary/20 blur group-hover:bg-brand-secondary/40 transition-all" />
-                       <div className="cyber-skew bg-brand-secondary px-4 py-4 relative transition-transform group-active:scale-95 text-center">
+                       <div className=" bg-brand-secondary px-4 py-4 relative transition-transform group-active:scale-95 text-center">
                           <span className="text-xs font-black uppercase tracking-[0.2em] text-black">Execute Buy Order</span>
                        </div>
                     </button>
                     <button onClick={() => sell(selectedStock.symbol, 1)} disabled={currentHolding === 0} className="group relative w-full disabled:opacity-30">
                        <div className="absolute inset-0 bg-brand-tertiary/20 blur group-hover:bg-brand-tertiary/40 transition-all" />
-                       <div className="cyber-skew bg-brand-tertiary px-4 py-4 relative transition-transform group-active:scale-95 text-center">
+                       <div className=" bg-brand-tertiary px-4 py-4 relative transition-transform group-active:scale-95 text-center">
                           <span className="text-xs font-black uppercase tracking-[0.2em] text-white">Execute Sell Order</span>
                        </div>
                     </button>

@@ -997,7 +997,7 @@ export default function ArenaPage({
       <div className="absolute top-6 left-6 right-6 z-10 flex justify-between items-start pointer-events-none">
         <div className="relative group">
           <div className="absolute inset-0 bg-brand-primary/20 blur-xl group-hover:bg-brand-primary/30 transition-all" />
-          <div className="cyber-skew bg-black/60 backdrop-blur-md border-l-4 border-brand-primary px-6 py-4 relative">
+          <div className=" bg-black/60 backdrop-blur-md border-l-4 border-brand-primary px-6 py-4 relative">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 bg-brand-primary/10 flex items-center justify-center border border-brand-primary/30">
                 <Swords className="w-5 h-5 text-brand-primary" />
@@ -1034,7 +1034,7 @@ export default function ArenaPage({
 
             <div className="flex gap-1">
               <div
-                className={`cyber-skew ${isSuddenDeath ? "bg-red-600/80" : "bg-brand-primary/80"} px-8 py-3 relative`}
+                className={` ${isSuddenDeath ? "bg-red-600/80" : "bg-brand-primary/80"} px-8 py-3 relative`}
               >
                 <p className="text-[10px] font-bold uppercase text-white/70 tracking-widest text-center">
                   Cycle
@@ -1046,7 +1046,7 @@ export default function ArenaPage({
                   </span>
                 </p>
               </div>
-              <div className="cyber-skew bg-white/10 backdrop-blur-md px-8 py-3 border-r border-white/20">
+              <div className=" bg-white/10 backdrop-blur-md px-8 py-3 border-r border-white/20">
                 <p className="text-[10px] font-bold uppercase text-white/50 tracking-widest text-center">
                   Time
                 </p>
@@ -1064,7 +1064,7 @@ export default function ArenaPage({
 
         <div className="flex gap-4 items-start">
           {!isDevMode && (
-            <div className="cyber-skew bg-white/5 backdrop-blur-md px-6 py-4 border-r border-brand-primary/30">
+            <div className=" bg-white/5 backdrop-blur-md px-6 py-4 border-r border-brand-primary/30">
               <div className="flex items-center gap-3">
                 <Users className="w-4 h-4 text-brand-primary" />
                 <div>
@@ -1086,7 +1086,7 @@ export default function ArenaPage({
             className="group relative pointer-events-auto"
           >
             <div className="absolute inset-0 bg-red-500/20 blur group-hover:bg-red-500/40 transition-all" />
-            <div className="cyber-skew bg-red-950/40 border border-red-500/50 px-6 py-4 transition-all group-hover:translate-x-1 group-hover:-translate-y-1">
+            <div className=" bg-red-950/40 border border-red-500/50 px-6 py-4 transition-all group-hover:translate-x-1 group-hover:-translate-y-1">
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500">
                 Abort Mission
               </span>
@@ -1289,7 +1289,7 @@ export default function ArenaPage({
                   className="group relative pointer-events-auto"
                 >
                   <div className="absolute inset-0 bg-brand-primary/30 blur group-hover:bg-brand-primary/50 transition-all" />
-                  <div className="cyber-skew bg-brand-primary px-12 py-4 relative transition-transform group-active:scale-95">
+                  <div className=" bg-brand-primary px-12 py-4 relative transition-transform group-active:scale-95">
                     <span className="text-xs font-black uppercase tracking-[0.3em] text-white">
                       Return to Simulation
                     </span>
@@ -1371,7 +1371,7 @@ export default function ArenaPage({
                         key={p.id}
                         className="flex flex-col items-center gap-3 relative group"
                       >
-                        <div className="w-16 h-16 relative border border-white/10 cyber-skew bg-black/40 p-1">
+                        <div className="w-16 h-16 relative border border-white/10  bg-black/40 p-1">
                           <img
                             src={`https://www.boozedbunnytown.com/media/avatars/${p.avatar || "bunny"}_avatar.webp`}
                             alt={p.username}
@@ -1393,7 +1393,7 @@ export default function ArenaPage({
 
       {!isDevMode && (
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-4 pointer-events-none">
-          <div className="cyber-skew bg-black/60 backdrop-blur-xl px-8 py-3 border-b-2 border-brand-primary/50 flex items-center gap-6">
+          <div className=" bg-black/60 backdrop-blur-xl px-8 py-3 border-b-2 border-brand-primary/50 flex items-center gap-6">
             <div className="flex gap-2">
               {["W", "A", "S", "D"].map((k) => (
                 <div

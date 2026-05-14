@@ -155,7 +155,7 @@ export function PlayerProfileModal({
                     onClick={() => setIsEditing(true)}
                     size="sm"
                     variant="ghost"
-                    className="h-8 px-2 bg-white/5 hover:bg-white/10 border border-white/10 cyber-skew text-[10px] uppercase font-bold text-gray-300"
+                    className="h-8 px-2 bg-white/5 hover:bg-white/10 border border-white/10  text-[10px] uppercase font-bold text-gray-300"
                   >
                     <Edit3 className="w-3 h-3 mr-1.5" />
                     Edit
@@ -196,7 +196,7 @@ export function PlayerProfileModal({
                         onClick={handleSave}
                         size="sm"
                         disabled={isSaving}
-                        className="h-8 cyber-skew bg-brand-primary hover:bg-brand-primary/80 text-[10px] uppercase font-bold"
+                        className="h-8  bg-brand-primary hover:bg-brand-primary/80 text-[10px] uppercase font-bold"
                       >
                         {isSaving ? (
                           <Loader2 className="w-3 h-3 animate-spin mr-1.5" />

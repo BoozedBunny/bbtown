@@ -144,7 +144,7 @@ export default function AboutPage() {
           <div className="mt-16 text-center">
             <Link href="/login" className="inline-block group relative">
               <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
-              <div className="cyber-skew bg-brand-primary px-8 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1">
+              <div className=" bg-brand-primary px-8 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1">
                 <span className="text-lg font-black uppercase tracking-[0.2em] text-white">
                   Join the Alpha
                 </span>

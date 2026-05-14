@@ -960,7 +960,7 @@ export default function TownPage({
                     className="group relative min-h-11 inline-block"
                   >
                     <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
-                    <div className="cyber-skew bg-brand-primary/20 border border-brand-primary/50 px-4 py-1 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1">
+                    <div className=" bg-brand-primary/20 border border-brand-primary/50 px-4 py-1 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1">
                       <span className="text-sm font-black uppercase tracking-[0.2em] text-brand-secondary">
                         💰{" "}
                         {formatCurrencyAmount(
@@ -1053,7 +1053,7 @@ export default function TownPage({
                     className="group relative min-h-11 inline-block"
                   >
                     <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
-                    <div className="cyber-skew bg-brand-primary/20 border border-brand-primary/50 px-4 py-2 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1">
+                    <div className=" bg-brand-primary/20 border border-brand-primary/50 px-4 py-2 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1">
                       <span className="text-sm font-black uppercase tracking-[0.2em] text-brand-secondary">
                         {currentUser?.character
                           ? `💰 ${formatCurrencyAmount(walletSummary.totalBalance, walletSummary.currencyCode)}`
@@ -1660,7 +1660,7 @@ export default function TownPage({
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4">
-              <div className="grid gap-3 p-6 bg-black/40 border border-white/5 cyber-skew">
+              <div className="grid gap-3 p-6 bg-black/40 border border-white/5 ">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-black">
                     Total Balance
@@ -1712,7 +1712,7 @@ export default function TownPage({
                     .map((category) => (
                       <li
                         key={category.key}
-                        className="flex items-center justify-between bg-white/5 border border-white/5 px-4 py-3 cyber-skew group hover:bg-brand-primary/5 hover:border-brand-primary/30 transition-all"
+                        className="flex items-center justify-between bg-white/5 border border-white/5 px-4 py-3  group hover:bg-brand-primary/5 hover:border-brand-primary/30 transition-all"
                       >
                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-white transition-colors">
                           {category.label}
@@ -1730,7 +1730,7 @@ export default function TownPage({
             </div>
             <Button
               onClick={() => setIsWalletModalOpen(false)}
-              className="w-full h-12 bg-white/5 hover:bg-white/10 text-white font-black uppercase tracking-widest text-xs border border-white/10 rounded-none cyber-skew"
+              className="w-full h-12 bg-white/5 hover:bg-white/10 text-white font-black uppercase tracking-widest text-xs border border-white/10 rounded-none "
             >
               Close Interface
             </Button>
@@ -1772,7 +1772,7 @@ export default function TownPage({
             <div className="grid gap-6">
               {/* BANK VIEW */}
               {selectedBuilding?.id === BANK_BUILDING_ID && (
-                <div className="p-6 bg-brand-primary/5 border border-brand-primary/20 space-y-6 cyber-skew relative group overflow-hidden">
+                <div className="p-6 bg-brand-primary/5 border border-brand-primary/20 space-y-6  relative group overflow-hidden">
                   <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-brand-primary/50 to-transparent" />
                   <div className="text-center space-y-2">
                     <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary">
@@ -1801,7 +1801,7 @@ export default function TownPage({
                     className="group relative w-full block"
                   >
                     <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
-                    <div className="cyber-skew bg-brand-primary px-4 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
+                    <div className=" bg-brand-primary px-4 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
                       <span className="text-xs font-black uppercase tracking-[0.2em] text-white">
                         Building Controls
                       </span>
@@ -1814,7 +1814,7 @@ export default function TownPage({
               {selectedBuilding?.id !== "4" &&
                 currentUser &&
                 selectedBuilding?.ownerId === currentUser.character.id && (
-                  <div className="space-y-4 p-6 bg-white/5 border border-white/10 cyber-skew">
+                  <div className="space-y-4 p-6 bg-white/5 border border-white/10 ">
                     <h3 className="text-[10px] uppercase font-black text-brand-primary tracking-[0.2em] mb-4">
                       Property Administration
                     </h3>
@@ -1911,7 +1911,7 @@ export default function TownPage({
                         className="group relative w-full block disabled:opacity-50"
                       >
                         <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
-                        <div className="cyber-skew bg-brand-primary px-4 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
+                        <div className=" bg-brand-primary px-4 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
                           <span className="text-xs font-black uppercase tracking-[0.2em] text-white">
                             {isProcessing ? "Processing..." : "Save Changes"}
                           </span>
@@ -1944,7 +1944,7 @@ export default function TownPage({
                             }}
                             className={`flex items-center gap-3 text-left focus:outline-none ${selectedBuilding?.ownerId ? "hover:opacity-80 transition-opacity cursor-pointer group" : ""}`}
                           >
-                            <div className="w-24 h-24 border border-brand-primary/50 bg-black/40 relative overflow-hidden cyber-skew group-hover:border-brand-primary group-hover:shadow-[0_0_15px_rgba(189,0,255,0.4)] transition-all">
+                            <div className="w-24 h-24 border border-brand-primary/50 bg-black/40 relative overflow-hidden  group-hover:border-brand-primary group-hover:shadow-[0_0_15px_rgba(189,0,255,0.4)] transition-all">
                               {selectedBuilding?.ownerId ? (
                                 <Image
                                   src={`https://www.boozedbunnytown.com/media/avatars/${selectedBuilding.ownerAvatar}_avatar.webp`}
@@ -1969,7 +1969,7 @@ export default function TownPage({
                           STATUS
                         </span>
                         <p
-                          className={`text-[10px] font-black tracking-widest mt-2 px-3 py-1.5 border cyber-skew ${selectedBuilding?.forSale ? "border-green-500/50 bg-green-500/10 text-green-400" : "border-brand-tertiary/50 bg-brand-tertiary/10 text-brand-tertiary"}`}
+                          className={`text-[10px] font-black tracking-widest mt-2 px-3 py-1.5 border  ${selectedBuilding?.forSale ? "border-green-500/50 bg-green-500/10 text-green-400" : "border-brand-tertiary/50 bg-brand-tertiary/10 text-brand-tertiary"}`}
                         >
                           {selectedBuilding?.forSale
                             ? `For Sale ($${selectedBuilding.price?.toLocaleString()})`
@@ -2044,7 +2044,7 @@ export default function TownPage({
                           className="group relative w-full block disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                           <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
-                          <div className="cyber-skew bg-brand-primary px-4 py-5 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
+                          <div className=" bg-brand-primary px-4 py-5 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
                             <span className="text-sm font-black uppercase tracking-[0.2em] text-white">
                               {isProcessing
                                 ? "Transacting..."
@@ -2065,7 +2065,7 @@ export default function TownPage({
                     setMovingBuilding(selectedBuilding);
                     setSelectedBuilding(null);
                   }}
-                  className="w-full h-10 bg-brand-secondary/10 hover:bg-brand-secondary/20 text-brand-secondary border border-brand-secondary/30 font-black uppercase tracking-widest text-[10px] rounded-none cyber-skew"
+                  className="w-full h-10 bg-brand-secondary/10 hover:bg-brand-secondary/20 text-brand-secondary border border-brand-secondary/30 font-black uppercase tracking-widest text-[10px] rounded-none "
                 >
                   🏗️ Deploy_Transform_Engine
                 </Button>
@@ -2073,7 +2073,7 @@ export default function TownPage({
 
               <Button
                 onClick={() => setSelectedBuilding(null)}
-                className="w-full h-10 bg-white/5 hover:bg-white/10 text-gray-500 hover:text-white border border-white/10 rounded-none cyber-skew font-black uppercase tracking-widest text-[10px]"
+                className="w-full h-10 bg-white/5 hover:bg-white/10 text-gray-500 hover:text-white border border-white/10 rounded-none  font-black uppercase tracking-widest text-[10px]"
               >
                 Close Registry
               </Button>
@@ -2124,7 +2124,7 @@ export default function TownPage({
 
           <div className="p-8">
             <DialogHeader className="pt-6">
-              <div className="mx-auto w-20 h-20 bg-brand-primary/10 border border-brand-primary/30 flex items-center justify-center mb-6 cyber-skew group">
+              <div className="mx-auto w-20 h-20 bg-brand-primary/10 border border-brand-primary/30 flex items-center justify-center mb-6  group">
                 <Dices className="w-10 h-10 text-brand-primary group-hover:scale-110 transition-transform" />
               </div>
               <DialogTitle
@@ -2141,7 +2141,7 @@ export default function TownPage({
             <div className="py-8 flex justify-center">
               <Button
                 onClick={() => setShowCasinoModal(false)}
-                className="w-full h-10 bg-white/5 hover:bg-white/10 text-gray-500 hover:text-white border border-white/10 rounded-none cyber-skew font-black uppercase tracking-widest text-[10px]"
+                className="w-full h-10 bg-white/5 hover:bg-white/10 text-gray-500 hover:text-white border border-white/10 rounded-none  font-black uppercase tracking-widest text-[10px]"
               >
                 Close Casino
               </Button>
@@ -2168,7 +2168,7 @@ export default function TownPage({
 
           <div className="p-8">
             <DialogHeader className="pt-6">
-              <div className="mx-auto w-20 h-20 bg-brand-primary/10 border border-brand-primary/30 flex items-center justify-center mb-6 cyber-skew group">
+              <div className="mx-auto w-20 h-20 bg-brand-primary/10 border border-brand-primary/30 flex items-center justify-center mb-6  group">
                 <Swords className="w-10 h-10 text-brand-primary group-hover:scale-110 transition-transform" />
               </div>
               <DialogTitle
@@ -2191,7 +2191,7 @@ export default function TownPage({
               {matchmakingStatus === "idle" && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-white/5 border border-white/5 cyber-skew flex flex-col items-center text-center group hover:border-brand-secondary/30 transition-colors">
+                    <div className="p-4 bg-white/5 border border-white/5  flex flex-col items-center text-center group hover:border-brand-secondary/30 transition-colors">
                       <Trophy className="w-6 h-6 text-brand-secondary mb-2 group-hover:scale-110 transition-transform" />
                       <span className="text-[8px] uppercase font-black text-gray-600 tracking-[0.3em]">
                         Prize Pool
@@ -2200,7 +2200,7 @@ export default function TownPage({
                         1,000 BBT
                       </span>
                     </div>
-                    <div className="p-4 bg-white/5 border border-white/5 cyber-skew flex flex-col items-center text-center group hover:border-brand-primary/30 transition-colors">
+                    <div className="p-4 bg-white/5 border border-white/5  flex flex-col items-center text-center group hover:border-brand-primary/30 transition-colors">
                       <div className="w-6 h-6 flex items-center justify-center mb-2">
                         <span className="text-brand-primary font-black italic">
                           1v1
@@ -2223,7 +2223,7 @@ export default function TownPage({
                     className="group relative w-full block"
                   >
                     <div className="absolute inset-0 bg-white/5 blur group-hover:bg-white/10 transition-all" />
-                    <div className="cyber-skew bg-white/5 border border-white/10 px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
+                    <div className=" bg-white/5 border border-white/10 px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
                       <span className="text-xs font-black uppercase tracking-[0.2em] text-gray-400 group-hover:text-white transition-colors">
                         Solo Play
                       </span>
@@ -2238,7 +2238,7 @@ export default function TownPage({
                       className="group relative w-full block"
                     >
                       <div className="absolute inset-0 bg-yellow-500/20 blur group-hover:bg-yellow-500/40 transition-all" />
-                      <div className="cyber-skew bg-yellow-500/10 border border-yellow-500/30 px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
+                      <div className=" bg-yellow-500/10 border border-yellow-500/30 px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
                         <span className="text-xs font-black uppercase tracking-[0.2em] text-yellow-500 transition-colors">
                           Arena DevMode
                         </span>
@@ -2254,7 +2254,7 @@ export default function TownPage({
                     className="group relative w-full block"
                   >
                     <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
-                    <div className="cyber-skew bg-brand-primary px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
+                    <div className=" bg-brand-primary px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
                       <span className="text-sm font-black uppercase tracking-[0.2em] text-white">
                         Enter Arena
                       </span>
@@ -2272,15 +2272,15 @@ export default function TownPage({
               {matchmakingStatus === "searching" && (
                 <div className="flex flex-col items-center justify-center py-4 space-y-8">
                   <div className="relative">
-                    <div className="w-32 h-32 border-2 border-brand-primary/20 rounded-none cyber-skew animate-ping absolute" />
-                    <div className="w-32 h-32 border-t-2 border-brand-primary rounded-none cyber-skew animate-spin" />
+                    <div className="w-32 h-32 border-2 border-brand-primary/20 rounded-none  animate-ping absolute" />
+                    <div className="w-32 h-32 border-t-2 border-brand-primary rounded-none  animate-spin" />
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Loader2 className="w-10 h-10 text-brand-primary animate-pulse" />
                     </div>
                   </div>
                   <div className="flex flex-col items-center gap-4">
                     <div className="flex items-center gap-6">
-                      <div className="w-10 h-10 border border-brand-primary bg-brand-primary/20 flex items-center justify-center cyber-skew">
+                      <div className="w-10 h-10 border border-brand-primary bg-brand-primary/20 flex items-center justify-center ">
                         <span className="text-brand-primary font-black italic text-xs">
                           YOU
                         </span>
@@ -2288,7 +2288,7 @@ export default function TownPage({
                       <div className="w-16 h-1 bg-white/5 relative overflow-hidden">
                         <div className="absolute inset-0 bg-brand-primary animate-scanline" />
                       </div>
-                      <div className="w-10 h-10 border border-white/10 bg-white/5 flex items-center justify-center cyber-skew">
+                      <div className="w-10 h-10 border border-white/10 bg-white/5 flex items-center justify-center ">
                         <span className="text-gray-600 font-black italic text-xs">
                           ?
                         </span>
@@ -2314,7 +2314,7 @@ export default function TownPage({
                 <div className="flex flex-col items-center justify-center py-4 space-y-8 animate-in zoom-in-95 duration-500">
                   <div className="flex items-center gap-12">
                     <div className="flex flex-col items-center gap-3">
-                      <div className="w-20 h-20 bg-brand-primary border-2 border-white/20 flex items-center justify-center shadow-[0_0_30px_rgba(189,0,255,0.4)] cyber-skew">
+                      <div className="w-20 h-20 bg-brand-primary border-2 border-white/20 flex items-center justify-center shadow-[0_0_30px_rgba(189,0,255,0.4)] ">
                         <span className="text-white font-black italic text-2xl">
                           YOU
                         </span>
@@ -2324,14 +2324,14 @@ export default function TownPage({
                       VS
                     </div>
                     <div className="flex flex-col items-center gap-3">
-                      <div className="w-20 h-20 bg-brand-secondary border-2 border-white/20 flex items-center justify-center shadow-[0_0_30px_rgba(255,184,0,0.4)] cyber-skew">
+                      <div className="w-20 h-20 bg-brand-secondary border-2 border-white/20 flex items-center justify-center shadow-[0_0_30px_rgba(255,184,0,0.4)] ">
                         <span className="text-black font-black italic text-2xl">
                           OPP
                         </span>
                       </div>
                     </div>
                   </div>
-                  <div className="bg-green-500/10 border border-green-500/30 px-8 py-4 cyber-skew relative overflow-hidden">
+                  <div className="bg-green-500/10 border border-green-500/30 px-8 py-4  relative overflow-hidden">
                     <div className="absolute inset-0 bg-green-500/5 animate-pulse" />
                     <p className="text-green-400 font-black uppercase tracking-[0.3em] text-sm flex items-center gap-3">
                       <span className="w-2 h-2 bg-green-400 rounded-full animate-ping" />

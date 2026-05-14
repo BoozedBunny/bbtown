@@ -280,7 +280,7 @@ export function TownChatPanel({
               handleSend();
             }
           }}
-          className="w-full bg-black/60 border border-white/10 px-3 py-2.5 text-[11px] text-white font-mono outline-none focus:border-brand-primary cyber-skew transition-all placeholder:text-gray-700"
+          className="w-full bg-black/60 border border-white/10 px-3 py-2.5 text-[11px] text-white font-mono outline-none focus:border-brand-primary  transition-all placeholder:text-gray-700"
           placeholder="CMD INPUT // TYPE / HELP"
           aria-autocomplete={(commandMenuOpen || recipientMenuOpen) ? "list" : "none"}
         />
@@ -291,7 +291,7 @@ export function TownChatPanel({
       </div>
 
           {(commandMenuOpen || recipientMenuOpen) && (
-            <div role="listbox" className="mt-2 max-h-40 overflow-y-auto border border-brand-primary/30 bg-[#0F021A] p-1 text-[10px] font-black uppercase tracking-widest cyber-skew">
+            <div role="listbox" className="mt-2 max-h-40 overflow-y-auto border border-brand-primary/30 bg-[#0F021A] p-1 text-[10px] font-black uppercase tracking-widest ">
               {recipientMenuOpen ? (
                 recipientItems.length === 0 ? <div className="px-2 py-1 text-gray-400">No recipients</div> : recipientItems.map((item, index) => (
                   <button

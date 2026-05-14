@@ -104,7 +104,7 @@ export function AvatarSelection({
                 }}
                 className="sr-only"
               />
-              <div className="relative w-32 h-32 overflow-hidden cyber-skew">
+              <div className="relative w-32 h-32 overflow-hidden ">
                 <Image
                   src={avatar.src}
                   alt={avatar.label}
@@ -160,7 +160,7 @@ export function AvatarSelection({
       {mode === "create" && (
         <button type="submit" className="group relative w-full block">
           <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
-          <div className="cyber-skew bg-brand-primary px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
+          <div className=" bg-brand-primary px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
             <span className="text-sm font-black uppercase tracking-[0.2em] text-white">
               Initialize Deployment
             </span>

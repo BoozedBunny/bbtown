@@ -70,7 +70,7 @@ export default async function LobbyPage() {
 
               <div className="relative inline-block mb-4">
                 <div
-                  className="w-40 h-40 rounded-none border-2 border-white/20 relative z-10 flex items-center justify-center overflow-hidden cyber-skew bg-black/60"
+                  className="w-40 h-40 rounded-none border-2 border-white/20 relative z-10 flex items-center justify-center overflow-hidden  bg-black/60"
                 >
                    <Image
                      src={`https://www.boozedbunnytown.com/media/avatars/${user.character.avatar}_avatar.webp`}

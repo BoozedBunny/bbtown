@@ -39,7 +39,7 @@ export default function LoginPage() {
             className="group relative w-full block"
           >
             <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
-            <div className="cyber-skew bg-brand-primary px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
+            <div className=" bg-brand-primary px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
                <span className="text-sm font-black uppercase tracking-[0.2em] text-white">Play as Player 1</span>
             </div>
           </button>
@@ -49,7 +49,7 @@ export default function LoginPage() {
             className="group relative w-full block"
           >
             <div className="absolute inset-0 bg-brand-secondary/10 blur group-hover:bg-brand-secondary/20 transition-all" />
-            <div className="cyber-skew bg-black/40 border border-brand-secondary/50 px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
+            <div className=" bg-black/40 border border-brand-secondary/50 px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
                <span className="text-sm font-black uppercase tracking-[0.2em] text-brand-secondary">Play as Player 2</span>
             </div>
           </button>

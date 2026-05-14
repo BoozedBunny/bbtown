@@ -81,7 +81,7 @@ export function NewsFeedSurface({ mode, townId, initialTab = "all" }: { mode: Fe
     <div className="h-full w-full flex flex-col gap-6 font-sans">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <Tabs value={selectedTab} onValueChange={(value) => setSelectedTab(value as NewsTab)}>
-          <TabsList className="bg-black/40 border border-white/10 p-1 cyber-skew">
+          <TabsList className="bg-black/40 border border-white/10 p-1 ">
             <TabsTrigger value="all" className="data-[state=active]:bg-brand-primary data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest px-6">All</TabsTrigger>
             <TabsTrigger value="town_wire" className="data-[state=active]:bg-brand-primary data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest px-6">Wire {unreadCount.town_wire > 0 ? `(${unreadCount.town_wire})` : ""}</TabsTrigger>
             <TabsTrigger value="channel_bb" className="data-[state=active]:bg-brand-primary data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest px-6">BB_TV {unreadCount.channel_bb > 0 ? `(${unreadCount.channel_bb})` : ""}</TabsTrigger>
@@ -99,7 +99,7 @@ export function NewsFeedSurface({ mode, townId, initialTab = "all" }: { mode: Fe
         </div>
       </div>
 
-      {error && <div className="text-[10px] font-black uppercase tracking-widest text-brand-tertiary bg-brand-tertiary/10 border border-brand-tertiary/30 px-4 py-2 cyber-skew">{error}</div>}
+      {error && <div className="text-[10px] font-black uppercase tracking-widest text-brand-tertiary bg-brand-tertiary/10 border border-brand-tertiary/30 px-4 py-2 ">{error}</div>}
 
       <div className="text-[9px] font-mono font-black uppercase tracking-[0.3em] text-gray-600 flex items-center gap-2">
         <div className="w-2 h-2 bg-brand-primary animate-pulse" />
@@ -128,7 +128,7 @@ export function NewsFeedSurface({ mode, townId, initialTab = "all" }: { mode: Fe
                     setActiveItemId(item.id);
                     markRead(item.id);
                   }}
-                  className={`w-full text-left p-5 border-l-4 transition-all relative overflow-hidden cyber-skew group ${isRead ? "bg-black/20 border-white/5 opacity-60" : "bg-black/60 border-brand-primary hover:border-brand-secondary hover:bg-brand-primary/5"}`}
+                  className={`w-full text-left p-5 border-l-4 transition-all relative overflow-hidden  group ${isRead ? "bg-black/20 border-white/5 opacity-60" : "bg-black/60 border-brand-primary hover:border-brand-secondary hover:bg-brand-primary/5"}`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="relative z-10">

@@ -139,7 +139,7 @@
     @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[scanline_3s_linear_infinite];
   }
 
-  .cyber-skew {
+  . {
     clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
   }
 

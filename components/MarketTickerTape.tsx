@@ -50,7 +50,7 @@ export function MarketTickerTape({ onSelectSymbol }: { onSelectSymbol: (symbol: 
             >
               <span className="text-white group-hover/item:text-brand-primary transition-colors mr-3 uppercase tracking-widest">{row.symbol}</span>
               <span className="text-gray-400 mr-3 font-bold">${row.price.toFixed(2)}</span>
-              <span className={`px-2 py-0.5 cyber-skew ${up ? "bg-brand-secondary/20 text-brand-secondary" : down ? "bg-brand-tertiary/20 text-brand-tertiary" : "bg-white/5 text-gray-500"}`}>
+              <span className={`px-2 py-0.5  ${up ? "bg-brand-secondary/20 text-brand-secondary" : down ? "bg-brand-tertiary/20 text-brand-tertiary" : "bg-white/5 text-gray-500"}`}>
                 {up ? "▲" : down ? "▼" : "•"}
                 {Math.abs(row.changePct).toFixed(2)}%
               </span>
