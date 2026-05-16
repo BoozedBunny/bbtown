@@ -117,6 +117,12 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
     iconPosition: 0.64,
     name: "Up Up Balloon",
     image: "https://www.boozedbunnytown.com/media/buildings/up_up_balloon.webp",
+    spriteConfig: {
+      columns: 4,
+      rows: 12,
+      totalFrames: 48,
+      fps: 12,
+    },
     type: "Commercial",
     color: "#BD00FF",
   },
