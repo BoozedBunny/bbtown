@@ -311,6 +311,7 @@ if (Math.abs(deltaX) > 1e-6 || Math.abs(deltaZ) > 1e-6) {
             key={b.id}
             id={b.id}
             url={b.image!} // Hier wird jetzt das webp übergeben
+            spriteConfig={b.spriteConfig}
             position={b.position}
             opacity={!isXRayActive ? 1 : 0.4}
             rotationY={b.rotationY || 0}

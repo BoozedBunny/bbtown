@@ -13,7 +13,7 @@ const TWO_PI = Math.PI * 2;
 // Motion tuning (falls das Bild wie der Ballon animiert werden soll)
 const BALLOON_BOB_AMP = 0.16;
 const BALLOON_BOB_HZ = 0.22;
-const BALLOON_DRIFT_RADIUS = 0.09;
+const BALLOON_DRIFT_RADIUS = 0.2;
 const BALLOON_DRIFT_HZ = 0.11;
 const BALLOON_YAW_SWAY_AMP = THREE.MathUtils.degToRad(3.5);
 const BALLOON_YAW_SWAY_HZ = 0.14;
@@ -41,51 +41,71 @@ export function ImageBuilding({
   iconPosition = 0.7,
   isTransformable,
   onTransform,
-}: ImageBuildingProps) {
-  // Lade das webp-Bild als Textur
-  const texture = useTexture(url);
+  spriteConfig,
+}: ImageBuildingProps & { 
+  spriteConfig?: { columns: number; rows: number; totalFrames: number; fps: number; phaseOffset?: number } 
+}) {
 
-  // Stelle sicher, dass die Farben korrekt dargestellt werden
-  texture.colorSpace = THREE.SRGBColorSpace;
+
+
+
+// Lade das webp-Bild (oder das riesige Sprite-Sheet)
+  const baseTexture = useTexture(url);
+
+  // NEU: Wir klonen die Textur. 
+  // Das Bild bleibt nur 1x im RAM, aber jedes Haus hat eigene UV-Koordinaten zum Animieren.
+  const texture = useMemo(() => {
+    const clone = baseTexture.clone();
+    clone.colorSpace = THREE.SRGBColorSpace;
+    
+    if (spriteConfig) {
+      clone.wrapS = clone.wrapT = THREE.RepeatWrapping;
+      clone.repeat.set(1 / spriteConfig.columns, 1 / spriteConfig.rows);
+    }
+    
+    return clone;
+  }, [baseTexture, spriteConfig]);
 
   const groupRef = useRef<THREE.Group>(null);
   const isBalloon = url.includes("up_up_balloon");
 
-  const rotationInRadiansY = useMemo(
-    () => (rotationY * Math.PI) / 180,
-    [rotationY],
-  );
-  const rotationInRadiansX = useMemo(
-    () => (rotationX * Math.PI) / 180,
-    [rotationX],
-  );
-  const rotationInRadiansZ = useMemo(
-    () => (rotationZ * Math.PI) / 180,
-    [rotationZ],
-  );
+  const rotationInRadiansY = useMemo(() => (rotationY * Math.PI) / 180, [rotationY]);
+  const rotationInRadiansX = useMemo(() => (rotationX * Math.PI) / 180, [rotationX]);
+  const rotationInRadiansZ = useMemo(() => (rotationZ * Math.PI) / 180, [rotationZ]);
+
+  // Phase-Offset erlaubt es uns, dass gleiche Häuser nicht exakt synchron blinken
+  const randomPhase = useMemo(() => spriteConfig?.phaseOffset ?? Math.random() * 100, [spriteConfig]);
 
   useFrame((state) => {
-    if (!isBalloon || !groupRef.current) return;
-
+    if (!groupRef.current) return;
     const t = state.clock.getElapsedTime();
-    const bob =
-      Math.sin(TWO_PI * BALLOON_BOB_HZ * t + BALLOON_PHASE_BOB) *
-      BALLOON_BOB_AMP;
-    const driftAngle = TWO_PI * BALLOON_DRIFT_HZ * t + BALLOON_PHASE_DRIFT;
-    const driftX = Math.cos(driftAngle) * BALLOON_DRIFT_RADIUS;
-    const driftZ = Math.sin(driftAngle) * BALLOON_DRIFT_RADIUS;
-    const yawSway =
-      Math.sin(TWO_PI * BALLOON_YAW_SWAY_HZ * t + BALLOON_PHASE_YAW) *
-      BALLOON_YAW_SWAY_AMP;
 
-    groupRef.current.position.set(
-      position[0] + driftX,
-      position[1] + bob,
-      position[2] + driftZ,
-    );
-    groupRef.current.rotation.y = rotationInRadiansY + yawSway;
-    groupRef.current.rotation.x = rotationInRadiansX + yawSway;
-    groupRef.current.rotation.z = rotationInRadiansZ + yawSway;
+    // 1. BALLOON ANIMATION
+    if (isBalloon) {
+      const bob = Math.sin(TWO_PI * BALLOON_BOB_HZ * t + BALLOON_PHASE_BOB) * BALLOON_BOB_AMP;
+      const driftAngle = TWO_PI * BALLOON_DRIFT_HZ * t + BALLOON_PHASE_DRIFT;
+      const driftX = Math.cos(driftAngle) * BALLOON_DRIFT_RADIUS;
+      const driftZ = Math.sin(driftAngle) * BALLOON_DRIFT_RADIUS;
+      const yawSway = Math.sin(TWO_PI * BALLOON_YAW_SWAY_HZ * t + BALLOON_PHASE_YAW) * BALLOON_YAW_SWAY_AMP;
+
+      groupRef.current.position.set(position[0] + driftX, position[1] + bob, position[2] + driftZ);
+      groupRef.current.rotation.set(rotationInRadiansX + yawSway, rotationInRadiansY + yawSway, rotationInRadiansZ + yawSway);
+    }
+
+    // 2. SPRITE SHEET ANIMATION
+    if (spriteConfig) {
+      // Frame berechnen (plus randomPhase, damit nicht alle geklonten Häuser synchron laufen)
+      const currentFrame = Math.floor((t + randomPhase) * spriteConfig.fps) % spriteConfig.totalFrames;
+
+      const currentColumn = currentFrame % spriteConfig.columns;
+      const currentRow = Math.floor(currentFrame / spriteConfig.columns);
+
+      const offsetX = currentColumn / spriteConfig.columns;
+      // Invertierte Y-Achse, weil Three.js von unten links zählt
+      const offsetY = 1 - (currentRow / spriteConfig.rows) - (1 / spriteConfig.rows);
+
+      texture.offset.set(offsetX, offsetY);
+    }
   });
 
   const Icon = useMemo(() => {

@@ -17,6 +17,7 @@ export interface BuildingData {
   title?: string;
   forSale?: boolean;
   scale?: number | [number, number, number];
+  spriteConfig?: { columns: number; rows: number; totalFrames: number; fps: number; phaseOffset?: number };
 }
 
 export type ImageBuildingProps = {
@@ -43,6 +44,7 @@ export type ImageBuildingProps = {
   iconPosition?: number;
   isTransformable?: boolean;
   onTransform?: (id: string, position: [number, number, number]) => void;
+  spriteConfig?: { columns: number; rows: number; totalFrames: number; fps: number; phaseOffset?: number };
 };
 
 export interface DbBuildingState {
