@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Model } from "@/components/Player";
 import { toast } from "sonner";
+import { getLevelFromXP, getXPForLevel, getNextLevelXP } from "@/lib/leveling";
 
 interface PlayerProfileModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ interface ProfileData {
   name: string;
   avatar: string;
   description: string | null;
+  experience: number;
 }
 
 export function PlayerProfileModal({
@@ -146,7 +148,9 @@ export function PlayerProfileModal({
                     {profile.name}
                   </h2>
                   <p className="text-[10px] font-black tracking-widest text-brand-primary uppercase">
-                    Citizen Level
+                    {isOwnProfile
+                      ? `Level ${getLevelFromXP(profile.experience)} - ${profile.experience} / ${getNextLevelXP(profile.experience)} XP`
+                      : `Level ${getLevelFromXP(profile.experience)}`}
                   </p>
                 </div>
 

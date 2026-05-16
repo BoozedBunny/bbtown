@@ -16,6 +16,7 @@ export async function getCurrentUser() {
       description: user.character.description,
       wallet: user.character.wallet,
       arenaMaxRounds: user.character.arenaMaxRounds,
+      experience: user.character.experience,
     },
   };
 }
@@ -31,6 +32,7 @@ export async function getCharacterProfile(characterId: string) {
       name: true,
       avatar: true,
       description: true,
+      experience: true,
     },
   });
 

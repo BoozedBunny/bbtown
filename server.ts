@@ -1023,30 +1023,69 @@ app.prepare().then(async () => {
         try {
           if (!isSolo) {
             setGlobalToplist(toplistPayload);
+
+            // Multiplayer XP
+            if (winner) {
+              await prisma.character.updateMany({
+                where: { user: { username: winner } },
+                data: { experience: { increment: 50 }, wallet: { increment: reward } },
+              });
+              console.log(`Granted ${reward} reward and 50 XP to winner: ${winner}`);
+            }
+            if (loser) {
+              await prisma.character.updateMany({
+                where: { user: { username: loser } },
+                data: { experience: { increment: 10 } },
+              });
+              console.log(`Granted 10 XP to loser: ${loser}`);
+            }
           } else {
             const playerUsername = Object.values(game.players)[0]?.username;
             if (playerUsername) {
               const character = await prisma.character.findFirst({
                 where: { user: { username: playerUsername } },
               });
-              if (character && roundsReached > character.arenaMaxRounds) {
-                await prisma.character.update({
-                  where: { id: character.id },
-                  data: { arenaMaxRounds: roundsReached },
-                });
-                console.log(
-                  `Updated arenaMaxRounds for ${playerUsername} to ${roundsReached}`,
-                );
+              if (character) {
+                if (roundsReached > character.arenaMaxRounds) {
+                  await prisma.character.update({
+                    where: { id: character.id },
+                    data: { arenaMaxRounds: roundsReached },
+                  });
+                  console.log(
+                    `Updated arenaMaxRounds for ${playerUsername} to ${roundsReached}`,
+                  );
+                }
+
+                // Singleplayer XP (Once a day)
+                const now = new Date();
+                const lastSolo = character.lastSoloArenaAt;
+                let shouldGrantSoloXP = false;
+
+                if (!lastSolo) {
+                  shouldGrantSoloXP = true;
+                } else {
+                  // Check if it's a new day
+                  if (
+                    lastSolo.getUTCFullYear() !== now.getUTCFullYear() ||
+                    lastSolo.getUTCMonth() !== now.getUTCMonth() ||
+                    lastSolo.getUTCDate() !== now.getUTCDate()
+                  ) {
+                    shouldGrantSoloXP = true;
+                  }
+                }
+
+                if (shouldGrantSoloXP) {
+                  await prisma.character.update({
+                    where: { id: character.id },
+                    data: {
+                      experience: { increment: 10 },
+                      lastSoloArenaAt: now
+                    },
+                  });
+                  console.log(`Granted 10 daily solo XP to ${playerUsername}`);
+                }
               }
             }
-          }
-
-          if (winner && !isSolo) {
-            await prisma.character.updateMany({
-              where: { user: { username: winner } },
-              data: { wallet: { increment: reward } },
-            });
-            console.log(`Granted ${reward} reward to winner: ${winner}`);
           }
         } catch (error) {
           console.error("Failed to finalize arena results:", error);
