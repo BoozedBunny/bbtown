@@ -10,6 +10,7 @@ export type RoundTransitionConfig = {
   roundDurationMs: number;
   preRoundBreathingMs: number;
   betweenRoundBreathingMs: number;
+  stageBreathingMs: number;
   announceInMs: number;
   announceHoldMs: number;
   announceOutMs: number;
@@ -21,14 +22,16 @@ export type RoundPhaseState = {
   phaseStartTimeMs: number;
   phaseDurationMs: number;
   obstaclesEnabled: boolean;
+  nextActiveStartTimeMs?: number;
 };
 
 export const DEFAULT_ROUND_TRANSITION_CONFIG: RoundTransitionConfig = {
   enabled: (process.env.NEXT_PUBLIC_ROUND_BREATHING_WINDOW_V1 ?? "true") !== "false",
   totalRounds: 30,
   roundDurationMs: 30_000,
-  preRoundBreathingMs: 1_200,
-  betweenRoundBreathingMs: 1_000,
+  preRoundBreathingMs: 4_000,
+  betweenRoundBreathingMs: 3_000,
+  stageBreathingMs: 7_000,
   announceInMs: 100,
   announceHoldMs: 700,
   announceOutMs: 250,
@@ -64,7 +67,12 @@ export function getRoundPhaseStateAt(
   let offsetMs = 0;
 
   for (let roundIndex = 1; roundIndex <= config.totalRounds; roundIndex += 1) {
-    const breathingMs = roundIndex === 1 ? config.preRoundBreathingMs : config.betweenRoundBreathingMs;
+    let breathingMs = config.betweenRoundBreathingMs;
+    if (roundIndex === 1) {
+      breathingMs = config.preRoundBreathingMs;
+    } else if (roundIndex === 12 || roundIndex === 24) {
+      breathingMs = config.stageBreathingMs;
+    }
     const breathingStart = offsetMs;
     const activeStart = breathingStart + breathingMs;
     const activeEnd = activeStart + config.roundDurationMs;
@@ -79,6 +87,7 @@ export function getRoundPhaseStateAt(
         phaseStartTimeMs: startedAtMs + (inAnnounce ? announceStart : breathingStart),
         phaseDurationMs: inAnnounce ? announceDurationMs : breathingMs,
         obstaclesEnabled: false,
+        nextActiveStartTimeMs: startedAtMs + activeStart,
       };
     }
 

@@ -789,6 +789,7 @@ export default function ArenaPage({
     phaseStartTimeMs?: number;
     phaseDurationMs?: number;
     obstaclesEnabled?: boolean;
+    nextActiveStartTimeMs?: number;
     gameOver?: GameOverPayload;
   }>({ players: [], obstacles: [], status: "waiting" });
   const [connected, setConnected] = useState(false);
@@ -819,6 +820,7 @@ export default function ArenaPage({
             gameState.phaseDurationMs ??
             DEFAULT_ROUND_TRANSITION_CONFIG.roundDurationMs,
           obstaclesEnabled: gameState.obstaclesEnabled ?? true,
+          nextActiveStartTimeMs: gameState.nextActiveStartTimeMs,
         }
       : getRoundPhaseStateAt(
           roundNowMs,
@@ -835,9 +837,12 @@ export default function ArenaPage({
     Math.ceil(
       (authoritativePhase.phase === "ACTIVE_ROUND"
         ? Math.max(0, authoritativePhase.phaseDurationMs - phaseElapsedMs)
-        : authoritativePhase.phaseDurationMs) / 1000,
+        : authoritativePhase.nextActiveStartTimeMs
+          ? Math.max(0, authoritativePhase.nextActiveStartTimeMs - roundNowMs)
+          : authoritativePhase.phaseDurationMs) / 1000,
     ),
   );
+  const isApproachingStart = (authoritativePhase.phase === "PRE_ROUND_BREATHING" || authoritativePhase.phase === "BETWEEN_ROUND_BREATHING" || authoritativePhase.phase === "ROUND_ANNOUNCE") && roundSecondsRemaining <= 3;
   const isSuddenDeath =
     gameState.status === "playing" && currentRound >= TOTAL_ROUNDS;
 
@@ -1131,6 +1136,12 @@ export default function ArenaPage({
             </div>
           </div>
         )}
+
+      {gameState.status === "playing" && authoritativePhase.phase !== "ACTIVE_ROUND" && !isDevMode && (
+        <div className={`pointer-events-none transition-all duration-500 z-50 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-mono font-black ${isApproachingStart ? 'text-[12rem] text-red-500 animate-pulse drop-shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'text-8xl text-brand-secondary opacity-70'}`}>
+          {roundSecondsRemaining}
+        </div>
+      )}
 
       {gameState.status === "waiting" &&
         !gameRoomId.startsWith("solo-") &&
