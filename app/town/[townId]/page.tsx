@@ -385,6 +385,17 @@ if (Math.abs(deltaX) > 1e-6 || Math.abs(deltaZ) > 1e-6) {
           RIGHT: THREE.MOUSE.PAN,
         }
   }
+  touches={
+    cameraMode === "game"
+      ? {
+          ONE: THREE.TOUCH.PAN, // Ein Finger = Panning im Game Mode
+          TWO: THREE.TOUCH.DOLLY_PAN, // Zwei Finger = Zoom & Pan
+        }
+      : {
+          ONE: THREE.TOUCH.ROTATE, // Ein Finger = Rotieren im Dev Mode
+          TWO: THREE.TOUCH.DOLLY_PAN,
+        }
+  }
 />
     </>
   );
@@ -937,8 +948,8 @@ export default function TownPage({
   ]);
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-8 text-white font-sans overflow-hidden relative brand-bg-overlay">
-      <div className="relative z-40 w-full max-w-6xl mb-8">
+    <main className="flex min-h-screen flex-col items-center p-2 md:p-4 text-white font-sans overflow-hidden relative brand-bg-overlay">
+      <div className="relative z-40 w-full max-w-6xl mb-2">
         <div className="w-full cyber-panel p-4 md:p-6 shadow-xl relative border-t-4 border-t-brand-primary">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
