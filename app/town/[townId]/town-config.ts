@@ -121,7 +121,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
       columns: 4,
       rows: 12,
       totalFrames: 48,
-      fps: 12,
+      fps: 24,
     },
     type: "Commercial",
     color: "#BD00FF",
@@ -232,6 +232,12 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
     name: "Casino Pyramid",
     image:
       "https://www.boozedbunnytown.com/media/buildings/casino_pyramid.webp",
+    spriteConfig: {
+      columns: 4,
+      rows: 12,
+      totalFrames: 48,
+      fps: 24,
+    },
     type: "Commercial",
     color: "#BD00FF",
   },
