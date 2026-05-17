@@ -8,7 +8,7 @@ export const STOCK_EXCHANGE_BUILDING_ID = "25";
 export const HARDCODED_BUILDINGS: BuildingData[] = [
   {
     id: "8",
-    position: [-1.2, 0.9, 0.6],
+    position: [-1.2, 0.9, 1.5],
     rotationX: -70,
     rotationY: 0,
     iconPosition: 0.54,
@@ -16,7 +16,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
     image: "https://www.boozedbunnytown.com/media/buildings/1001_nights.webp",
     type: "Commercial",
     color: "#BD00FF",
-    scale: 4,
+    scale: 4.3,
   },
   {
     id: "9",
@@ -63,10 +63,10 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "12",
-    position: [6.7, 0.8, 3.3],
+    position: [10.8, 0.8, 3.4],
     rotationX: -70,
     rotationY: 0,
-    scale: 4.9,
+    scale: 3.7,
     iconPosition: 0.44,
     name: "Feet House",
     image: "https://www.boozedbunnytown.com/media/buildings/feet_house.webp",
@@ -99,7 +99,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "15",
-    position: [9.3, 0.8, 5],
+    position: [7, 0.8, 4],
     rotationX: -70,
     rotationY: 0,
     scale: 4.5,
@@ -140,7 +140,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "18",
-    position: [11.4, 0.8, -0.3],
+    position: [11.8, 0.8, 0.2],
     rotationX: -70,
     rotationY: 0,
     scale: 5,
@@ -161,8 +161,8 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
     image: "https://www.boozedbunnytown.com/media/buildings/vodka_palace.webp",
     spriteConfig: {
       columns: 4,
-      rows: 9,
-      totalFrames: 36,
+      rows: 5,
+      totalFrames: 20,
       fps: 12,
     },
     type: "Commercial",
@@ -188,7 +188,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "21",
-    position: [0.5, 1.4, 4],
+    position: [0.5, 1.4, 6],
     rotationX: -70,
     scale: 8.5,
     iconPosition: 0.05,
@@ -211,7 +211,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "23",
-    position: [12.5, 0.8, 6],
+    position: [15, 0.8, 7.5],
     rotationX: -70,
     rotationY: 0,
     scale: 3.4,
@@ -224,7 +224,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "24",
-    position: [6.3, 1.2, -0.8],
+    position: [6.5, 1.2, -0.8],
     rotationX: -70,
     rotationY: 0,
     scale: 6.8,
@@ -234,9 +234,9 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
       "https://www.boozedbunnytown.com/media/buildings/casino_pyramid.webp",
     spriteConfig: {
       columns: 4,
-      rows: 12,
-      totalFrames: 48,
-      fps: 24,
+      rows: 5,
+      totalFrames: 20,
+      fps: 12,
     },
     type: "Commercial",
     color: "#BD00FF",
@@ -262,6 +262,18 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
     iconPosition: 0.54,
     name: "BBTown Bank",
     image: "https://www.boozedbunnytown.com/media/buildings/bank.webp",
+    type: "Commercial",
+    color: "#BD00FF",
+  },
+  {
+    id: "27",
+    position: [3.3, 0.9, 3],
+    rotationX: -70,
+    rotationY: 0,
+    scale: 4,
+    iconPosition: 0.54,
+    name: "WhimsicLe's House",
+    image: "https://www.boozedbunnytown.com/media/buildings/barbys_house.webp",
     type: "Commercial",
     color: "#BD00FF",
   },
