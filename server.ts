@@ -178,6 +178,7 @@ app.prepare().then(async () => {
     phaseStartTimeMs?: number;
     phaseDurationMs?: number;
     obstaclesEnabled?: boolean;
+    nextActiveStartTimeMs?: number;
     intervalId?: NodeJS.Timeout;
     nextSpawnSequence: number;
   }
@@ -320,6 +321,7 @@ app.prepare().then(async () => {
       game.phaseStartTimeMs = phaseState.phaseStartTimeMs;
       game.phaseDurationMs = phaseState.phaseDurationMs;
       game.obstaclesEnabled = phaseState.obstaclesEnabled;
+      game.nextActiveStartTimeMs = phaseState.nextActiveStartTimeMs;
 
       if (phaseState.obstaclesEnabled) {
         game.obstacles = game.obstacles.filter((obs) => {
@@ -342,6 +344,7 @@ app.prepare().then(async () => {
         phaseStartTimeMs: game.phaseStartTimeMs,
         phaseDurationMs: game.phaseDurationMs,
         obstaclesEnabled: game.obstaclesEnabled,
+        nextActiveStartTimeMs: game.nextActiveStartTimeMs,
       });
     }
   };
@@ -966,6 +969,7 @@ app.prepare().then(async () => {
           phaseStartTimeMs: games[roomId].phaseStartTimeMs,
           phaseDurationMs: games[roomId].phaseDurationMs,
           obstaclesEnabled: games[roomId].obstaclesEnabled,
+          nextActiveStartTimeMs: games[roomId].nextActiveStartTimeMs,
         });
       }
     });
