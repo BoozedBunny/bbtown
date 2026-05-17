@@ -8,12 +8,12 @@ import {
   OrbitControls,
   ContactShadows,
   Environment,
-  OrthographicCamera,
+  useProgress,
   PerspectiveCamera,
 } from "@react-three/drei";
 import dynamic from "next/dynamic";
 /* const LoaderWrapper = dynamic(() => import("@/components/ui/LoaderWrapper").then((mod) => mod.LoaderWrapper), { ssr: false }); */
-import { useEffect, useState, use, useMemo, useRef, useCallback } from "react";
+import { useEffect, useState, use, useMemo, useRef, useCallback, Suspense } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { Camera } from "three";
 import { io, Socket } from "socket.io-client";
@@ -387,6 +387,34 @@ if (Math.abs(deltaX) > 1e-6 || Math.abs(deltaZ) > 1e-6) {
   }
 />
     </>
+  );
+}
+
+function CanvasLoader() {
+  const { active, progress } = useProgress();
+
+  if (!active && progress === 100) return null;
+
+  return (
+    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#05010a] backdrop-blur-sm">
+      <div className="flex flex-col items-center gap-4 w-full max-w-xs px-8">
+        <div className="w-16 h-16 border-2 border-brand-primary/20 rounded-none animate-ping absolute" />
+        <div className="w-16 h-16 border-t-2 border-brand-primary rounded-none animate-spin z-10" />
+        
+        <div className="w-full mt-4 space-y-2">
+          <div className="h-1 w-full bg-white/5 border border-white/10 overflow-hidden relative">
+            <div 
+              className="absolute top-0 left-0 h-full bg-brand-primary transition-all duration-300 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className="text-center text-brand-primary font-mono text-[10px] font-black uppercase tracking-[0.4em] animate-pulse">
+            Loading Assets // {Math.round(progress)}%
+          </p>
+        </div>
+      </div>
+      <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] z-40 bg-[length:100%_2px,3px_100%] opacity-50" />
+    </div>
   );
 }
 
@@ -1311,33 +1339,30 @@ export default function TownPage({
       </div>
 
       <div className="relative w-full h-[75vh] border-2 border-brand-primary/30 rounded-none overflow-hidden bg-[#05010a] shadow-[0_0_50px_rgba(189,0,255,0.2)]">
+<CanvasLoader /> 
+        
         <Canvas className="select-none" shadows>
-          {cameraMode === "game" ? (
-<>
-<PerspectiveCamera
-      makeDefault
-      position={[0, 150, 0]} // Deutlich weiter weg auf der Y-Achse
-      fov={15} // Sehr kleiner FOV für den "flachen" Ortho-Look
-      near={0.1}
-      far={1000}
-    />
-            {/* <OrthographicCamera
-              makeDefault
-              position={[0, 20, 0]} // Geändert: Kamera schaut direkt von oben herab
-              zoom={80}
-              near={0.1}
-              far={1000}
-            /> */}
-</>
-          ) : (
-            <PerspectiveCamera
-              makeDefault
-              position={[10, 10, 10]}
-              fov={50}
-              near={0.1}
-              far={1000}
-            />
-          )}
+          {/* Suspense teilt React mit, dass es auf asynchrone Assets (z.B. deine Texturen) warten soll */}
+          <Suspense fallback={null}>
+            {cameraMode === "game" ? (
+              <>
+                <PerspectiveCamera
+                  makeDefault
+                  position={[0, 150, 0]}
+                  fov={15}
+                  near={0.1}
+                  far={1000}
+                />
+              </>
+            ) : (
+              <PerspectiveCamera
+                makeDefault
+                position={[10, 10, 10]}
+                fov={50}
+                near={0.1}
+                far={1000}
+              />
+            )}
           <Scene
             buildings={mergedBuildings}
             serverTime={serverTime}
@@ -1415,6 +1440,7 @@ export default function TownPage({
               }
             }}
           />
+          </Suspense>
         </Canvas>
         {/*  <LoaderWrapper /> */}
 

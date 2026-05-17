@@ -48,7 +48,7 @@ export function LobbyTownEntryClient({ townHref, glbAssets, staticAssets }: Lobb
             </div>
             <div className="mt-1 flex justify-between text-xs">
               <span className="text-gray-400 uppercase tracking-widest">
-                {status === "ready" ? "Assets Ready" : "Loading City"}
+                {status === "ready" ? "City Ready" : "Loading City"}
               </span>
               <span className="text-brand-secondary font-bold">{progress}%</span>
             </div>
