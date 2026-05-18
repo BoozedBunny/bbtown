@@ -26,6 +26,7 @@ interface ProfileData {
   avatar: string;
   description: string | null;
   experience: number;
+  arenaMaxRounds: number;
 }
 
 export function PlayerProfileModal({
@@ -165,6 +166,9 @@ export function PlayerProfileModal({
                       {isOwnProfile
                         ? `Level ${getLevelFromXP(profile.experience)} - ${profile.experience} / ${getNextLevelXP(profile.experience)} XP`
                         : `Level ${getLevelFromXP(profile.experience)}`}
+                    </p>
+                    <p className="text-[10px] font-bold tracking-widest text-yellow-400 uppercase mt-0.5">
+                      Arena Personal Best: {profile.arenaMaxRounds} Cycles
                     </p>
                   </div>
 
