@@ -33,6 +33,7 @@ export async function getCharacterProfile(characterId: string) {
       avatar: true,
       description: true,
       experience: true,
+      arenaMaxRounds: true,
     },
   });
 
