@@ -1,6 +1,7 @@
 "use client";
 
 import { ArenaGlobalToplist } from "@/components/ArenaGlobalToplist";
+import { TownSelect } from "@/components/TownSelect";
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { VideoSkyBg } from "@/components/VideoSkyBg";
@@ -968,38 +969,39 @@ export default function TownPage({
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <h1 className="font-heading font-bold tracking-tight text-white flex items-center gap-3">
-                <button
-                  className="flex items-center gap-3 hover:opacity-80 transition-opacity text-left focus:outline-none focus:ring-2 focus:ring-brand-primary rounded-lg p-1 -m-1"
-                  onClick={() =>
-                    openCentralManagement({
-                      tab: "treasury",
-                      source: "manual",
-                    })
-                  }
-                  aria-label="Open Town Central Management"
-                >
-                  <div
-                    className="relative"
-                    style={{
-                      width: "clamp(48px, 5.2vw, 78px)",
-                      height: "clamp(48px, 5.2vw, 78px)",
+                <div className="flex items-center gap-4">
+                  <button
+                    className="flex items-center hover:opacity-80 transition-opacity text-left focus:outline-none focus:ring-2 focus:ring-brand-primary rounded-lg p-1 -m-1"
+                    onClick={() =>
+                      openCentralManagement({
+                        tab: "treasury",
+                        source: "manual",
+                      })
+                    }
+                    aria-label="Open Town Central Management"
+                  >
+                    <div
+                      className="relative"
+                      style={{
+                        width: "clamp(48px, 5.2vw, 78px)",
+                        height: "clamp(48px, 5.2vw, 78px)",
+                      }}
+                    >
+                      <Image
+                        src="https://www.boozedbunnytown.com/media/logo.png"
+                        alt="BB"
+                        fill
+                        className="object-contain drop-shadow-[0_0_10px_rgba(189,0,255,0.5)]"
+                      />
+                    </div>
+                  </button>
+                  <TownSelect
+                    currentTownId={townId as string}
+                    onTownChange={(id) => {
+                      window.location.href = `/town/${id}`;
                     }}
-                  >
-                    <Image
-                      src="https://www.boozedbunnytown.com/media/logo.png"
-                      alt="BB"
-                      fill
-                      className="object-contain drop-shadow-[0_0_10px_rgba(189,0,255,0.5)]"
-                    />
-                  </div>
-                  <span
-                    className="text-[clamp(1.1rem,2vw,1.85rem)] leading-tight font-black italic tracking-tighter cyber-glitch-text"
-                    data-text={`BoozedBunnyTown #${townId}`}
-                  >
-                    BoozedBunnyTown{" "}
-                    <span className="text-brand-secondary">#{townId}</span>
-                  </span>
-                </button>
+                  />
+                </div>
               </h1>
               {!isWalletPositionV2Enabled && currentUser?.character && (
                 <div className="mt-2">

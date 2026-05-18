@@ -16,7 +16,6 @@ export default async function LobbyPage() {
     redirect("/login");
   }
 
-  const townHref = "/town/1";
   const preloadManifest = getTownPreloadManifest();
 
   return (
@@ -115,7 +114,6 @@ export default async function LobbyPage() {
             </div>
 
             <LobbyTownEntryClient
-              townHref={townHref}
               glbAssets={preloadManifest.glbAssets}
               staticAssets={preloadManifest.staticAssets}
             />

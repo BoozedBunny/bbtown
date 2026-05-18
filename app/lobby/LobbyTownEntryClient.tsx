@@ -3,21 +3,36 @@
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useTownPreload } from "@/hooks/useTownPreload";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { TOWNS } from "@/app/town/towns";
+import { useEffect, useState } from "react";
 
 type LobbyTownEntryClientProps = {
-  townHref: string;
   glbAssets: string[];
   staticAssets: string[];
 };
 
-export function LobbyTownEntryClient({ townHref, glbAssets, staticAssets }: LobbyTownEntryClientProps) {
+export function LobbyTownEntryClient({ glbAssets, staticAssets }: LobbyTownEntryClientProps) {
   const router = useRouter();
+  const [hometownId] = useLocalStorage("hometownId", "");
+  const [townHref, setTownHref] = useState("/town/1");
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    if (hometownId) {
+      setTownHref(`/town/${hometownId}`);
+    } else {
+      const randomTown = TOWNS[Math.floor(Math.random() * TOWNS.length)];
+      setTownHref(`/town/${randomTown.id}`);
+    }
+  }, [hometownId]);
 
   const { status, progress, error, retry } = useTownPreload({
     townHref,
     glbAssets,
     staticAssets,
-    enabled: true,
+    enabled: isClient,
     buildVersion: process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ?? "local",
     prefetchRoute: router.prefetch,
   });
