@@ -1,6 +1,7 @@
 "use client";
 
 import { ArenaGlobalToplist } from "@/components/ArenaGlobalToplist";
+import { TownSelect } from "@/components/TownSelect";
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { VideoSkyBg } from "@/components/VideoSkyBg";
@@ -12,7 +13,7 @@ import {
   PerspectiveCamera,
 } from "@react-three/drei";
 import dynamic from "next/dynamic";
-/* const LoaderWrapper = dynamic(() => import("@/components/ui/LoaderWrapper").then((mod) => mod.LoaderWrapper), { ssr: false }); */
+const LoaderWrapper = dynamic(() => import("@/components/CanvasLoader").then((mod) => mod.CanvasLoader), { ssr: false });
 import { useEffect, useState, use, useMemo, useRef, useCallback, Suspense } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { Camera } from "three";
@@ -401,33 +402,6 @@ if (Math.abs(deltaX) > 1e-6 || Math.abs(deltaZ) > 1e-6) {
   );
 }
 
-function CanvasLoader() {
-  const { active, progress } = useProgress();
-
-  if (!active && progress === 100) return null;
-
-  return (
-    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#05010a] backdrop-blur-sm">
-      <div className="flex flex-col items-center gap-4 w-full max-w-xs px-8">
-        <div className="w-16 h-16 border-2 border-brand-primary/20 rounded-none animate-ping absolute" />
-        <div className="w-16 h-16 border-t-2 border-brand-primary rounded-none animate-spin z-10" />
-        
-        <div className="w-full mt-4 space-y-2">
-          <div className="h-1 w-full bg-white/5 border border-white/10 overflow-hidden relative">
-            <div 
-              className="absolute top-0 left-0 h-full bg-brand-primary transition-all duration-300 ease-out"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <p className="text-center text-brand-primary font-mono text-[10px] font-black uppercase tracking-[0.4em] animate-pulse">
-            Loading Assets // {Math.round(progress)}%
-          </p>
-        </div>
-      </div>
-      <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] z-40 bg-[length:100%_2px,3px_100%] opacity-50" />
-    </div>
-  );
-}
 
 export default function TownPage({
   params,
@@ -954,38 +928,39 @@ export default function TownPage({
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <h1 className="font-heading font-bold tracking-tight text-white flex items-center gap-3">
-                <button
-                  className="flex items-center gap-3 hover:opacity-80 transition-opacity text-left focus:outline-none focus:ring-2 focus:ring-brand-primary rounded-lg p-1 -m-1"
-                  onClick={() =>
-                    openCentralManagement({
-                      tab: "treasury",
-                      source: "manual",
-                    })
-                  }
-                  aria-label="Open Town Central Management"
-                >
-                  <div
-                    className="relative"
-                    style={{
-                      width: "clamp(48px, 5.2vw, 78px)",
-                      height: "clamp(48px, 5.2vw, 78px)",
+                <div className="flex items-center gap-4">
+                  <button
+                    className="flex items-center hover:opacity-80 transition-opacity text-left focus:outline-none focus:ring-2 focus:ring-brand-primary rounded-lg p-1 -m-1"
+                    onClick={() =>
+                      openCentralManagement({
+                        tab: "treasury",
+                        source: "manual",
+                      })
+                    }
+                    aria-label="Open Town Central Management"
+                  >
+                    <div
+                      className="relative"
+                      style={{
+                        width: "clamp(48px, 5.2vw, 78px)",
+                        height: "clamp(48px, 5.2vw, 78px)",
+                      }}
+                    >
+                      <Image
+                        src="https://www.boozedbunnytown.com/media/logo.png"
+                        alt="BB"
+                        fill
+                        className="object-contain drop-shadow-[0_0_10px_rgba(189,0,255,0.5)]"
+                      />
+                    </div>
+                  </button>
+                  <TownSelect
+                    currentTownId={townId as string}
+                    onTownChange={(id) => {
+                      window.location.href = `/town/${id}`;
                     }}
-                  >
-                    <Image
-                      src="https://www.boozedbunnytown.com/media/logo.png"
-                      alt="BB"
-                      fill
-                      className="object-contain drop-shadow-[0_0_10px_rgba(189,0,255,0.5)]"
-                    />
-                  </div>
-                  <span
-                    className="text-[clamp(1.1rem,2vw,1.85rem)] leading-tight font-black italic tracking-tighter cyber-glitch-text"
-                    data-text={`BoozedBunnyTown #${townId}`}
-                  >
-                    BoozedBunnyTown{" "}
-                    <span className="text-brand-secondary">#{townId}</span>
-                  </span>
-                </button>
+                  />
+                </div>
               </h1>
               {!isWalletPositionV2Enabled && currentUser?.character && (
                 <div className="mt-2">
@@ -1350,7 +1325,7 @@ export default function TownPage({
       </div>
 
       <div className="relative w-full h-[75vh] border-2 border-brand-primary/30 rounded-none overflow-hidden bg-[#05010a] shadow-[0_0_50px_rgba(189,0,255,0.2)]">
-<CanvasLoader /> 
+        <LoaderWrapper />
         
         <Canvas className="select-none" shadows>
           {/* Suspense teilt React mit, dass es auf asynchrone Assets (z.B. deine Texturen) warten soll */}
