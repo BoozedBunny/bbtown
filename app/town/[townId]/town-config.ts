@@ -194,6 +194,12 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
     iconPosition: 0.05,
     name: "Arena",
     image: "https://www.boozedbunnytown.com/media/buildings/arena.webp",
+    spriteConfig: {
+  columns: 4,
+  rows: 8,
+  totalFrames: 31,
+  fps: 12,
+},
     type: "Commercial",
     color: "#BD00FF",
   },
