@@ -669,14 +669,14 @@ function ArenaScene({
         azimuth={0.25}
       />
       <Gltf
-        position={[0, 20, 0]}
+        position={[0, 20, -3]}
         receiveShadow
         scale={120}
         src="https://www.boozedbunnytown.com/media/models/arena_inside.glb"
       />
 
       <mesh receiveShadow position={[0, -6, 0]}>
-        <boxGeometry args={[140, 1, 170]} />
+        <boxGeometry args={[540, 1, 770]} />
         {/* Hier kommt die Textur drauf! */}
         <meshStandardMaterial map={grandStandTexture} />
       </mesh>
