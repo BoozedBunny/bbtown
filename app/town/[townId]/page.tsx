@@ -13,7 +13,15 @@ import {
 } from "@react-three/drei";
 import dynamic from "next/dynamic";
 /* const LoaderWrapper = dynamic(() => import("@/components/ui/LoaderWrapper").then((mod) => mod.LoaderWrapper), { ssr: false }); */
-import { useEffect, useState, use, useMemo, useRef, useCallback, Suspense } from "react";
+import {
+  useEffect,
+  useState,
+  use,
+  useMemo,
+  useRef,
+  useCallback,
+  Suspense,
+} from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { Camera } from "three";
 import { io, Socket } from "socket.io-client";
@@ -41,7 +49,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "../../actions/user";
 import { buyBuilding, updateBuildingSettings } from "../../actions/town";
-import { updateBuildingTransform, updateMultipleBuildingTransforms } from "../../actions/dev";
+import {
+  updateBuildingTransform,
+  updateMultipleBuildingTransforms,
+} from "../../actions/dev";
 import {
   ARENA_BUILDING_ID,
   BANK_BUILDING_ID,
@@ -158,37 +169,37 @@ function Scene({
     };
   }, [buildings]);
 
-const getHorizontalFootprintHalfWidth = useCallback((camera: Camera) => {
-  const typedCamera = camera as any;
-  if (typedCamera.isOrthographicCamera && typedCamera.zoom) {
-    return ((typedCamera.right - typedCamera.left) / typedCamera.zoom) * 0.5;
-  }
-  
-  // NEU: Berechnung für die PerspectiveCamera
-  if (typedCamera.isPerspectiveCamera) {
-    // Die Distanz zum Boden (angenommen dein OrbitControls Target Y liegt bei 0)
-    const distance = typedCamera.position.y;
-    const vFov = (typedCamera.fov * Math.PI) / 180; // FOV von Grad in Radiant umwandeln
-    const halfHeight = Math.tan(vFov / 2) * distance;
-    return halfHeight * typedCamera.aspect; // Breite ergibt sich aus Höhe mal Aspect-Ratio
-  }
-  return 0;
-}, []);
+  const getHorizontalFootprintHalfWidth = useCallback((camera: Camera) => {
+    const typedCamera = camera as any;
+    if (typedCamera.isOrthographicCamera && typedCamera.zoom) {
+      return ((typedCamera.right - typedCamera.left) / typedCamera.zoom) * 0.5;
+    }
 
-const getVerticalFootprintHalfHeight = useCallback((camera: Camera) => {
-  const typedCamera = camera as any;
-  if (typedCamera.isOrthographicCamera && typedCamera.zoom) {
-    return ((typedCamera.top - typedCamera.bottom) / typedCamera.zoom) * 0.5;
-  }
-  
-  // NEU: Berechnung für die PerspectiveCamera
-  if (typedCamera.isPerspectiveCamera) {
-    const distance = typedCamera.position.y;
-    const vFov = (typedCamera.fov * Math.PI) / 180;
-    return Math.tan(vFov / 2) * distance;
-  }
-  return 0;
-}, []);
+    // NEU: Berechnung für die PerspectiveCamera
+    if (typedCamera.isPerspectiveCamera) {
+      // Die Distanz zum Boden (angenommen dein OrbitControls Target Y liegt bei 0)
+      const distance = typedCamera.position.y;
+      const vFov = (typedCamera.fov * Math.PI) / 180; // FOV von Grad in Radiant umwandeln
+      const halfHeight = Math.tan(vFov / 2) * distance;
+      return halfHeight * typedCamera.aspect; // Breite ergibt sich aus Höhe mal Aspect-Ratio
+    }
+    return 0;
+  }, []);
+
+  const getVerticalFootprintHalfHeight = useCallback((camera: Camera) => {
+    const typedCamera = camera as any;
+    if (typedCamera.isOrthographicCamera && typedCamera.zoom) {
+      return ((typedCamera.top - typedCamera.bottom) / typedCamera.zoom) * 0.5;
+    }
+
+    // NEU: Berechnung für die PerspectiveCamera
+    if (typedCamera.isPerspectiveCamera) {
+      const distance = typedCamera.position.y;
+      const vFov = (typedCamera.fov * Math.PI) / 180;
+      return Math.tan(vFov / 2) * distance;
+    }
+    return 0;
+  }, []);
 
   // Neue 2D-Clamp Funktion für X und Z
   const applyPanClamp = useCallback(() => {
@@ -241,7 +252,7 @@ const getVerticalFootprintHalfHeight = useCallback((camera: Camera) => {
     const deltaZ = clampedTargetZ - currentTargetZ;
 
     // Apply corrections if out of bounds
-if (Math.abs(deltaX) > 1e-6 || Math.abs(deltaZ) > 1e-6) {
+    if (Math.abs(deltaX) > 1e-6 || Math.abs(deltaZ) > 1e-6) {
       clampHitsRef.current += 1;
       controls.target.set(clampedTargetX, controls.target.y, clampedTargetZ);
       controls.object.position.x += deltaX;
@@ -295,7 +306,7 @@ if (Math.abs(deltaX) > 1e-6 || Math.abs(deltaZ) > 1e-6) {
         url="https://www.boozedbunnytown.com/media/textures/city_bg.webp"
         onPointerMove={onGroundPointerMove}
         onClick={onGroundClick}
-                height={15}
+        height={15}
         position={[0, 0.05, -6.8]}
       />
 
@@ -356,47 +367,46 @@ if (Math.abs(deltaX) > 1e-6 || Math.abs(deltaZ) > 1e-6) {
         far={1}
       />
 
-
       <OrbitControls
-  makeDefault
-  ref={controlsRef}
-  enablePan={
-    cameraMode === "dev" ||
-    (cameraMode === "game" && !!horizontalPanEnabled)
-  }
-  enableRotate={cameraMode === "dev"}
-  // Zoom-Einstellungen für PerspectiveCamera:
-  minDistance={cameraMode === "game" ? 25 : 0.1} // Passe diese Werte an dein gewünschtes Zoom-Level an
-  maxDistance={cameraMode === "game" ? 50 : 1000}
-  // Für DevMode (falls der mal Ortho ist, aber du nutzt hier ja auch Perspective) 
-  // kannst du minZoom/maxZoom theoretisch ganz rauswerfen.
-  minPolarAngle={cameraMode === "game" ? 0 : 0}
-  maxPolarAngle={cameraMode === "game" ? 0 : Math.PI}
-  mouseButtons={
-    cameraMode === "game"
-      ? {
-          LEFT: THREE.MOUSE.PAN,
-          MIDDLE: THREE.MOUSE.DOLLY,
-          RIGHT: THREE.MOUSE.ROTATE,
+        makeDefault
+        ref={controlsRef}
+        enablePan={
+          cameraMode === "dev" ||
+          (cameraMode === "game" && !!horizontalPanEnabled)
         }
-      : {
-          LEFT: THREE.MOUSE.ROTATE,
-          MIDDLE: THREE.MOUSE.DOLLY,
-          RIGHT: THREE.MOUSE.PAN,
+        enableRotate={cameraMode === "dev"}
+        // Zoom-Einstellungen für PerspectiveCamera:
+        minDistance={cameraMode === "game" ? 25 : 0.1} // Passe diese Werte an dein gewünschtes Zoom-Level an
+        maxDistance={cameraMode === "game" ? 50 : 1000}
+        // Für DevMode (falls der mal Ortho ist, aber du nutzt hier ja auch Perspective)
+        // kannst du minZoom/maxZoom theoretisch ganz rauswerfen.
+        minPolarAngle={cameraMode === "game" ? 0 : 0}
+        maxPolarAngle={cameraMode === "game" ? 0 : Math.PI}
+        mouseButtons={
+          cameraMode === "game"
+            ? {
+                LEFT: THREE.MOUSE.PAN,
+                MIDDLE: THREE.MOUSE.DOLLY,
+                RIGHT: THREE.MOUSE.ROTATE,
+              }
+            : {
+                LEFT: THREE.MOUSE.ROTATE,
+                MIDDLE: THREE.MOUSE.DOLLY,
+                RIGHT: THREE.MOUSE.PAN,
+              }
         }
-  }
-  touches={
-    cameraMode === "game"
-      ? {
-          ONE: THREE.TOUCH.PAN, // Ein Finger = Panning im Game Mode
-          TWO: THREE.TOUCH.DOLLY_PAN, // Zwei Finger = Zoom & Pan
+        touches={
+          cameraMode === "game"
+            ? {
+                ONE: THREE.TOUCH.PAN, // Ein Finger = Panning im Game Mode
+                TWO: THREE.TOUCH.DOLLY_PAN, // Zwei Finger = Zoom & Pan
+              }
+            : {
+                ONE: THREE.TOUCH.ROTATE, // Ein Finger = Rotieren im Dev Mode
+                TWO: THREE.TOUCH.DOLLY_PAN,
+              }
         }
-      : {
-          ONE: THREE.TOUCH.ROTATE, // Ein Finger = Rotieren im Dev Mode
-          TWO: THREE.TOUCH.DOLLY_PAN,
-        }
-  }
-/>
+      />
     </>
   );
 }
@@ -411,10 +421,10 @@ function CanvasLoader() {
       <div className="flex flex-col items-center gap-4 w-full max-w-xs px-8">
         <div className="w-16 h-16 border-2 border-brand-primary/20 rounded-none animate-ping absolute" />
         <div className="w-16 h-16 border-t-2 border-brand-primary rounded-none animate-spin z-10" />
-        
+
         <div className="w-full mt-4 space-y-2">
           <div className="h-1 w-full bg-white/5 border border-white/10 overflow-hidden relative">
-            <div 
+            <div
               className="absolute top-0 left-0 h-full bg-brand-primary transition-all duration-300 ease-out"
               style={{ width: `${progress}%` }}
             />
@@ -540,7 +550,11 @@ export default function TownPage({
   const canViewGeoPosition = runtimeMode === "dev";
 
   const hoverSuppressed = useMemo(
-    () => !!selectedBuilding || showArenaModal || showCasinoModal || showCombinedView,
+    () =>
+      !!selectedBuilding ||
+      showArenaModal ||
+      showCasinoModal ||
+      showCombinedView,
     [selectedBuilding, showArenaModal, showCasinoModal, showCombinedView],
   );
   const [editForm, setEditForm] = useState({
@@ -1350,8 +1364,8 @@ export default function TownPage({
       </div>
 
       <div className="relative w-full h-[75vh] border-2 border-brand-primary/30 rounded-none overflow-hidden bg-[#05010a] shadow-[0_0_50px_rgba(189,0,255,0.2)]">
-<CanvasLoader /> 
-        
+        <CanvasLoader />
+
         <Canvas className="select-none" shadows>
           {/* Suspense teilt React mit, dass es auf asynchrone Assets (z.B. deine Texturen) warten soll */}
           <Suspense fallback={null}>
@@ -1374,83 +1388,83 @@ export default function TownPage({
                 far={1000}
               />
             )}
-          <Scene
-            buildings={mergedBuildings}
-            serverTime={serverTime}
-            activeHoverBuildingId={activeHoverBuildingId}
-            hoverSuppressed={hoverSuppressed}
-            horizontalPanEnabled={isTownCameraHorizontalPanEnabled}
-            onPanDebugChange={setTownCameraPanDebug}
-            isFreePositionMode={isFreePositionMode}
-            onTransform={(id, pos) => {
-              setPositionOverrides((prev) => ({ ...prev, [id]: pos }));
-            }}
-            onBuildingClick={(b) => {
-              setActiveHoverBuildingId(null);
-              if (b.id === ARENA_BUILDING_ID) {
-                setShowArenaModal(true);
-                return;
-              }
-              if (b.id === CASINO_BUILDING_ID) {
-                setShowCasinoModal(true);
-                return;
-              }
-              if (b.id === STOCK_EXCHANGE_BUILDING_ID) {
-                openCentralManagement({
-                  tab: "market",
-                  source: "query" as any,
-                });
-                return;
-              }
-              setSelectedBuilding(b);
-              setEditForm({
-                title: b.title || "",
-                price: b.price || 5000,
-                forSale: b.forSale ?? true,
-              });
-            }}
-            cameraMode={cameraMode}
-            freeMoveBuildingId={freeMoveBuildingId}
-            onGroundPointerMove={(e) => {
-              if (freeMoveBuildingId) {
-                e.stopPropagation();
-                setFreeMovePosition([e.point.x, e.point.y, e.point.z]);
-              }
-            }}
-            onGroundClick={async (e) => {
-              if (freeMoveBuildingId && freeMovePosition) {
-                e.stopPropagation();
-
-                const targetBuilding = HARDCODED_BUILDINGS.find(
-                  (b) => b.id === freeMoveBuildingId,
-                );
-                if (targetBuilding) {
-                  // Keep original Y (height), only update X and Z from the ground plane click
-                  const newPos: [number, number, number] = [
-                    freeMovePosition[0],
-                    targetBuilding.position[1],
-                    freeMovePosition[2],
-                  ];
-                  const currentRot =
-                    rotationOverrides[freeMoveBuildingId] ??
-                    targetBuilding.rotationY;
-
-                  setPositionOverrides((prev) => ({
-                    ...prev,
-                    [freeMoveBuildingId]: newPos,
-                  }));
-                  await updateBuildingTransform(
-                    freeMoveBuildingId,
-                    newPos,
-                    currentRot,
-                  );
-                  toast.success("Position saved!");
+            <Scene
+              buildings={mergedBuildings}
+              serverTime={serverTime}
+              activeHoverBuildingId={activeHoverBuildingId}
+              hoverSuppressed={hoverSuppressed}
+              horizontalPanEnabled={isTownCameraHorizontalPanEnabled}
+              onPanDebugChange={setTownCameraPanDebug}
+              isFreePositionMode={isFreePositionMode}
+              onTransform={(id, pos) => {
+                setPositionOverrides((prev) => ({ ...prev, [id]: pos }));
+              }}
+              onBuildingClick={(b) => {
+                setActiveHoverBuildingId(null);
+                if (b.id === ARENA_BUILDING_ID) {
+                  setShowArenaModal(true);
+                  return;
                 }
-                setFreeMoveBuildingId(null);
-                setFreeMovePosition(null);
-              }
-            }}
-          />
+                if (b.id === CASINO_BUILDING_ID) {
+                  setShowCasinoModal(true);
+                  return;
+                }
+                if (b.id === STOCK_EXCHANGE_BUILDING_ID) {
+                  openCentralManagement({
+                    tab: "market",
+                    source: "query" as any,
+                  });
+                  return;
+                }
+                setSelectedBuilding(b);
+                setEditForm({
+                  title: b.title || "",
+                  price: b.price || 5000,
+                  forSale: b.forSale ?? true,
+                });
+              }}
+              cameraMode={cameraMode}
+              freeMoveBuildingId={freeMoveBuildingId}
+              onGroundPointerMove={(e) => {
+                if (freeMoveBuildingId) {
+                  e.stopPropagation();
+                  setFreeMovePosition([e.point.x, e.point.y, e.point.z]);
+                }
+              }}
+              onGroundClick={async (e) => {
+                if (freeMoveBuildingId && freeMovePosition) {
+                  e.stopPropagation();
+
+                  const targetBuilding = HARDCODED_BUILDINGS.find(
+                    (b) => b.id === freeMoveBuildingId,
+                  );
+                  if (targetBuilding) {
+                    // Keep original Y (height), only update X and Z from the ground plane click
+                    const newPos: [number, number, number] = [
+                      freeMovePosition[0],
+                      targetBuilding.position[1],
+                      freeMovePosition[2],
+                    ];
+                    const currentRot =
+                      rotationOverrides[freeMoveBuildingId] ??
+                      targetBuilding.rotationY;
+
+                    setPositionOverrides((prev) => ({
+                      ...prev,
+                      [freeMoveBuildingId]: newPos,
+                    }));
+                    await updateBuildingTransform(
+                      freeMoveBuildingId,
+                      newPos,
+                      currentRot,
+                    );
+                    toast.success("Position saved!");
+                  }
+                  setFreeMoveBuildingId(null);
+                  setFreeMovePosition(null);
+                }
+              }}
+            />
           </Suspense>
         </Canvas>
         {/*  <LoaderWrapper /> */}
@@ -1631,7 +1645,9 @@ export default function TownPage({
                   className={`text-xs w-full ${isFreePositionMode ? "bg-brand-primary text-white" : ""}`}
                   onClick={() => setIsFreePositionMode(!isFreePositionMode)}
                 >
-                  {isFreePositionMode ? "Cancel Free Pos" : "Free Position Mode"}
+                  {isFreePositionMode
+                    ? "Cancel Free Pos"
+                    : "Free Position Mode"}
                 </Button>
                 {isFreePositionMode && (
                   <Button
@@ -1639,11 +1655,17 @@ export default function TownPage({
                     className="text-xs w-full bg-green-500 hover:bg-green-600 text-black font-bold"
                     onClick={async () => {
                       try {
-                        const updates = Object.entries(positionOverrides).map(([id, pos]) => ({
-                          buildingId: id,
-                          position: pos,
-                          rotationY: rotationOverrides[id] ?? HARDCODED_BUILDINGS.find(b => b.id === id)?.rotationY ?? 0
-                        }));
+                        const updates = Object.entries(positionOverrides).map(
+                          ([id, pos]) => ({
+                            buildingId: id,
+                            position: pos,
+                            rotationY:
+                              rotationOverrides[id] ??
+                              HARDCODED_BUILDINGS.find((b) => b.id === id)
+                                ?.rotationY ??
+                              0,
+                          }),
+                        );
                         if (updates.length > 0) {
                           await updateMultipleBuildingTransforms(updates);
                         }
@@ -1849,7 +1871,7 @@ export default function TownPage({
               )}
 
               {/* OWNER MANAGEMENT VIEW */}
-              {selectedBuilding?.id !== "4" &&
+              {selectedBuilding?.id !== BANK_BUILDING_ID &&
                 currentUser &&
                 selectedBuilding?.ownerId === currentUser.character.id && (
                   <div className="space-y-4 p-6 bg-white/5 border border-white/10 ">
@@ -1960,7 +1982,7 @@ export default function TownPage({
                 )}
 
               {/* NORMAL VIEW (NOT BANK, NOT OWNER) */}
-              {selectedBuilding?.id !== "4" &&
+              {selectedBuilding?.id !== BANK_BUILDING_ID &&
                 (!currentUser ||
                   selectedBuilding?.ownerId !== currentUser.character?.id) && (
                   <div className="space-y-6">
