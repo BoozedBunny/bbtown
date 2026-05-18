@@ -106,6 +106,12 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
     iconPosition: 0.4,
     name: "Pipe House",
     image: "https://www.boozedbunnytown.com/media/buildings/pipe_house.webp",
+    spriteConfig: {
+      columns: 4,
+      rows: 6,
+      totalFrames: 21,
+      fps: 12,
+    },
     type: "Commercial",
     color: "#BD00FF",
   },
@@ -195,11 +201,11 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
     name: "Arena",
     image: "https://www.boozedbunnytown.com/media/buildings/arena.webp",
     spriteConfig: {
-  columns: 4,
-  rows: 8,
-  totalFrames: 31,
-  fps: 12,
-},
+      columns: 4,
+      rows: 8,
+      totalFrames: 31,
+      fps: 12,
+    },
     type: "Commercial",
     color: "#BD00FF",
   },
@@ -212,7 +218,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
     iconPosition: 0.6,
     name: "Love Palace",
     image: "https://www.boozedbunnytown.com/media/buildings/love_palace.webp",
-        spriteConfig: {
+    spriteConfig: {
       columns: 4,
       rows: 5,
       totalFrames: 20,

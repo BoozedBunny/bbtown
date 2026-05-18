@@ -5,6 +5,7 @@ import { TownSelect } from "@/components/TownSelect";
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { VideoSkyBg } from "@/components/VideoSkyBg";
+import { PartySearchlights } from "./PartySearchLights";
 import {
   OrbitControls,
   ContactShadows,
@@ -310,6 +311,8 @@ function Scene({
         height={15}
         position={[0, 0.05, -6.8]}
       />
+
+      <PartySearchlights position={[0, 0, -5]} scale={1.5} />
 
       {/* <gridHelper args={[30, 30, "#BD00FF", "#2A0A4E"]} position={[0, 0.02, 0]}>
          <meshBasicMaterial transparent opacity={0.2} />
