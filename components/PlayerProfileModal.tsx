@@ -104,7 +104,7 @@ export function PlayerProfileModal({
               {/* 2D Avatar Image as background accent */}
               <div className="absolute left-0 bottom-0 top-0 w-1/2 opacity-30 pointer-events-none z-0 flex items-end">
                 <img
-                  src={`/media/avatars/${profile.avatar}_avatar.webp`}
+                  src={`https://www.boozedbunnytown.com/media/avatars/${profile.avatar}_avatar.webp`}
                   alt="Player Avatar 2D"
                   className="w-full h-auto object-contain object-bottom filter blur-[2px]"
                 />
@@ -151,7 +151,7 @@ export function PlayerProfileModal({
                   {/* 2D Avatar Image Small Box */}
                   <div className="absolute right-4 bottom-4 w-12 h-12 bg-black/60 border border-brand-primary/40 rounded-sm overflow-hidden flex items-center justify-center">
                     <img
-                      src={`/media/avatars/${profile.avatar}_avatar.webp`}
+                      src={`https://www.boozedbunnytown.com/media/avatars/${profile.avatar}_avatar.webp`}
                       alt="Avatar 2D"
                       className="w-full h-full object-cover"
                     />
