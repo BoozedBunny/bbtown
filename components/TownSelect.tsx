@@ -15,6 +15,7 @@ import { Loader2 } from "lucide-react";
 
 type TownSelectProps = {
   currentTownId: string;
+  onTownChange: (id: any) => void;
 };
 
 export function TownSelect({ currentTownId }: TownSelectProps) {
