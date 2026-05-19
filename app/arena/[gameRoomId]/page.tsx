@@ -11,6 +11,8 @@ import {
   useTexture,
   OrbitControls,
   RoundedBox,
+  Sparkles,
+  Box,
 } from "@react-three/drei";
 import { io, Socket } from "socket.io-client";
 import { Loader2, Swords, Trophy, Users } from "lucide-react";
@@ -526,8 +528,6 @@ function MovingObstacle({
 }) {
   const rbRef = useRef<any>(null);
   const elapsedMsRef = useRef(0);
-
-  // Wir speichern den aktuellen X-Wert in einem Ref, damit er zwischen den Frames bleibt
   const currentX = useRef(initialX);
 
   const speedMultiplier = getSpeedMultiplierForRound(round);
@@ -545,19 +545,14 @@ function MovingObstacle({
     let nextZ = currentPos.z + scaledSpeed * delta;
 
     if (nextZ > OBSTACLE_Z_MAX) {
-      // RESET LOGIK
       nextZ = OBSTACLE_Z_MIN;
-
-      // NEU: Hier würfeln wir die neue Position zwischen -12 und 12
       currentX.current = Math.random() * 24 - 12;
 
-      // Wir "beamen" das Hindernis an die neue X-Position und zurück zum Start-Z
       rbRef.current.setTranslation(
         { x: currentX.current, y: OBSTACLE_BASE_Y, z: nextZ },
         true,
       );
     } else {
-      // Bewegung mit dem aktuell gültigen X-Wert
       rbRef.current.setNextKinematicTranslation({
         x: currentX.current,
         y: OBSTACLE_BASE_Y,
@@ -566,24 +561,53 @@ function MovingObstacle({
     }
   });
 
-  // Textur laden
-  const texture = useTexture(
-    "https://www.boozedbunnytown.com/media/textures/planked_wood.webp",
-  );
-
   return (
     <RigidBody
       ref={rbRef}
       type="kinematicPosition"
-      colliders="cuboid"
+      // WICHTIG: colliders="false", weil wir den Collider jetzt manuell setzen.
+      // So können wir die Optik verändern, ohne dass Rapier die Hitbox kaputt macht.
+      colliders={false}
       position={[currentX.current, OBSTACLE_BASE_Y, startZ]}
-      friction={2} // Erhöhte Reibung für besseren Grip
-      restitution={0} // Verhindert, dass der Charakter beim Landen bouncet
+      friction={2}
+      restitution={0}
     >
-      <mesh castShadow receiveShadow>
-        <boxGeometry args={[width, height, OBSTACLE_DEPTH]} />
-        <meshStandardMaterial map={texture} />
-      </mesh>
+      {/* 1. DIE UNSICHTBARE HITBOX (Exakt wie vorher) */}
+      <CuboidCollider args={[width / 2, height / 2, OBSTACLE_DEPTH / 2]} />
+
+      {/* 2. DIE NEUE OPTIK: Eine leuchtende Cyber-Schranke */}
+      <group position={[0, height / 2, 0]}>
+        {/* Der innere helle Energiekern */}
+        <mesh>
+          <boxGeometry args={[width, height * 0.4, OBSTACLE_DEPTH * 0.4]} />
+          {/* toneMapped={false} verhindert, dass ThreeJS die Farbe abdunkelt. 
+              Werte über 1 bringen es (besonders mit Bloom) zum Leuchten! */}
+          <meshBasicMaterial color={[2, 4, 10]} toneMapped={false} />
+        </mesh>
+
+        {/* Die äußere, leicht transparente Hülle */}
+        <mesh>
+          <boxGeometry
+            args={[width + 0.2, height * 0.6, OBSTACLE_DEPTH * 0.6]}
+          />
+          <meshBasicMaterial
+            color={[0.2, 0.5, 2]}
+            transparent
+            opacity={0.4}
+            toneMapped={false}
+            blending={THREE.AdditiveBlending}
+          />
+        </mesh>
+
+        {/* Ein paar digitale Funken/Energiepartikel, die die Barriere umgeben */}
+        <Sparkles
+          count={40 * (width / 10)} // Je breiter, desto mehr Partikel
+          scale={[width + 1, height + 1, OBSTACLE_DEPTH + 2]}
+          size={4}
+          speed={0.4}
+          color="#44aaff"
+        />
+      </group>
     </RigidBody>
   );
 }
@@ -669,7 +693,7 @@ function ArenaScene({
         azimuth={0.25}
       />
       <Gltf
-        position={[0, 20, 1]}
+        position={[0, 22, 0]}
         receiveShadow
         scale={120}
         src="https://www.boozedbunnytown.com/media/models/arena_inside.glb"
