@@ -569,7 +569,7 @@ function MovingObstacle({
       // So können wir die Optik verändern, ohne dass Rapier die Hitbox kaputt macht.
       colliders={false}
       position={[currentX.current, OBSTACLE_BASE_Y, startZ]}
-      friction={2}
+      friction={0}
       restitution={0}
     >
       {/* 1. DIE UNSICHTBARE HITBOX (Exakt wie vorher) */}
@@ -1467,10 +1467,10 @@ export default function ArenaPage({
             </div>
             <div className="flex items-center gap-2">
               <div className="px-3 py-1 bg-brand-secondary/20 border border-brand-secondary/40 text-[10px] font-black text-brand-secondary skew-x-[-10deg]">
-                SHIFT
+                ESC
               </div>
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                Run
+                Cursor
               </span>
             </div>
           </div>

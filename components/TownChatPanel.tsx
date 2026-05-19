@@ -191,7 +191,7 @@ export function TownChatPanel({
           >
             {isMinimized ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
-          <span className="text-[9px] font-black uppercase tracking-[0.3em] text-brand-primary">Neural_Chat_Link</span>
+          <span className="text-[9px] font-black uppercase tracking-[0.3em] text-brand-primary">Chat</span>
         </div>
         <div className="flex gap-1">
           <div className="w-1.5 h-1.5 bg-brand-primary animate-pulse" />
@@ -202,7 +202,7 @@ export function TownChatPanel({
       {!isMinimized && (
         <>
           <div className="mb-3 max-h-40 overflow-y-auto border border-white/5 bg-black/40 p-2 text-[11px] font-mono scrollbar-hide">
-        {messages.length === 0 ? <p className="text-gray-600 uppercase tracking-widest text-[9px]">Initializing encrypted feed...</p> : (
+        {messages.length === 0 ? <p className="text-gray-600 uppercase tracking-widest text-[9px]">Initializing feed...</p> : (
           <ul className="space-y-1.5">
             {messages.map((message) => {
               const isWhisper = message.roomId.startsWith("whisper:");

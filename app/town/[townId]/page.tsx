@@ -1640,7 +1640,7 @@ export default function TownPage({
               Navigation Info
             </p>
             <p className="text-xs text-white/80">
-              Left click & drag to slide over the map • Scroll to zoom
+              Left click & drag to slide over the town • Scroll to zoom
             </p>
             {cameraMode === "dev" && (
               <div className="pointer-events-auto flex flex-col gap-2 mt-2">
