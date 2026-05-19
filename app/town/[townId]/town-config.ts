@@ -203,7 +203,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
     spriteConfig: {
       columns: 4,
       rows: 8,
-      totalFrames: 31,
+      totalFrames: 30,
       fps: 12,
     },
     type: "Commercial",
