@@ -940,7 +940,7 @@ export default function TownPage({
           : positionOverrides[b.id] || b.position;
       const rot = rotationOverrides[b.id] ?? b.rotationY;
 
-      const dbState = dbBuildingStates.find((ds) => ds.id === b.id);
+      const dbState = dbBuildingStates.find((ds) => ds.id === b.id || ds.id === `${townId}_${b.id}`);
       if (dbState) {
         return {
           position: pos,
