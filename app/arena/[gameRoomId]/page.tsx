@@ -669,7 +669,7 @@ function ArenaScene({
         azimuth={0.25}
       />
       <Gltf
-        position={[0, 20, -3]}
+        position={[0, 20, 1]}
         receiveShadow
         scale={120}
         src="https://www.boozedbunnytown.com/media/models/arena_inside.glb"
@@ -842,7 +842,11 @@ export default function ArenaPage({
           : authoritativePhase.phaseDurationMs) / 1000,
     ),
   );
-  const isApproachingStart = (authoritativePhase.phase === "PRE_ROUND_BREATHING" || authoritativePhase.phase === "BETWEEN_ROUND_BREATHING" || authoritativePhase.phase === "ROUND_ANNOUNCE") && roundSecondsRemaining <= 3;
+  const isApproachingStart =
+    (authoritativePhase.phase === "PRE_ROUND_BREATHING" ||
+      authoritativePhase.phase === "BETWEEN_ROUND_BREATHING" ||
+      authoritativePhase.phase === "ROUND_ANNOUNCE") &&
+    roundSecondsRemaining <= 3;
   const isSuddenDeath =
     gameState.status === "playing" && currentRound >= TOTAL_ROUNDS;
 
@@ -1137,11 +1141,15 @@ export default function ArenaPage({
           </div>
         )}
 
-      {gameState.status === "playing" && authoritativePhase.phase !== "ACTIVE_ROUND" && !isDevMode && (
-        <div className={`pointer-events-none transition-all duration-500 z-50 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-mono font-black ${isApproachingStart ? 'text-[12rem] text-red-500 animate-pulse drop-shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'text-8xl text-brand-secondary opacity-70'}`}>
-          {roundSecondsRemaining}
-        </div>
-      )}
+      {gameState.status === "playing" &&
+        authoritativePhase.phase !== "ACTIVE_ROUND" &&
+        !isDevMode && (
+          <div
+            className={`pointer-events-none transition-all duration-500 z-50 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-mono font-black ${isApproachingStart ? "text-[12rem] text-red-500 animate-pulse drop-shadow-[0_0_15px_rgba(239,68,68,0.8)]" : "text-8xl text-brand-secondary opacity-70"}`}
+          >
+            {roundSecondsRemaining}
+          </div>
+        )}
 
       {gameState.status === "waiting" &&
         !gameRoomId.startsWith("solo-") &&
@@ -1421,7 +1429,7 @@ export default function ArenaPage({
                 SPACE
               </div>
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                Neural Jump
+                Jump
               </span>
             </div>
             <div className="h-4 w-px bg-white/10" />
@@ -1430,7 +1438,15 @@ export default function ArenaPage({
                 SHIFT
               </div>
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                Overdrive
+                Run
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="px-3 py-1 bg-brand-secondary/20 border border-brand-secondary/40 text-[10px] font-black text-brand-secondary skew-x-[-10deg]">
+                SHIFT
+              </div>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                Run
               </span>
             </div>
           </div>
