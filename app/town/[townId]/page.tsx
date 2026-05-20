@@ -2199,11 +2199,16 @@ export default function TownPage({
                 THE CASINO
               </DialogTitle>
               <DialogDescription className="text-center text-gray-500 font-mono text-[10px] uppercase tracking-[0.2em] mt-2">
-                Casino functionality coming soon.
+                Try your luck.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="py-8 flex justify-center">
+            <div className="py-8 flex flex-col gap-4 justify-center items-center">
+              <Link href="/casino/slot-machine" className="w-full">
+                <Button className="w-full h-12 bg-brand-primary/20 hover:bg-brand-primary/40 text-brand-primary hover:text-white border border-brand-primary/50 shadow-[0_0_15px_rgba(189,0,255,0.3)] transition-all font-black uppercase tracking-widest text-sm">
+                  Slot Machine
+                </Button>
+              </Link>
               <Button
                 onClick={() => setShowCasinoModal(false)}
                 className="w-full h-10 bg-white/5 hover:bg-white/10 text-gray-500 hover:text-white border border-white/10 rounded-none  font-black uppercase tracking-widest text-[10px]"
