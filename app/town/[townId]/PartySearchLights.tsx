@@ -26,14 +26,14 @@ export function PartySearchlights({ position = [0, 0, 0], scale = 1 }: { positio
         
         void main() {
           // vUv.y goes from 0 (bottom) to 1 (top) on the cylinder
-          // Fade it out smoothly towards the top
-          float intensity = pow(1.0 - vUv.y, 1.5); 
+          // Increased power to 3.0 so it fades out MUCH faster towards the top
+          float intensity = pow(1.0 - vUv.y, 3.0); 
           
           // Mix colors slightly for a cool neon effect
           vec3 finalColor = mix(color1, color2, vUv.x);
           
-          // Apply intensity and base opacity
-          gl_FragColor = vec4(finalColor, intensity * 0.4); 
+          // Reduced base opacity from 0.4 to 0.15 for a softer look
+          gl_FragColor = vec4(finalColor, intensity * 0.15); 
         }
       `,
       transparent: true,
@@ -45,10 +45,10 @@ export function PartySearchlights({ position = [0, 0, 0], scale = 1 }: { positio
 
   // Adjust geometry so the pivot point is at the bottom
   const beamGeometry = useMemo(() => {
-    // Cylinder: Top radius, Bottom radius, Height, RadialSegments, HeightSegments, OpenEnded
-    const geo = new THREE.CylinderGeometry(2, 0.05, 25, 32, 1, true);
-    // Shift up by half height so the origin (0,0,0) is exactly at the bottom tip
-    geo.translate(0, 12.5, 0); 
+    // Cylinder: Top radius (reduced to 1.2), Bottom radius, Height (reduced to 12), RadialSegments, HeightSegments, OpenEnded
+    const geo = new THREE.CylinderGeometry(1.2, 0.05, 12, 32, 1, true);
+    // Shift up by half height (12 / 2 = 6) so the origin (0,0,0) is exactly at the bottom tip
+    geo.translate(0, 6, 0); 
     return geo;
   }, []);
 
@@ -70,9 +70,7 @@ export function PartySearchlights({ position = [0, 0, 0], scale = 1 }: { positio
   return (
     <group ref={lightsRef} position={position} scale={scale}>
       <mesh geometry={beamGeometry} material={beamMaterial} position={[-3.87, 0, 0.37]} />
-      <mesh geometry={beamGeometry} material={beamMaterial} position={[-3.87, 0, 0.37]} />
-      {/* <mesh geometry={beamGeometry} material={beamMaterial} position={[0, 0, 1]} />
-      <mesh geometry={beamGeometry} material={beamMaterial} position={[-1, 0, 2]} /> */}
+      <mesh geometry={beamGeometry} material={beamMaterial} position={[-3.87, 0, 0.37]}  />
     </group>
   );
 }

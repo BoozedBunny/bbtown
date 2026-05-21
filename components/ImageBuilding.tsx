@@ -6,7 +6,7 @@ import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { Search, Landmark, Swords, TrendingUp, Dices } from "lucide-react";
 import Image from "next/image";
-import { ImageBuildingProps } from "../app/town/[townId]/town-types";
+import { BuildingData } from "../app/town/[townId]/town-types";
 
 const TWO_PI = Math.PI * 2;
 
@@ -42,13 +42,9 @@ export function ImageBuilding({
   isTransformable,
   onTransform,
   spriteConfig,
-}: ImageBuildingProps & { 
+}: BuildingData & { 
   spriteConfig?: { columns: number; rows: number; totalFrames: number; fps: number; phaseOffset?: number } 
 }) {
-
-
-
-
 // Lade das webp-Bild (oder das riesige Sprite-Sheet)
   const baseTexture = useTexture(url);
 

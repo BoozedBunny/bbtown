@@ -8,7 +8,7 @@ export const STOCK_EXCHANGE_BUILDING_ID = "25";
 export const HARDCODED_BUILDINGS: BuildingData[] = [
   {
     id: "8",
-    position: [-1.2, 0.9, 1.5],
+        position: [-5.5, 1.1, 4.6],
     rotationX: -70,
     rotationY: 0,
     iconPosition: 0.54,
@@ -63,7 +63,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "12",
-    position: [10.8, 0.8, 3.4],
+    position: [14.8, 0.8, 2.3],
     rotationX: -70,
     rotationY: 0,
     scale: 3.7,
@@ -87,7 +87,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "14",
-    position: [-5.7, 1.1, 4.9],
+      position: [-1.2, 0.9, 1.5],
     rotationX: -70,
     rotationY: 0,
     scale: 5.5,
@@ -99,7 +99,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "15",
-    position: [7, 0.8, 4],
+    position: [6.8, 0.8, 3.5],
     rotationX: -70,
     rotationY: 0,
     scale: 4.5,
@@ -109,7 +109,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
     spriteConfig: {
       columns: 4,
       rows: 6,
-      totalFrames: 21,
+      totalFrames: 20,
       fps: 12,
     },
     type: "Commercial",
@@ -176,10 +176,10 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "20",
-    position: [-5.8, 0.9, 0.3],
+    position: [-5.8, 1, 0.5],
     rotationX: -70,
     rotationY: 0,
-    scale: 5.5,
+    scale: 6,
     iconPosition: 0.56,
     name: "Vulcan Temple",
     image: "https://www.boozedbunnytown.com/media/buildings/vulcan_temple.webp",
@@ -229,7 +229,7 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "23",
-    position: [15, 0.8, 7.5],
+    position: [3.2, 0.8, 2.4],
     rotationX: -70,
     rotationY: 0,
     scale: 3.4,
@@ -285,10 +285,10 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
   },
   {
     id: "27",
-    position: [3.3, 0.9, 3],
+    position: [10.7, 0.9, 4.6],
     rotationX: -70,
     rotationY: 0,
-    scale: 4,
+    scale: 5,
     iconPosition: 0.54,
     name: "WhimsicLe's House",
     image: "https://www.boozedbunnytown.com/media/buildings/barbys_house.webp",

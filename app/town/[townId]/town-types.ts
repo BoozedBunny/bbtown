@@ -1,51 +1,39 @@
 export interface BuildingData {
-  id: string;
-  name?: string;
   position: [number, number, number];
-  rotationY?: number;
-  rotationZ?: number;
-  rotationX?: number;
-  iconPosition?: number;
+  url?: string;
   image?: string;
-  type: string;
-  owner?: string;
-  ownerAvatar?: string;
-  ownerId?: string;
-  color?: string;
-  price?: number;
-  employees?: number;
-  title?: string;
-  forSale?: boolean;
-  scale?: number | [number, number, number];
-  spriteConfig?: { columns: number; rows: number; totalFrames: number; fps: number; phaseOffset?: number };
-}
-
-export type ImageBuildingProps = {
+  name?: string;
   id?: string;
-  url: string;
-  position: [number, number, number];
   rotationY?: number;
   rotationX?: number;
   rotationZ?: number;
   opacity?: number;
   type?: string;
-    color?: string;
+  color?: string;
   onClick?: () => void;
   activeHoverBuildingId?: string | null;
   onHoverBuildingChange?: (id: string | null) => void;
   hoverSuppressed?: boolean;
   scale?: number | [number, number, number];
+  owner?: string;
   ownerId?: string;
   ownerAvatar?: string;
   title?: string;
   ownerName?: string;
+  employees?: number;
   forSale?: boolean;
   price?: number;
   iconPosition?: number;
   isTransformable?: boolean;
   onTransform?: (id: string, position: [number, number, number]) => void;
-  spriteConfig?: { columns: number; rows: number; totalFrames: number; fps: number; phaseOffset?: number };
-};
+  spriteConfig?: {
+    columns: number;
+    rows: number;
+    totalFrames: number;
+    fps: number;
+    phaseOffset?: number;
+  };
+}
 
 export interface DbBuildingState {
   id: string;
