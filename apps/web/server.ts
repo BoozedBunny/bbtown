@@ -21,6 +21,7 @@ import type {
   ChatSendAckPayload,
   ChatSendPayload,
 } from "./lib/chat/chatTypes";
+import { getPlayerProfile, strapiMe, updatePlayerProfile } from "./lib/strapiAuth";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
@@ -399,6 +400,76 @@ app.prepare().then(async () => {
     }
   }, 60_000);
 
+  async function ensureSocketLegacyCharacter(params: { username?: string; sessionToken?: string }) {
+    const username = params.username?.trim();
+    if (!username) return null;
+
+    let profileWallet: number | undefined;
+    let profileName: string | undefined;
+    let profileAvatar: string | undefined;
+    let profileDescription: string | null | undefined;
+    let profileAppearanceColor: string | undefined;
+    let profileArenaMaxRounds: number | undefined;
+    let profileExperience: number | undefined;
+
+    if (params.sessionToken) {
+      try {
+        const me = await strapiMe(params.sessionToken);
+        const profile = await getPlayerProfile(params.sessionToken, me.id);
+        if (profile) {
+          profileWallet = profile.wallet;
+          profileName = profile.displayName ?? me.username;
+          profileAvatar = profile.avatar ?? "bunny";
+          profileDescription = profile.description ?? null;
+          profileAppearanceColor = profile.appearanceColor ?? "#BD00FF";
+          profileArenaMaxRounds = profile.arenaMaxRounds ?? 0;
+          profileExperience = profile.experience ?? 0;
+        }
+      } catch {
+        // ignore Strapi lookup errors; fallback to legacy-only flow
+      }
+    }
+
+    const legacyUser = await prisma.user.upsert({
+      where: { username },
+      update: {},
+      create: { username },
+    });
+
+    const existingCharacter = await prisma.character.findUnique({ where: { userId: legacyUser.id } });
+
+    if (existingCharacter) {
+      await prisma.character.update({
+        where: { id: existingCharacter.id },
+        data: {
+          name: profileName ?? existingCharacter.name,
+          avatar: profileAvatar ?? existingCharacter.avatar,
+          description: profileDescription ?? existingCharacter.description,
+          appearanceColor: profileAppearanceColor ?? existingCharacter.appearanceColor,
+          wallet: profileWallet ?? existingCharacter.wallet,
+          arenaMaxRounds: profileArenaMaxRounds ?? existingCharacter.arenaMaxRounds,
+          experience: profileExperience ?? existingCharacter.experience,
+        },
+      });
+      return existingCharacter.id;
+    }
+
+    const created = await prisma.character.create({
+      data: {
+        userId: legacyUser.id,
+        name: profileName ?? username,
+        appearanceColor: profileAppearanceColor ?? "#BD00FF",
+        avatar: profileAvatar ?? "bunny",
+        description: profileDescription ?? null,
+        wallet: profileWallet ?? 1000,
+        arenaMaxRounds: profileArenaMaxRounds ?? 0,
+        experience: profileExperience ?? 0,
+      },
+    });
+
+    return created.id;
+  }
+
   io.on("connection", (socket) => {
     // Identify user via cookies for secure communication
     const cookieHeader = socket.handshake.headers.cookie;
@@ -406,6 +477,7 @@ app.prepare().then(async () => {
       ? Object.fromEntries(cookieHeader.split("; ").map((c) => c.split("=")))
       : {};
     const mockUser = cookies["mock_user"] || cookies["bbtown_user"];
+    const sessionToken = cookies["bbtown_session"];
 
     if (mockUser) {
       socket.join(`user:${mockUser}`);
@@ -557,17 +629,20 @@ app.prepare().then(async () => {
           return;
         }
 
-        const user = await prisma.user.findUnique({
-          where: { username: mockUser },
-          include: { character: true },
+        const legacyCharacterId = await ensureSocketLegacyCharacter({
+          username: mockUser,
+          sessionToken,
         });
-        if (!user || !user.character) return;
+        if (!legacyCharacterId) return;
+
+        const character = await prisma.character.findUnique({ where: { id: legacyCharacterId } });
+        if (!character) return;
 
         const stock = await prisma.stock.findUnique({ where: { symbol } });
         if (!stock) return;
 
         const cost = stock.price * quantity;
-        if (user.character.wallet < cost) {
+        if (character.wallet < cost) {
           socket.emit("portfolio_updated", {
             message: `Insufficient funds to buy ${quantity} shares of ${symbol}`,
             type: "error",
@@ -577,18 +652,18 @@ app.prepare().then(async () => {
 
         await prisma.$transaction([
           prisma.character.update({
-            where: { id: user.character.id },
+            where: { id: legacyCharacterId },
             data: { wallet: { decrement: cost } },
           }),
           prisma.portfolioItem.upsert({
             where: {
               characterId_stockId: {
-                characterId: user.character.id,
+                characterId: legacyCharacterId,
                 stockId: stock.id,
               },
             },
             create: {
-              characterId: user.character.id,
+              characterId: legacyCharacterId,
               stockId: stock.id,
               quantity,
             },
@@ -597,6 +672,15 @@ app.prepare().then(async () => {
             },
           }),
         ]);
+
+        if (sessionToken) {
+          try {
+            const me = await strapiMe(sessionToken);
+            await updatePlayerProfile(sessionToken, me.id, { wallet: Math.max(0, Math.floor(character.wallet - cost)) });
+          } catch (error) {
+            console.error("Failed to sync Strapi wallet after buy_stock", error);
+          }
+        }
 
         io.to(`user:${mockUser}`).emit("portfolio_updated", {
           message: `Bought ${quantity} shares of ${symbol} for $${cost.toFixed(2)}`,
@@ -622,11 +706,14 @@ app.prepare().then(async () => {
           return;
         }
 
-        const user = await prisma.user.findUnique({
-          where: { username: mockUser },
-          include: { character: true },
+        const legacyCharacterId = await ensureSocketLegacyCharacter({
+          username: mockUser,
+          sessionToken,
         });
-        if (!user || !user.character) return;
+        if (!legacyCharacterId) return;
+
+        const character = await prisma.character.findUnique({ where: { id: legacyCharacterId } });
+        if (!character) return;
 
         const stock = await prisma.stock.findUnique({ where: { symbol } });
         if (!stock) return;
@@ -634,7 +721,7 @@ app.prepare().then(async () => {
         const portfolioItem = await prisma.portfolioItem.findUnique({
           where: {
             characterId_stockId: {
-              characterId: user.character.id,
+              characterId: legacyCharacterId,
               stockId: stock.id,
             },
           },
@@ -652,7 +739,7 @@ app.prepare().then(async () => {
 
         await prisma.$transaction([
           prisma.character.update({
-            where: { id: user.character.id },
+            where: { id: legacyCharacterId },
             data: { wallet: { increment: gain } },
           }),
           prisma.portfolioItem.update({
@@ -660,6 +747,15 @@ app.prepare().then(async () => {
             data: { quantity: { decrement: quantity } },
           }),
         ]);
+
+        if (sessionToken) {
+          try {
+            const me = await strapiMe(sessionToken);
+            await updatePlayerProfile(sessionToken, me.id, { wallet: Math.max(0, Math.floor(character.wallet + gain)) });
+          } catch (error) {
+            console.error("Failed to sync Strapi wallet after sell_stock", error);
+          }
+        }
 
         io.to(`user:${mockUser}`).emit("portfolio_updated", {
           message: `Sold ${quantity} shares of ${symbol} for $${gain.toFixed(2)}`,
