@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
+import { getTownStateById } from "@/lib/bff/gameReadService";
 
 export async function GET(
   request: NextRequest,
@@ -14,27 +14,11 @@ export async function GET(
 
     const { townId } = await params;
 
-    const buildingStates = await prisma.buildingState.findMany({
-      where: {
-        townId: townId,
-      },
-      include: {
-        owner: {
-          select: {
-            name: true,
-            avatar: true,
-          },
-        },
-      },
-    });
-
-    const town = await prisma.town.findUnique({
-      where: { id: parseInt(townId) },
-    });
+    const { buildings, town } = await getTownStateById(townId);
 
     return NextResponse.json({
-      buildings: buildingStates,
-      town: town,
+      buildings,
+      town,
     });
   } catch (error) {
     console.error("Error fetching town state:", error);

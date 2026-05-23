@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { getCompanyProfile } from "@/lib/market/companyProfiles";
+import { listStocks } from "@/lib/bff/marketReadService";
 
 export async function GET() {
   try {
-    const stocks = await prisma.stock.findMany({ orderBy: { symbol: "asc" } });
+    const stocks = await listStocks();
 
     const tickerRows = stocks
       .map((stock) => {

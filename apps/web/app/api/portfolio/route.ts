@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { ensureLegacyCharacterForSession, getSessionUser } from "@/lib/auth";
+import { getPortfolioForCharacter } from "@/lib/bff/gameReadService";
 
 export async function GET() {
   try {
@@ -11,10 +11,7 @@ export async function GET() {
 
     const legacyCharacterId = await ensureLegacyCharacterForSession(user);
 
-    const portfolio = await prisma.portfolioItem.findMany({
-      where: { characterId: legacyCharacterId },
-      include: { stock: true }
-    });
+    const portfolio = await getPortfolioForCharacter(legacyCharacterId);
 
     return NextResponse.json(portfolio);
   } catch (error) {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { getStockWithRecentHistory } from "@/lib/bff/marketReadService";
 
 export async function GET(
   request: NextRequest,
@@ -7,15 +7,7 @@ export async function GET(
 ) {
   try {
     const { symbol } = await params;
-    const stock = await prisma.stock.findUnique({
-      where: { symbol },
-      include: {
-        history: {
-          orderBy: { timestamp: 'desc' },
-          take: 50
-        }
-      }
-    });
+    const stock = await getStockWithRecentHistory(symbol, 50);
 
     if (stock) {
       stock.history.reverse();
