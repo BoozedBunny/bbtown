@@ -43,6 +43,17 @@ async function getCharacterColumns(): Promise<Set<string>> {
 }
 
 async function ensureCharacterLoanSchemaReady() {
+  const databaseUrl = process.env.DATABASE_URL ?? "";
+  const isSqlite =
+    databaseUrl.startsWith("file:") || databaseUrl.includes(".db");
+
+  if (!isSqlite) {
+    console.log(
+      "[SchemaGuard] Non-SQLite database detected, skipping SQLite PRAGMA schema guard.",
+    );
+    return;
+  }
+
   const requiredColumns = ["loanStatus", "loanLockedUntil"] as const;
   const existingColumns = await getCharacterColumns();
   const missingColumns = requiredColumns.filter(

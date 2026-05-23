@@ -1,10 +1,40 @@
-# bbtown CMS (Strapi)
+# BBTown CMS (Strapi)
 
-Dieses Verzeichnis ist als persistentes App-Volume für den Strapi-Container gedacht.
+Pfad:
+- /root/projects/bbtown/apps/cms
 
-Erster Start:
-1) `npm run stack:up`
-2) Admin öffnen: http://localhost:1337/admin
-3) Initialen Admin-User anlegen
+Laufende Vorschau-Instanz:
+- PM2 Prozess: bbtown-cms
+- URL: http://<server-ip>:1338/admin
 
-Die Strapi-App-Daten liegen in `apps/cms` und die DB in Docker-Volume `postgres_data`.
+## Phase-1 Setup (erledigt)
+
+- Strapi v5 (TypeScript) mit PostgreSQL
+- Datenbank: bbtown_strapi
+- Erste Content-Types:
+  - global-setting (Single Type)
+  - town-news (Collection Type)
+- Public Read Permissions werden beim Bootstrap automatisch gesetzt für:
+  - api::global-setting.global-setting.find
+  - api::global-setting.global-setting.findOne
+  - api::town-news.town-news.find
+  - api::town-news.town-news.findOne
+
+## Wichtige Befehle
+
+Im Repo-Root ausführen:
+
+- CMS entwickeln:
+  npm run develop --workspace cms
+
+- CMS Build:
+  npm run build --workspace cms
+
+- PM2 Logs:
+  /root/.hermes/node/bin/pm2 logs bbtown-cms --lines 100 --nostream
+
+## Nächster Schritt (Phase 2)
+
+- Web-App an Strapi anbinden (STRAPI_URL/STRAPI_API_TOKEN)
+- Erste Read-Pfade umstellen (zuerst risikoarm: News + globale Settings)
+- Danach schrittweise Prisma-Fallback zurückbauen

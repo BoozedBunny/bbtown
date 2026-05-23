@@ -1,0 +1,31 @@
+{
+  "kind": "singleType",
+  "collectionName": "global_settings",
+  "info": {
+    "singularName": "global-setting",
+    "pluralName": "global-settings",
+    "displayName": "Global Setting",
+    "description": "Global game and homepage settings"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "gameName": {
+      "type": "string",
+      "required": true,
+      "default": "BBTown"
+    },
+    "loginHeadline": {
+      "type": "string",
+      "default": "Welcome to BBTown"
+    },
+    "maintenanceMode": {
+      "type": "boolean",
+      "default": false
+    },
+    "newsTicker": {
+      "type": "text"
+    }
+  }
+}
