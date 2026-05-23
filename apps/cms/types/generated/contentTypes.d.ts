@@ -476,6 +476,49 @@ export interface ApiGlobalSettingGlobalSetting extends Struct.SingleTypeSchema {
   };
 }
 
+export interface ApiMarketCompanyProfileMarketCompanyProfile
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'market_company_profiles';
+  info: {
+    description: 'CMS source for market metadata by symbol';
+    displayName: 'Market Company Profile';
+    pluralName: 'market-company-profiles';
+    singularName: 'market-company-profile';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    basePrice: Schema.Attribute.Decimal;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.Text;
+    displayOrder: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<100>;
+    exchange: Schema.Attribute.String;
+    hqRegion: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::market-company-profile.market-company-profile'
+    > &
+      Schema.Attribute.Private;
+    marketCapBand: Schema.Attribute.Enumeration<['SMALL', 'MID', 'LARGE']> &
+      Schema.Attribute.DefaultTo<'MID'>;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    sector: Schema.Attribute.String;
+    symbol: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    volatilityClass: Schema.Attribute.Enumeration<['LOW', 'MEDIUM', 'HIGH']> &
+      Schema.Attribute.DefaultTo<'MEDIUM'>;
+  };
+}
+
 export interface ApiTownNewsTownNews extends Struct.CollectionTypeSchema {
   collectionName: 'town_news_items';
   info: {
@@ -1023,6 +1066,7 @@ declare module '@strapi/strapi' {
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
       'api::global-setting.global-setting': ApiGlobalSettingGlobalSetting;
+      'api::market-company-profile.market-company-profile': ApiMarketCompanyProfileMarketCompanyProfile;
       'api::town-news.town-news': ApiTownNewsTownNews;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;

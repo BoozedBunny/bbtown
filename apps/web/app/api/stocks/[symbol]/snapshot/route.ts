@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCompanyProfile } from "@/lib/market/companyProfiles";
+import { getCompanyProfileFromCms } from "@/lib/cms/companyProfiles";
 import { getMarketNewsSnippets } from "@/lib/marketNews";
 
 export async function GET(
@@ -23,7 +24,8 @@ export async function GET(
       return NextResponse.json({ error: "Stock not found" }, { status: 404 });
     }
 
-    const profile = getCompanyProfile(stock.symbol);
+    const cmsProfile = await getCompanyProfileFromCms(stock.symbol);
+    const profile = cmsProfile ?? getCompanyProfile(stock.symbol);
     const changeAbs = stock.price - stock.previousPrice;
     const changePct = stock.previousPrice > 0 ? (changeAbs / stock.previousPrice) * 100 : 0;
     const prices = [stock.price, ...stock.history.map((h) => h.price)];

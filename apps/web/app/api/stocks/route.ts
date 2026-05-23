@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCompanyProfile } from "@/lib/market/companyProfiles";
+import { getCompanyProfileFromCms } from "@/lib/cms/companyProfiles";
 
 export async function GET() {
   try {
@@ -8,10 +9,11 @@ export async function GET() {
       orderBy: { symbol: "asc" },
     });
 
-    const enriched = stocks.map((stock) => {
+    const enriched = await Promise.all(stocks.map(async (stock) => {
       const changeAbs = stock.price - stock.previousPrice;
       const changePct = stock.previousPrice > 0 ? (changeAbs / stock.previousPrice) * 100 : 0;
-      const profile = getCompanyProfile(stock.symbol);
+      const cmsProfile = await getCompanyProfileFromCms(stock.symbol);
+      const profile = cmsProfile ?? getCompanyProfile(stock.symbol);
 
       return {
         ...stock,
@@ -22,7 +24,7 @@ export async function GET() {
         changePct,
         trend: changeAbs > 0 ? "UP" : changeAbs < 0 ? "DOWN" : "FLAT",
       };
-    });
+    }));
 
     return NextResponse.json(enriched);
   } catch (error) {

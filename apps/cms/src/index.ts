@@ -5,7 +5,9 @@ const PUBLIC_PERMISSION_ACTIONS = [
   'api::global-setting.global-setting.findOne',
   'api::town-news.town-news.find',
   'api::town-news.town-news.findOne',
-] as const;
+  'api::market-company-profile.market-company-profile.find',
+  'api::market-company-profile.market-company-profile.findOne',
+];
 
 async function ensurePublicPermissions(strapi: Core.Strapi) {
   const publicRole = await strapi.db
