@@ -6,7 +6,7 @@ import {
   strapiMe,
 } from "./strapiAuth";
 
-type SessionUser = {
+export type SessionUser = {
   id: string;
   username: string;
   character: {
@@ -101,4 +101,57 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   if (!legacyUsername) return null;
 
   return getSessionUserFromLegacyMock(legacyUsername);
+}
+
+export async function ensureLegacyCharacterForSession(user: SessionUser): Promise<string> {
+  if (!user.character) {
+    throw new Error("Unauthorized");
+  }
+
+  const directCharacter = await prisma.character.findUnique({ where: { id: user.character.id } });
+  if (directCharacter) {
+    return directCharacter.id;
+  }
+
+  const legacyUser = await prisma.user.upsert({
+    where: { username: user.username },
+    update: {},
+    create: { username: user.username },
+  });
+
+  const existingByUser = await prisma.character.findUnique({ where: { userId: legacyUser.id } });
+
+  if (existingByUser) {
+    await prisma.character.update({
+      where: { id: existingByUser.id },
+      data: {
+        name: user.character.name,
+        appearanceColor: user.character.appearanceColor ?? "#BD00FF",
+        avatar: user.character.avatar,
+        description: user.character.description,
+        wallet: user.character.wallet,
+        arenaMaxRounds: user.character.arenaMaxRounds,
+        experience: user.character.experience,
+      },
+    });
+    return existingByUser.id;
+  }
+
+  const created = await prisma.character.create({
+    data: {
+      userId: legacyUser.id,
+      name: user.character.name,
+      appearanceColor: user.character.appearanceColor ?? "#BD00FF",
+      avatar: user.character.avatar,
+      description: user.character.description,
+      wallet: user.character.wallet,
+      arenaMaxRounds: user.character.arenaMaxRounds,
+      experience: user.character.experience,
+      loanStatus: user.character.loanStatus ?? "NONE",
+      loanLockedUntil: user.character.loanLockedUntil ?? null,
+      lastSoloArenaAt: user.character.lastSoloArenaAt ?? null,
+    },
+  });
+
+  return created.id;
 }

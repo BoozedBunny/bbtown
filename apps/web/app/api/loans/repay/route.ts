@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getSessionUser } from "@/lib/auth";
+import { ensureLegacyCharacterForSession, getSessionUser } from "@/lib/auth";
 import { repayLoan } from "@/lib/treasury/loanService";
 import { AUTH_COOKIE_NAME, updatePlayerProfile } from "@/lib/strapiAuth";
 
@@ -9,7 +9,8 @@ export async function POST(request: NextRequest) {
     const user = await getSessionUser();
     if (!user?.character) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const body = await request.json();
-    const result = await repayLoan(user.character.id, body.loanId, Number(body.amount), body.idempotencyKey);
+    const legacyCharacterId = await ensureLegacyCharacterForSession(user);
+    const result = await repayLoan(legacyCharacterId, body.loanId, Number(body.amount), body.idempotencyKey);
 
     const token = (await cookies()).get(AUTH_COOKIE_NAME)?.value;
     if (token && !result?.error && typeof result?.walletAfter === "number") {
