@@ -405,7 +405,7 @@ app.prepare().then(async () => {
     const cookies = cookieHeader
       ? Object.fromEntries(cookieHeader.split("; ").map((c) => c.split("=")))
       : {};
-    const mockUser = cookies["mock_user"];
+    const mockUser = cookies["mock_user"] || cookies["bbtown_user"];
 
     if (mockUser) {
       socket.join(`user:${mockUser}`);

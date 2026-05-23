@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSessionUser } from "@/lib/auth";
+import { ensureLegacyCharacterForSession, getSessionUser } from "@/lib/auth";
 
 export async function GET() {
   try {
@@ -9,8 +9,10 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const legacyCharacterId = await ensureLegacyCharacterForSession(user);
+
     const portfolio = await prisma.portfolioItem.findMany({
-      where: { characterId: user.character.id },
+      where: { characterId: legacyCharacterId },
       include: { stock: true }
     });
 
