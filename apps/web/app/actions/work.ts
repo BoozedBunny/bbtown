@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { prisma } from "../../lib/prisma";
-import { getSessionUser } from "../../lib/auth";
+import { ensureLegacyCharacterForSession, getSessionUser } from "../../lib/auth";
 import { revalidatePath } from "next/cache";
 import { AUTH_COOKIE_NAME, incrementWallet } from "../../lib/strapiAuth";
 
@@ -20,8 +20,9 @@ export async function doWork(formData?: FormData) {
   if (sessionToken) {
     await incrementWallet(sessionToken, Number(user.id), 500);
   } else {
+    const legacyCharacterId = await ensureLegacyCharacterForSession(user);
     await prisma.character.update({
-      where: { id: user.character.id },
+      where: { id: legacyCharacterId },
       data: { wallet: { increment: 500 } }
     });
   }

@@ -5,12 +5,10 @@ export function middleware(request: NextRequest) {
   const currentUser = request.cookies.get('mock_user')?.value || request.cookies.get('bbtown_session')?.value
   const pathname = request.nextUrl.pathname
 
-  // Allow auth pages and root
   if (pathname === '/' || pathname === '/login') {
     return NextResponse.next()
   }
 
-  // Redirect to startpage (/) if not logged in
   if (!currentUser) {
     return NextResponse.redirect(new URL('/', request.url))
   }
@@ -20,11 +18,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Alle Pfade matchen, AUẞER:
-     * - api, _next/static, _next/image, favicon.ico
-     * - UND jetzt ganz wichtig: media
-     */
-  '/((?!api|_next/static|_next/image|favicon.ico|media).*)'
+    '/((?!api|_next/static|_next/image|favicon.ico|media).*)'
   ],
 }
