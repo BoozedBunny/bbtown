@@ -2,6 +2,10 @@ const DEFAULT_STRAPI_BASE_URL = process.env.STRAPI_URL ?? "http://127.0.0.1:1338
 
 export const AUTH_COOKIE_NAME = "bbtown_session";
 
+function getServiceToken() {
+  return process.env.STRAPI_API_TOKEN;
+}
+
 type StrapiAuthResponse = {
   jwt: string;
   user: {
@@ -199,4 +203,55 @@ export async function incrementWallet(jwt: string, userId: number, amount: numbe
 
   await updatePlayerProfile(jwt, userId, { wallet: nextWallet });
   return nextWallet;
+}
+
+export async function updatePlayerProfileByAuthUserId(
+  authUserId: number | string,
+  data: Partial<
+    Pick<
+      StrapiPlayerProfile,
+      "wallet" | "loanStatus" | "loanLockedUntil" | "experience" | "arenaMaxRounds" | "lastSoloArenaAt"
+    >
+  >,
+) {
+  const serviceToken = getServiceToken();
+  if (!serviceToken) return false;
+
+  const normalizedAuthUserId = typeof authUserId === "number" ? authUserId : Number(authUserId);
+  if (!Number.isFinite(normalizedAuthUserId)) return false;
+
+  const lookup = await fetch(
+    `${DEFAULT_STRAPI_BASE_URL}/api/player-profiles?filters[authUserId][$eq]=${normalizedAuthUserId}&pagination[limit]=1`,
+    {
+      headers: { Authorization: `Bearer ${serviceToken}` },
+      cache: "no-store",
+    },
+  );
+
+  if (!lookup.ok) {
+    const text = await lookup.text();
+    throw new Error(`Profile lookup failed: ${lookup.status} ${text}`);
+  }
+
+  const payload = (await lookup.json()) as { data?: StrapiPlayerProfile[] };
+  const existing = payload.data?.[0];
+  if (!existing) return false;
+
+  const profileIdentifier = existing.documentId ?? String(existing.id);
+  const update = await fetch(`${DEFAULT_STRAPI_BASE_URL}/api/player-profiles/${profileIdentifier}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${serviceToken}`,
+    },
+    body: JSON.stringify({ data }),
+    cache: "no-store",
+  });
+
+  if (!update.ok) {
+    const text = await update.text();
+    throw new Error(`Profile update failed: ${update.status} ${text}`);
+  }
+
+  return true;
 }

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { treasuryConfig } from "@/lib/treasury/config";
 import { addUtcDays, toUtcDateKey } from "@/lib/treasury/utils";
 import { createLedgerEntry } from "@/lib/treasury/treasuryService";
+import { updatePlayerProfileByAuthUserId } from "@/lib/strapiAuth";
 
 export const LoanReasonCode = {
   HAS_ACTIVE_LOAN: "HAS_ACTIVE_LOAN",
@@ -272,5 +273,27 @@ export async function runLoanDelinquencySweep(now = new Date()) {
         loanStatus: "DELINQUENT",
       },
     });
+  }
+
+  const affectedCharacterIds = Array.from(new Set([...characterIdsToDefault, ...characterIdsToDelinquent]));
+  if (affectedCharacterIds.length > 0) {
+    const affectedCharacters = await prisma.character.findMany({
+      where: { id: { in: affectedCharacterIds } },
+      select: { userId: true, loanStatus: true, loanLockedUntil: true },
+    });
+
+    for (const character of affectedCharacters) {
+      try {
+        await updatePlayerProfileByAuthUserId(character.userId, {
+          loanStatus: character.loanStatus,
+          loanLockedUntil: character.loanLockedUntil ? character.loanLockedUntil.toISOString() : null,
+        });
+      } catch (error) {
+        console.error("Failed to sync delinquency status to Strapi profile", {
+          authUserId: character.userId,
+          error,
+        });
+      }
+    }
   }
 }
