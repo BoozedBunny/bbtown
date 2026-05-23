@@ -1,15 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+
+type Mode = "login" | "register";
 
 export default function LoginPage() {
   const router = useRouter();
   const [gameName, setGameName] = useState("BoozedBunnyTown");
   const [loginHeadline, setLoginHeadline] = useState("Welcome to the Town");
+  const [mode, setMode] = useState<Mode>("login");
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -17,23 +25,67 @@ export default function LoginPage() {
         const response = await fetch("/api/cms/global-setting", { cache: "no-store" });
         if (!response.ok) return;
         const payload = (await response.json()) as {
-          setting?: { gameName?: string; loginHeadline?: string; maintenanceMode?: boolean };
+          setting?: { gameName?: string; loginHeadline?: string };
         };
 
         if (payload.setting?.gameName) setGameName(payload.setting.gameName);
         if (payload.setting?.loginHeadline) setLoginHeadline(payload.setting.loginHeadline);
-      } catch (_error) {
-        // fallback remains active
+      } catch {
+        // keep fallback labels
       }
     };
 
     void loadSettings();
   }, []);
 
-  const handleLogin = (username: string) => {
-    // Simple mock auth: set a cookie
-    document.cookie = `mock_user=${username}; path=/; max-age=3600`;
-    router.push("/lobby");
+  const submitLogin = async (event: FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier, password }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json()) as { error?: string };
+        throw new Error(payload.error ?? "Login failed");
+      }
+
+      router.push("/lobby");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login failed");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const submitRegister = async (event: FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, email, password }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json()) as { error?: string };
+        throw new Error(payload.error ?? "Registration failed");
+      }
+
+      router.push("/lobby");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Registration failed");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -55,55 +107,35 @@ export default function LoginPage() {
           <p className="text-gray-500 font-mono text-[10px] uppercase tracking-[0.3em]">{loginHeadline}</p>
         </div>
 
-        <div className="space-y-6 mt-8">
-          <button
-            onClick={() => handleLogin("Player1")}
-            className="group relative w-full block"
-          >
-            <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
-            <div className=" bg-brand-primary px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
-               <span className="text-sm font-black uppercase tracking-[0.2em] text-white">Play as Player 1</span>
-            </div>
-          </button>
-
-          <button
-            onClick={() => handleLogin("Player2")}
-            className="group relative w-full block"
-          >
-            <div className="absolute inset-0 bg-brand-secondary/10 blur group-hover:bg-brand-secondary/20 transition-all" />
-            <div className=" bg-black/40 border border-brand-secondary/50 px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
-               <span className="text-sm font-black uppercase tracking-[0.2em] text-brand-secondary">Play as Player 2</span>
-            </div>
-          </button>
+        <div className="mb-6 flex gap-2">
+          <button className={`flex-1 py-2 text-xs uppercase tracking-[0.2em] ${mode === "login" ? "bg-brand-primary text-white" : "bg-black/40 border border-white/20"}`} onClick={() => setMode("login")}>Login</button>
+          <button className={`flex-1 py-2 text-xs uppercase tracking-[0.2em] ${mode === "register" ? "bg-brand-primary text-white" : "bg-black/40 border border-white/20"}`} onClick={() => setMode("register")}>Register</button>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-white/5 text-center flex flex-col items-center gap-4">
-          <div className="bg-brand-primary/10 border border-brand-primary/20 p-4 rounded text-sm text-gray-300">
-            <strong className="text-brand-secondary font-black block mb-1">ALPHA VERSION DISCLAIMER</strong>
-            <p className="text-xs">
-              Welcome to the very early Alpha! Everything you see here is subject to change.
-              Features might break, things will definitely change, and player data will probably be wiped multiple times before the official launch. You have been warned!
-            </p>
-          </div>
+        {mode === "login" ? (
+          <form className="space-y-4" onSubmit={submitLogin}>
+            <input className="w-full bg-black/40 border border-white/20 p-3 text-sm" placeholder="Username or Email" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required />
+            <input className="w-full bg-black/40 border border-white/20 p-3 text-sm" placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <button className="w-full bg-brand-primary p-3 text-sm font-black uppercase tracking-[0.2em]" disabled={isSubmitting}>{isSubmitting ? "Please wait..." : "Sign in"}</button>
+          </form>
+        ) : (
+          <form className="space-y-4" onSubmit={submitRegister}>
+            <input className="w-full bg-black/40 border border-white/20 p-3 text-sm" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} required />
+            <input className="w-full bg-black/40 border border-white/20 p-3 text-sm" placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <input className="w-full bg-black/40 border border-white/20 p-3 text-sm" placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <button className="w-full bg-brand-primary p-3 text-sm font-black uppercase tracking-[0.2em]" disabled={isSubmitting}>{isSubmitting ? "Please wait..." : "Create account"}</button>
+          </form>
+        )}
 
+        {error ? <p className="mt-4 text-xs text-red-400">{error}</p> : null}
+
+        <div className="mt-8 pt-6 border-t border-white/5 text-center flex flex-col items-center gap-4">
           <Link href="/about" className="text-brand-primary hover:text-brand-secondary transition-colors text-sm font-bold underline decoration-brand-primary/50 underline-offset-4">
             What is BoozedBunnyTown?
           </Link>
-
-          <div className="mt-4 flex flex-col items-center gap-2">
-            <p className="text-[8px] text-gray-600 uppercase tracking-[0.5em] font-black">
-              Getting things ready...
-            </p>
-            <div className="flex gap-1">
-               {[...Array(6)].map((_, i) => (
-                 <div key={i} className="w-4 h-[2px] bg-brand-primary/30" />
-               ))}
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Decorative scanline overlay */}
       <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-20 bg-[length:100%_2px,3px_100%]" />
     </div>
   );

@@ -519,6 +519,50 @@ export interface ApiMarketCompanyProfileMarketCompanyProfile
   };
 }
 
+export interface ApiPlayerProfilePlayerProfile
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'player_profiles';
+  info: {
+    description: 'Player domain profile linked 1:1 to Strapi auth user';
+    displayName: 'Player Profile';
+    pluralName: 'player-profiles';
+    singularName: 'player-profile';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    appearanceColor: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'#BD00FF'>;
+    arenaMaxRounds: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    authUserId: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    avatar: Schema.Attribute.String & Schema.Attribute.DefaultTo<'bunny'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.Text;
+    displayName: Schema.Attribute.String & Schema.Attribute.Required;
+    experience: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    lastSoloArenaAt: Schema.Attribute.DateTime;
+    loanLockedUntil: Schema.Attribute.DateTime;
+    loanStatus: Schema.Attribute.Enumeration<['NONE', 'ACTIVE', 'DELINQUENT']> &
+      Schema.Attribute.DefaultTo<'NONE'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::player-profile.player-profile'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    wallet: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<1000>;
+  };
+}
+
 export interface ApiTownNewsTownNews extends Struct.CollectionTypeSchema {
   collectionName: 'town_news_items';
   info: {
@@ -1067,6 +1111,7 @@ declare module '@strapi/strapi' {
       'admin::user': AdminUser;
       'api::global-setting.global-setting': ApiGlobalSettingGlobalSetting;
       'api::market-company-profile.market-company-profile': ApiMarketCompanyProfileMarketCompanyProfile;
+      'api::player-profile.player-profile': ApiPlayerProfilePlayerProfile;
       'api::town-news.town-news': ApiTownNewsTownNews;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;

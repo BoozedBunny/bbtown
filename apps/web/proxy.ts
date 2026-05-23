@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
-  const currentUser = request.cookies.get('mock_user')?.value
+  const currentUser = request.cookies.get('mock_user')?.value || request.cookies.get('bbtown_session')?.value
   const pathname = request.nextUrl.pathname
 
   // Allow auth pages and root

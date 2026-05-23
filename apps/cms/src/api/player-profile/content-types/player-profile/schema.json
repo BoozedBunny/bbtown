@@ -1,0 +1,58 @@
+{
+  "kind": "collectionType",
+  "collectionName": "player_profiles",
+  "info": {
+    "singularName": "player-profile",
+    "pluralName": "player-profiles",
+    "displayName": "Player Profile",
+    "description": "Player domain profile linked 1:1 to Strapi auth user"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "authUserId": {
+      "type": "integer",
+      "required": true,
+      "unique": true
+    },
+    "displayName": {
+      "type": "string",
+      "required": true
+    },
+    "appearanceColor": {
+      "type": "string",
+      "default": "#BD00FF"
+    },
+    "avatar": {
+      "type": "string",
+      "default": "bunny"
+    },
+    "description": {
+      "type": "text"
+    },
+    "wallet": {
+      "type": "integer",
+      "default": 1000
+    },
+    "arenaMaxRounds": {
+      "type": "integer",
+      "default": 0
+    },
+    "experience": {
+      "type": "integer",
+      "default": 0
+    },
+    "loanStatus": {
+      "type": "enumeration",
+      "enum": ["NONE", "ACTIVE", "DELINQUENT"],
+      "default": "NONE"
+    },
+    "loanLockedUntil": {
+      "type": "datetime"
+    },
+    "lastSoloArenaAt": {
+      "type": "datetime"
+    }
+  }
+}
