@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Bell, ExternalLink, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -66,16 +66,24 @@ export function NewsFeedSurface({ mode, townId, initialTab = "all" }: { mode: Fe
     setReadItemIds((previous) => (previous.includes(itemId) ? previous : [...previous, itemId]));
   };
 
-  const refreshFeed = () => {
+  const refreshFeed = async () => {
     try {
-      const refreshed = getNewsFeedItems();
+      const response = await fetch(`/api/cms/town-news?townId=${encodeURIComponent(townId)}`, { cache: "no-store" });
+      if (!response.ok) throw new Error("Failed to fetch town news");
+      const payload = (await response.json()) as { items?: NewsFeedItem[] };
+      const refreshed = Array.isArray(payload.items) && payload.items.length > 0 ? payload.items : getNewsFeedItems();
       setAllItems(refreshed);
       setLastFetchedAt(new Date().toISOString());
       setError(null);
     } catch (_error) {
-      setError("Refresh failed. Showing previously loaded stories.");
+      setAllItems(getNewsFeedItems());
+      setError("Refresh failed. Showing fallback stories.");
     }
   };
+
+  useEffect(() => {
+    void refreshFeed();
+  }, [townId]);
 
   return (
     <div className="h-full w-full flex flex-col gap-6 font-sans">

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -7,6 +8,27 @@ import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [gameName, setGameName] = useState("BoozedBunnyTown");
+  const [loginHeadline, setLoginHeadline] = useState("Welcome to the Town");
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await fetch("/api/cms/global-setting", { cache: "no-store" });
+        if (!response.ok) return;
+        const payload = (await response.json()) as {
+          setting?: { gameName?: string; loginHeadline?: string; maintenanceMode?: boolean };
+        };
+
+        if (payload.setting?.gameName) setGameName(payload.setting.gameName);
+        if (payload.setting?.loginHeadline) setLoginHeadline(payload.setting.loginHeadline);
+      } catch (_error) {
+        // fallback remains active
+      }
+    };
+
+    void loadSettings();
+  }, []);
 
   const handleLogin = (username: string) => {
     // Simple mock auth: set a cookie
@@ -27,10 +49,10 @@ export default function LoginPage() {
               className="object-contain drop-shadow-[0_0_15px_rgba(189,0,255,0.5)] relative z-10"
             />
           </div>
-          <h1 className="text-4xl font-heading font-black tracking-tighter mb-2 cyber-glitch-text italic" data-text="BoozedBunnyTown">
-            BoozedBunnyTown
+          <h1 className="text-4xl font-heading font-black tracking-tighter mb-2 cyber-glitch-text italic" data-text={gameName}>
+            {gameName}
           </h1>
-          <p className="text-gray-500 font-mono text-[10px] uppercase tracking-[0.3em]">Welcome to the Town</p>
+          <p className="text-gray-500 font-mono text-[10px] uppercase tracking-[0.3em]">{loginHeadline}</p>
         </div>
 
         <div className="space-y-6 mt-8">
