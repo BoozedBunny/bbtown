@@ -143,3 +143,31 @@ export async function getPlayerProfile(jwt: string, userId: number) {
   const payload = (await response.json()) as { data?: StrapiPlayerProfile[] };
   return payload.data?.[0] ?? null;
 }
+
+export async function updatePlayerProfile(
+  jwt: string,
+  userId: number,
+  data: Partial<Pick<StrapiPlayerProfile, "displayName" | "avatar" | "description" | "appearanceColor">>,
+) {
+  const existing = await getPlayerProfile(jwt, userId);
+  if (!existing) {
+    throw new Error("Profile not found");
+  }
+
+  const response = await fetch(`${DEFAULT_STRAPI_BASE_URL}/api/player-profiles/${existing.id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${jwt}`,
+    },
+    body: JSON.stringify({ data }),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Profile update failed: ${response.status} ${text}`);
+  }
+
+  return (await response.json()) as { data: StrapiPlayerProfile };
+}

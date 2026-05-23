@@ -25,6 +25,17 @@ export async function getCharacterProfile(characterId: string) {
   const user = await getSessionUser();
   if (!user || !user.character) throw new Error("Unauthorized");
 
+  if (String(user.character.id) === String(characterId)) {
+    return {
+      id: user.character.id,
+      name: user.character.name,
+      avatar: user.character.avatar,
+      description: user.character.description,
+      experience: user.character.experience,
+      arenaMaxRounds: user.character.arenaMaxRounds,
+    };
+  }
+
   const character = await prisma.character.findUnique({
     where: { id: characterId },
     select: {
