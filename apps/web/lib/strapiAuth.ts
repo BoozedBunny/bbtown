@@ -147,7 +147,12 @@ export async function getPlayerProfile(jwt: string, userId: number) {
 export async function updatePlayerProfile(
   jwt: string,
   userId: number,
-  data: Partial<Pick<StrapiPlayerProfile, "displayName" | "avatar" | "description" | "appearanceColor">>,
+  data: Partial<
+    Pick<
+      StrapiPlayerProfile,
+      "displayName" | "avatar" | "description" | "appearanceColor" | "wallet" | "loanStatus" | "loanLockedUntil"
+    >
+  >,
 ) {
   const existing = await getPlayerProfile(jwt, userId);
   if (!existing) {
@@ -170,4 +175,25 @@ export async function updatePlayerProfile(
   }
 
   return (await response.json()) as { data: StrapiPlayerProfile };
+}
+
+export async function incrementWallet(jwt: string, userId: number, amount: number) {
+  if (!Number.isFinite(amount) || amount === 0) {
+    throw new Error("Amount must be a non-zero number");
+  }
+
+  const existing = await getPlayerProfile(jwt, userId);
+  if (!existing) {
+    throw new Error("Profile not found");
+  }
+
+  const currentWallet = typeof existing.wallet === "number" ? existing.wallet : 0;
+  const nextWallet = currentWallet + amount;
+
+  if (nextWallet < 0) {
+    throw new Error("Insufficient funds");
+  }
+
+  await updatePlayerProfile(jwt, userId, { wallet: nextWallet });
+  return nextWallet;
 }
