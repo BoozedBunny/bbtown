@@ -479,6 +479,33 @@ app.prepare().then(async () => {
     const mockUser = cookies["mock_user"] || cookies["bbtown_user"];
     const sessionToken = cookies["bbtown_session"];
 
+    const syncStrapiProfileFromLegacyForCurrentSocketUser = async () => {
+      if (!mockUser || !sessionToken) return;
+
+      try {
+        const legacyCharacterId = await ensureSocketLegacyCharacter({
+          username: mockUser,
+          sessionToken,
+        });
+        if (!legacyCharacterId) return;
+
+        const character = await prisma.character.findUnique({ where: { id: legacyCharacterId } });
+        if (!character) return;
+
+        const me = await strapiMe(sessionToken);
+        await updatePlayerProfile(sessionToken, me.id, {
+          wallet: character.wallet,
+          experience: character.experience,
+          arenaMaxRounds: character.arenaMaxRounds,
+          lastSoloArenaAt: character.lastSoloArenaAt ? character.lastSoloArenaAt.toISOString() : null,
+          loanStatus: character.loanStatus,
+          loanLockedUntil: character.loanLockedUntil ? character.loanLockedUntil.toISOString() : null,
+        });
+      } catch (error) {
+        console.error("Failed to sync Strapi profile from legacy socket state", error);
+      }
+    };
+
     if (mockUser) {
       socket.join(`user:${mockUser}`);
       console.log(`Socket ${socket.id} joined room user:${mockUser}`);
@@ -1198,6 +1225,8 @@ app.prepare().then(async () => {
               }
             }
           }
+
+          await syncStrapiProfileFromLegacyForCurrentSocketUser();
         } catch (error) {
           console.error("Failed to finalize arena results:", error);
         }

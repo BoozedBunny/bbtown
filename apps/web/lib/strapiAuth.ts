@@ -151,7 +151,7 @@ export async function updatePlayerProfile(
   data: Partial<
     Pick<
       StrapiPlayerProfile,
-      "displayName" | "avatar" | "description" | "appearanceColor" | "wallet" | "loanStatus" | "loanLockedUntil"
+      "displayName" | "avatar" | "description" | "appearanceColor" | "wallet" | "loanStatus" | "loanLockedUntil" | "experience" | "arenaMaxRounds" | "lastSoloArenaAt"
     >
   >,
 ) {
