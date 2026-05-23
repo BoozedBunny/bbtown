@@ -13,6 +13,7 @@ type StrapiAuthResponse = {
 
 type StrapiPlayerProfile = {
   id: number | string;
+  documentId?: string;
   displayName?: string;
   appearanceColor?: string;
   avatar?: string;
@@ -159,7 +160,9 @@ export async function updatePlayerProfile(
     throw new Error("Profile not found");
   }
 
-  const response = await fetch(`${DEFAULT_STRAPI_BASE_URL}/api/player-profiles/${existing.id}`, {
+  const profileIdentifier = existing.documentId ?? String(existing.id);
+
+  const response = await fetch(`${DEFAULT_STRAPI_BASE_URL}/api/player-profiles/${profileIdentifier}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
