@@ -1,7 +1,7 @@
 "use server";
 
 import { getSessionUser } from "../../lib/auth";
-import { prisma } from "../../lib/prisma";
+import { getCharacterPublicProfileById } from "@/lib/bff/userReadService";
 
 export async function getCurrentUser() {
   const user = await getSessionUser();
@@ -36,17 +36,7 @@ export async function getCharacterProfile(characterId: string) {
     };
   }
 
-  const character = await prisma.character.findUnique({
-    where: { id: characterId },
-    select: {
-      id: true,
-      name: true,
-      avatar: true,
-      description: true,
-      experience: true,
-      arenaMaxRounds: true,
-    },
-  });
+  const character = await getCharacterPublicProfileById(characterId);
 
   if (!character) {
     throw new Error("Character not found");

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getSessionUser } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { AUTH_COOKIE_NAME, incrementWallet } from "@/lib/strapiAuth";
+import { runLegacyCasinoSpin } from "@/lib/bff/casinoService";
 
 const SYMBOLS = ["Cherry", "Lemon", "Bell", "Seven", "Diamond"];
 const WEIGHTS = [40, 30, 15, 10, 5];
@@ -152,44 +152,14 @@ export async function POST(request: Request) {
       });
     }
 
-    // Legacy fallback path with Prisma transaction
-    const result = await prisma.$transaction(async (tx) => {
-      const character = await tx.character.findUnique({
-        where: { id: user.character!.id },
-        select: { wallet: true },
-      });
+    const newBalance = await runLegacyCasinoSpin(user.character!.id, betAmount, totalWin);
 
-      if (!character) {
-        throw new Error("Character not found");
-      }
-
-      if (character.wallet < betAmount) {
-        throw new Error("Insufficient funds");
-      }
-
-      await tx.character.update({
-        where: { id: user.character!.id },
-        data: { wallet: { decrement: betAmount } },
-      });
-
-      let finalWallet = character.wallet - betAmount;
-      if (totalWin > 0) {
-        const updatedChar = await tx.character.update({
-          where: { id: user.character!.id },
-          data: { wallet: { increment: totalWin } },
-        });
-        finalWallet = updatedChar.wallet;
-      }
-
-      return {
-        matrix,
-        winAmount: totalWin,
-        newBalance: finalWallet,
-        winningLines,
-      };
+    return NextResponse.json({
+      matrix,
+      winAmount: totalWin,
+      newBalance,
+      winningLines,
     });
-
-    return NextResponse.json(result);
   } catch (error: any) {
     if (error.message === "Insufficient funds") {
       return NextResponse.json({ error: "Insufficient funds" }, { status: 400 });
