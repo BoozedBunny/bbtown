@@ -126,7 +126,8 @@ export async function buyStockForCharacter(input: {
   const stock = await oneOrNull<{ id: string; price: number }>('SELECT "id", "price" FROM "Stock" WHERE "symbol" = $1 LIMIT 1', [input.symbol]);
   if (!stock) throw new Error("Stock not found");
 
-  const cost = stock.price * input.quantity;
+  const rawCost = stock.price * input.quantity;
+  const cost = Math.max(1, Math.ceil(rawCost));
   if (character.wallet < cost) {
     return { ok: false as const, reason: "INSUFFICIENT_FUNDS" as const, cost };
   }
@@ -145,7 +146,7 @@ export async function buyStockForCharacter(input: {
   return {
     ok: true as const,
     cost,
-    newWallet: Math.max(0, Math.floor(character.wallet - cost)),
+    newWallet: Math.max(0, character.wallet - cost),
   };
 }
 
@@ -169,7 +170,8 @@ export async function sellStockForCharacter(input: {
     return { ok: false as const, reason: "NOT_ENOUGH_SHARES" as const };
   }
 
-  const gain = stock.price * input.quantity;
+  const rawGain = stock.price * input.quantity;
+  const gain = Math.max(0, Math.floor(rawGain));
 
   await withTransaction(async (tx) => {
     await tx.query('UPDATE "Character" SET "wallet" = "wallet" + $2 WHERE "id" = $1', [input.characterId, gain]);
