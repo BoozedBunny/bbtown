@@ -26,6 +26,7 @@ import {
   ensureCompanyStocksFromProfiles,
   getAvatarForUsername,
   getCharacterById,
+  getCharacterByUsername,
   sellStockForCharacter,
   tickStocksAndReturnSorted,
   upsertLegacyCharacterForUsername,
@@ -380,13 +381,17 @@ app.prepare().then(async () => {
       if (!mockUser || !sessionToken) return;
 
       try {
-        const legacyCharacterId = await ensureSocketLegacyCharacter({
-          username: mockUser,
-          sessionToken,
-        });
-        if (!legacyCharacterId) return;
+        let character = await getCharacterByUsername(mockUser);
 
-        const character = await getCharacterById(legacyCharacterId);
+        if (!character) {
+          const legacyCharacterId = await ensureSocketLegacyCharacter({
+            username: mockUser,
+            sessionToken,
+          });
+          if (!legacyCharacterId) return;
+          character = await getCharacterById(legacyCharacterId);
+        }
+
         if (!character) return;
 
         const me = await strapiMe(sessionToken);

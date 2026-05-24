@@ -942,6 +942,15 @@ export default function ArenaPage({
         status: "finished",
         gameOver: data,
       }));
+
+      fetch("/api/me")
+        .then((res) => res.json())
+        .then((freshUser) => {
+          setCurrentUser(freshUser);
+        })
+        .catch(() => {
+          // ignore refresh errors in post-match UI
+        });
     });
 
     s.on("opponent_left", () => {

@@ -92,6 +92,17 @@ export async function getCharacterById(characterId: string) {
   return oneOrNull('SELECT * FROM "Character" WHERE "id" = $1 LIMIT 1', [characterId]);
 }
 
+export async function getCharacterByUsername(username: string) {
+  return oneOrNull(
+    `SELECT c.*
+     FROM "Character" c
+     JOIN "User" u ON u."id" = c."userId"
+     WHERE u."username" = $1
+     LIMIT 1`,
+    [username],
+  );
+}
+
 export async function getAvatarForUsername(username: string) {
   const user = await oneOrNull<{ avatar: string | null }>(
     `SELECT c."avatar"
