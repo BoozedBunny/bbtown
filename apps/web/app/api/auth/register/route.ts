@@ -7,6 +7,7 @@ import {
 
 export async function POST(request: Request) {
   try {
+    const isHttps = new URL(request.url).protocol === "https:";
     const body = (await request.json()) as {
       username?: string;
       email?: string;
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
     const response = NextResponse.json({ ok: true, user: { id: auth.user.id, username: auth.user.username } });
     response.cookies.set(AUTH_COOKIE_NAME, auth.jwt, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isHttps,
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 24 * 30,
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
 
     response.cookies.set("bbtown_user", auth.user.username, {
       httpOnly: false,
-      secure: process.env.NODE_ENV === "production",
+      secure: isHttps,
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 24 * 30,
