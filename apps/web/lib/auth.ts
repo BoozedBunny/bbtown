@@ -1,5 +1,8 @@
 import { cookies } from "next/headers";
-import { prisma } from "./prisma";
+import {
+  ensureLegacyCharacterFromSessionShape,
+  getLegacyUserByUsername,
+} from "@/lib/bff/authLegacyService";
 import {
   AUTH_COOKIE_NAME,
   getPlayerProfile,
@@ -60,10 +63,7 @@ async function getSessionUserFromStrapi(token: string): Promise<SessionUser | nu
 }
 
 async function getSessionUserFromLegacyMock(mockUsername: string): Promise<SessionUser | null> {
-  const user = await prisma.user.findUnique({
-    where: { username: mockUsername },
-    include: { character: true },
-  });
+  const user = await getLegacyUserByUsername(mockUsername);
 
   if (!user) return null;
 
@@ -108,50 +108,20 @@ export async function ensureLegacyCharacterForSession(user: SessionUser): Promis
     throw new Error("Unauthorized");
   }
 
-  const directCharacter = await prisma.character.findUnique({ where: { id: user.character.id } });
-  if (directCharacter) {
-    return directCharacter.id;
-  }
-
-  const legacyUser = await prisma.user.upsert({
-    where: { username: user.username },
-    update: {},
-    create: { username: user.username },
-  });
-
-  const existingByUser = await prisma.character.findUnique({ where: { userId: legacyUser.id } });
-
-  if (existingByUser) {
-    await prisma.character.update({
-      where: { id: existingByUser.id },
-      data: {
-        name: user.character.name,
-        appearanceColor: user.character.appearanceColor ?? "#BD00FF",
-        avatar: user.character.avatar,
-        description: user.character.description,
-        wallet: user.character.wallet,
-        arenaMaxRounds: user.character.arenaMaxRounds,
-        experience: user.character.experience,
-      },
-    });
-    return existingByUser.id;
-  }
-
-  const created = await prisma.character.create({
-    data: {
-      userId: legacyUser.id,
+  return ensureLegacyCharacterFromSessionShape({
+    characterIdFromSession: user.character.id,
+    username: user.username,
+    character: {
       name: user.character.name,
-      appearanceColor: user.character.appearanceColor ?? "#BD00FF",
+      appearanceColor: user.character.appearanceColor,
       avatar: user.character.avatar,
       description: user.character.description,
       wallet: user.character.wallet,
       arenaMaxRounds: user.character.arenaMaxRounds,
       experience: user.character.experience,
-      loanStatus: user.character.loanStatus ?? "NONE",
-      loanLockedUntil: user.character.loanLockedUntil ?? null,
-      lastSoloArenaAt: user.character.lastSoloArenaAt ?? null,
+      loanStatus: user.character.loanStatus,
+      loanLockedUntil: user.character.loanLockedUntil,
+      lastSoloArenaAt: user.character.lastSoloArenaAt,
     },
   });
-
-  return created.id;
 }
