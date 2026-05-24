@@ -104,3 +104,164 @@ export async function upsertLegacyCharacterForUsername(
 export async function getCharacterById(characterId: string) {
   return prisma.character.findUnique({ where: { id: characterId } });
 }
+
+export async function getAvatarForUsername(username: string) {
+  const user = await prisma.user.findUnique({
+    where: { username },
+    include: { character: true },
+  });
+  return user?.character?.avatar ?? "bunny";
+}
+
+export async function buyStockForCharacter(input: {
+  characterId: string;
+  symbol: string;
+  quantity: number;
+}) {
+  const character = await prisma.character.findUnique({ where: { id: input.characterId } });
+  if (!character) throw new Error("Character not found");
+
+  const stock = await prisma.stock.findUnique({ where: { symbol: input.symbol } });
+  if (!stock) throw new Error("Stock not found");
+
+  const cost = stock.price * input.quantity;
+  if (character.wallet < cost) {
+    return { ok: false as const, reason: "INSUFFICIENT_FUNDS" as const, cost };
+  }
+
+  await prisma.$transaction([
+    prisma.character.update({
+      where: { id: input.characterId },
+      data: { wallet: { decrement: cost } },
+    }),
+    prisma.portfolioItem.upsert({
+      where: {
+        characterId_stockId: {
+          characterId: input.characterId,
+          stockId: stock.id,
+        },
+      },
+      create: {
+        characterId: input.characterId,
+        stockId: stock.id,
+        quantity: input.quantity,
+      },
+      update: {
+        quantity: { increment: input.quantity },
+      },
+    }),
+  ]);
+
+  return {
+    ok: true as const,
+    cost,
+    newWallet: Math.max(0, Math.floor(character.wallet - cost)),
+  };
+}
+
+export async function sellStockForCharacter(input: {
+  characterId: string;
+  symbol: string;
+  quantity: number;
+}) {
+  const character = await prisma.character.findUnique({ where: { id: input.characterId } });
+  if (!character) throw new Error("Character not found");
+
+  const stock = await prisma.stock.findUnique({ where: { symbol: input.symbol } });
+  if (!stock) throw new Error("Stock not found");
+
+  const portfolioItem = await prisma.portfolioItem.findUnique({
+    where: {
+      characterId_stockId: {
+        characterId: input.characterId,
+        stockId: stock.id,
+      },
+    },
+  });
+
+  if (!portfolioItem || portfolioItem.quantity < input.quantity) {
+    return { ok: false as const, reason: "NOT_ENOUGH_SHARES" as const };
+  }
+
+  const gain = stock.price * input.quantity;
+
+  await prisma.$transaction([
+    prisma.character.update({
+      where: { id: input.characterId },
+      data: { wallet: { increment: gain } },
+    }),
+    prisma.portfolioItem.update({
+      where: { id: portfolioItem.id },
+      data: { quantity: { decrement: input.quantity } },
+    }),
+  ]);
+
+  return {
+    ok: true as const,
+    gain,
+    newWallet: Math.max(0, Math.floor(character.wallet + gain)),
+  };
+}
+
+export async function applyArenaResult(input: {
+  winner?: string;
+  loser?: string;
+  reward: number;
+  isSolo: boolean;
+  roundsReached: number;
+}) {
+  if (!input.isSolo) {
+    if (input.winner) {
+      await prisma.character.updateMany({
+        where: { user: { username: input.winner } },
+        data: { experience: { increment: 50 }, wallet: { increment: input.reward } },
+      });
+    }
+    if (input.loser) {
+      await prisma.character.updateMany({
+        where: { user: { username: input.loser } },
+        data: { experience: { increment: 10 } },
+      });
+    }
+    return;
+  }
+
+  const playerUsername = input.winner ?? input.loser;
+  if (!playerUsername) return;
+
+  const character = await prisma.character.findFirst({
+    where: { user: { username: playerUsername } },
+  });
+  if (!character) return;
+
+  if (input.roundsReached > character.arenaMaxRounds) {
+    await prisma.character.update({
+      where: { id: character.id },
+      data: { arenaMaxRounds: input.roundsReached },
+    });
+  }
+
+  const now = new Date();
+  const lastSolo = character.lastSoloArenaAt;
+  let shouldGrantSoloXP = false;
+
+  if (!lastSolo) {
+    shouldGrantSoloXP = true;
+  } else if (
+    lastSolo.getUTCFullYear() !== now.getUTCFullYear() ||
+    lastSolo.getUTCMonth() !== now.getUTCMonth() ||
+    lastSolo.getUTCDate() !== now.getUTCDate()
+  ) {
+    shouldGrantSoloXP = true;
+  }
+
+  if (shouldGrantSoloXP) {
+    await prisma.character.update({
+      where: { id: character.id },
+      data: {
+        experience: { increment: 10 },
+        lastSoloArenaAt: now,
+      },
+    });
+  }
+}

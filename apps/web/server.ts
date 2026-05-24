@@ -20,10 +20,13 @@ import type {
   ChatSendPayload,
 } from "./lib/chat/chatTypes";
 import { getPlayerProfile, strapiMe, updatePlayerProfile } from "./lib/strapiAuth";
-import { prisma } from "./lib/prisma";
 import {
+  applyArenaResult,
+  buyStockForCharacter,
   ensureCompanyStocksFromProfiles,
+  getAvatarForUsername,
   getCharacterById,
+  sellStockForCharacter,
   tickStocksAndReturnSorted,
   upsertLegacyCharacterForUsername,
 } from "./lib/bff/serverRuntimeService";
@@ -547,14 +550,13 @@ app.prepare().then(async () => {
         });
         if (!legacyCharacterId) return;
 
-        const character = await getCharacterById(legacyCharacterId);
-        if (!character) return;
+        const tradeResult = await buyStockForCharacter({
+          characterId: legacyCharacterId,
+          symbol,
+          quantity,
+        });
 
-        const stock = await prisma.stock.findUnique({ where: { symbol } });
-        if (!stock) return;
-
-        const cost = stock.price * quantity;
-        if (character.wallet < cost) {
+        if (!tradeResult.ok) {
           socket.emit("portfolio_updated", {
             message: `Insufficient funds to buy ${quantity} shares of ${symbol}`,
             type: "error",
@@ -562,33 +564,12 @@ app.prepare().then(async () => {
           return;
         }
 
-        await prisma.$transaction([
-          prisma.character.update({
-            where: { id: legacyCharacterId },
-            data: { wallet: { decrement: cost } },
-          }),
-          prisma.portfolioItem.upsert({
-            where: {
-              characterId_stockId: {
-                characterId: legacyCharacterId,
-                stockId: stock.id,
-              },
-            },
-            create: {
-              characterId: legacyCharacterId,
-              stockId: stock.id,
-              quantity,
-            },
-            update: {
-              quantity: { increment: quantity },
-            },
-          }),
-        ]);
+        const cost = tradeResult.cost;
 
         if (sessionToken) {
           try {
             const me = await strapiMe(sessionToken);
-            await updatePlayerProfile(sessionToken, me.id, { wallet: Math.max(0, Math.floor(character.wallet - cost)) });
+            await updatePlayerProfile(sessionToken, me.id, { wallet: tradeResult.newWallet });
           } catch (error) {
             console.error("Failed to sync Strapi wallet after buy_stock", error);
           }
@@ -624,22 +605,13 @@ app.prepare().then(async () => {
         });
         if (!legacyCharacterId) return;
 
-        const character = await getCharacterById(legacyCharacterId);
-        if (!character) return;
-
-        const stock = await prisma.stock.findUnique({ where: { symbol } });
-        if (!stock) return;
-
-        const portfolioItem = await prisma.portfolioItem.findUnique({
-          where: {
-            characterId_stockId: {
-              characterId: legacyCharacterId,
-              stockId: stock.id,
-            },
-          },
+        const tradeResult = await sellStockForCharacter({
+          characterId: legacyCharacterId,
+          symbol,
+          quantity,
         });
 
-        if (!portfolioItem || portfolioItem.quantity < quantity) {
+        if (!tradeResult.ok) {
           socket.emit("portfolio_updated", {
             message: `Not enough shares to sell`,
             type: "error",
@@ -647,23 +619,12 @@ app.prepare().then(async () => {
           return;
         }
 
-        const gain = stock.price * quantity;
-
-        await prisma.$transaction([
-          prisma.character.update({
-            where: { id: legacyCharacterId },
-            data: { wallet: { increment: gain } },
-          }),
-          prisma.portfolioItem.update({
-            where: { id: portfolioItem.id },
-            data: { quantity: { decrement: quantity } },
-          }),
-        ]);
+        const gain = tradeResult.gain;
 
         if (sessionToken) {
           try {
             const me = await strapiMe(sessionToken);
-            await updatePlayerProfile(sessionToken, me.id, { wallet: Math.max(0, Math.floor(character.wallet + gain)) });
+            await updatePlayerProfile(sessionToken, me.id, { wallet: tradeResult.newWallet });
           } catch (error) {
             console.error("Failed to sync Strapi wallet after sell_stock", error);
           }
@@ -940,13 +901,7 @@ app.prepare().then(async () => {
       const isSolo = roomId.startsWith("solo-");
 
       let avatar = "bunny";
-      const user = await prisma.user.findUnique({
-        where: { username: mockUser },
-        include: { character: true },
-      });
-      if (user?.character?.avatar) {
-        avatar = user.character.avatar;
-      }
+      avatar = await getAvatarForUsername(mockUser);
 
       game.players[socket.id] = buildSpawnPlayerState(
         socket.id,
@@ -1046,70 +1001,15 @@ app.prepare().then(async () => {
         try {
           if (!isSolo) {
             setGlobalToplist(toplistPayload);
-
-            // Multiplayer XP
-            if (winner) {
-              await prisma.character.updateMany({
-                where: { user: { username: winner } },
-                data: { experience: { increment: 50 }, wallet: { increment: reward } },
-              });
-              console.log(`Granted ${reward} reward and 50 XP to winner: ${winner}`);
-            }
-            if (loser) {
-              await prisma.character.updateMany({
-                where: { user: { username: loser } },
-                data: { experience: { increment: 10 } },
-              });
-              console.log(`Granted 10 XP to loser: ${loser}`);
-            }
-          } else {
-            const playerUsername = Object.values(game.players)[0]?.username;
-            if (playerUsername) {
-              const character = await prisma.character.findFirst({
-                where: { user: { username: playerUsername } },
-              });
-              if (character) {
-                if (roundsReached > character.arenaMaxRounds) {
-                  await prisma.character.update({
-                    where: { id: character.id },
-                    data: { arenaMaxRounds: roundsReached },
-                  });
-                  console.log(
-                    `Updated arenaMaxRounds for ${playerUsername} to ${roundsReached}`,
-                  );
-                }
-
-                // Singleplayer XP (Once a day)
-                const now = new Date();
-                const lastSolo = character.lastSoloArenaAt;
-                let shouldGrantSoloXP = false;
-
-                if (!lastSolo) {
-                  shouldGrantSoloXP = true;
-                } else {
-                  // Check if it's a new day
-                  if (
-                    lastSolo.getUTCFullYear() !== now.getUTCFullYear() ||
-                    lastSolo.getUTCMonth() !== now.getUTCMonth() ||
-                    lastSolo.getUTCDate() !== now.getUTCDate()
-                  ) {
-                    shouldGrantSoloXP = true;
-                  }
-                }
-
-                if (shouldGrantSoloXP) {
-                  await prisma.character.update({
-                    where: { id: character.id },
-                    data: {
-                      experience: { increment: 10 },
-                      lastSoloArenaAt: now
-                    },
-                  });
-                  console.log(`Granted 10 daily solo XP to ${playerUsername}`);
-                }
-              }
-            }
           }
+
+          await applyArenaResult({
+            winner,
+            loser,
+            reward,
+            isSolo,
+            roundsReached,
+          });
 
           await syncStrapiProfileFromLegacyForCurrentSocketUser();
         } catch (error) {
