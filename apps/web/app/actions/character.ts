@@ -1,8 +1,8 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { prisma } from "../../lib/prisma";
 import { ensureLegacyCharacterForSession, getSessionUser } from "../../lib/auth";
+import { createLegacyCharacter, updateLegacyCharacterProfile } from "@/lib/bff/characterService";
 import { revalidatePath } from "next/cache";
 import { AUTH_COOKIE_NAME, updatePlayerProfile } from "../../lib/strapiAuth";
 
@@ -29,13 +29,11 @@ export async function createCharacter(formData: FormData) {
     return;
   }
 
-  await prisma.character.create({
-    data: {
-      name,
-      appearanceColor,
-      avatar,
-      userId: user.id,
-    },
+  await createLegacyCharacter({
+    name,
+    appearanceColor,
+    avatar,
+    userId: user.id,
   });
 
   revalidatePath("/lobby");
@@ -62,13 +60,10 @@ export async function updateCharacter(formData: FormData) {
     });
   } else {
     const legacyCharacterId = await ensureLegacyCharacterForSession(user);
-    await prisma.character.update({
-      where: { id: legacyCharacterId },
-      data: {
-        name,
-        avatar,
-        description,
-      },
+    await updateLegacyCharacterProfile(legacyCharacterId, {
+      name,
+      avatar,
+      description,
     });
   }
 
