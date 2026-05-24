@@ -1,6 +1,5 @@
 import { prisma } from "../lib/prisma";
 import { runLoanDelinquencySweep } from "../lib/treasury/loanService";
-import { LoanStatus } from "@prisma/client";
 import { toUtcDateKey, addUtcDays } from "../lib/treasury/utils";
 import { treasuryConfig } from "../lib/treasury/config";
 import fs from "fs";
@@ -54,7 +53,7 @@ async function seed(count: number) {
       data: {
         characterId,
         townId: 1,
-        status: LoanStatus.ACTIVE,
+        status: "ACTIVE",
         principalOrigin: 1000,
         remainingPrincipal: 1000,
         aprBps: 1200,

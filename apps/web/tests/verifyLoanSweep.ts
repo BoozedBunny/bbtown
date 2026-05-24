@@ -1,6 +1,5 @@
 import { prisma } from "../lib/prisma";
 import { runLoanDelinquencySweep } from "../lib/treasury/loanService";
-import { LoanStatus, CharacterLoanStatus } from "@prisma/client";
 import { toUtcDateKey, addUtcDays } from "../lib/treasury/utils";
 import { treasuryConfig } from "../lib/treasury/config";
 
@@ -50,7 +49,7 @@ async function test() {
     data: {
       characterId: charDelinquentId,
       townId,
-      status: LoanStatus.ACTIVE,
+      status: "ACTIVE",
       principalOrigin: 1000,
       remainingPrincipal: 1000,
       aprBps: 1200,
@@ -68,7 +67,7 @@ async function test() {
     data: {
       characterId: charDefaultedId,
       townId,
-      status: LoanStatus.ACTIVE,
+      status: "ACTIVE",
       principalOrigin: 1000,
       remainingPrincipal: 1000,
       aprBps: 1200,
