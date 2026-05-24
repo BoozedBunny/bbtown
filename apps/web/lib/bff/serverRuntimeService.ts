@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { many, oneOrNull, withTransaction } from "@/lib/db";
 
 type CompanyProfileSeed = {
@@ -19,8 +20,8 @@ type LegacyCharacterProfileSync = {
 export async function ensureCompanyStocksFromProfiles(profiles: CompanyProfileSeed[]) {
   for (const stock of profiles) {
     await oneOrNull(
-      'INSERT INTO "Stock" ("symbol", "name", "price", "previousPrice") VALUES ($1, $2, $3, $3) ON CONFLICT ("symbol") DO NOTHING RETURNING "id"',
-      [stock.symbol, stock.name, stock.basePrice],
+      'INSERT INTO "Stock" ("id", "symbol", "name", "price", "previousPrice", "updatedAt") VALUES ($1, $2, $3, $4, $4, NOW()) ON CONFLICT ("symbol") DO NOTHING RETURNING "id"',
+      [randomUUID(), stock.symbol, stock.name, stock.basePrice],
     );
   }
 }
@@ -32,8 +33,7 @@ export async function tickStocksAndReturnSorted() {
     const newPrice = Math.max(0.01, stock.price * (1 + changePercent));
 
     await withTransaction(async (tx) => {
-      await tx.query('UPDATE "Stock" SET "previousPrice" = $2, "price" = $3 WHERE "id" = $1', [stock.id, stock.price, newPrice]);
-      await tx.query('INSERT INTO "StockHistory" ("stockId", "price") VALUES ($1, $2)', [stock.id, newPrice]);
+      await tx.query('UPDATE "Stock" SET "previousPrice" = $2, "price" = $3, "updatedAt" = NOW() WHERE "id" = $1', [stock.id, stock.price, newPrice]);
     });
   }
 
