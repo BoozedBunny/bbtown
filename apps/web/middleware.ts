@@ -5,7 +5,13 @@ export function middleware(request: NextRequest) {
   const currentUser = request.cookies.get('mock_user')?.value || request.cookies.get('bbtown_session')?.value
   const pathname = request.nextUrl.pathname
 
-  if (pathname === '/' || pathname === '/login') {
+  const isPublicRoute =
+    pathname === '/' ||
+    pathname === '/login' ||
+    pathname === '/about' ||
+    pathname.startsWith('/about/')
+
+  if (isPublicRoute) {
     return NextResponse.next()
   }
 
