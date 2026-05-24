@@ -70,8 +70,9 @@ export async function upsertLegacyCharacterForUsername(
   }
 
   const created = await oneOrNull<{ id: string }>(
-    'INSERT INTO "Character" ("userId", "name", "appearanceColor", "avatar", "description", "wallet", "arenaMaxRounds", "experience") VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING "id"',
+    'INSERT INTO "Character" ("id", "userId", "name", "appearanceColor", "avatar", "description", "wallet", "arenaMaxRounds", "experience", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()) RETURNING "id"',
     [
+      randomUUID(),
       legacyUser.id,
       profile?.name ?? username,
       profile?.appearanceColor ?? "#BD00FF",

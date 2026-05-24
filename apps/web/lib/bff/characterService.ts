@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { oneOrNull } from "@/lib/db";
 
 export async function createLegacyCharacter(input: {
@@ -7,8 +8,8 @@ export async function createLegacyCharacter(input: {
   userId: string;
 }) {
   return oneOrNull(
-    'INSERT INTO "Character" ("name", "appearanceColor", "avatar", "userId") VALUES ($1, $2, $3, $4) RETURNING *',
-    [input.name, input.appearanceColor, input.avatar, input.userId],
+    'INSERT INTO "Character" ("id", "name", "appearanceColor", "avatar", "userId", "updatedAt") VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *',
+    [randomUUID(), input.name, input.appearanceColor, input.avatar, input.userId],
   );
 }
 
