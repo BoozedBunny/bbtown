@@ -901,7 +901,17 @@ app.prepare().then(async () => {
       const isSolo = roomId.startsWith("solo-");
 
       let avatar = "bunny";
-      avatar = await getAvatarForUsername(mockUser);
+      const legacyCharacterId = await ensureSocketLegacyCharacter({
+        username: mockUser,
+        sessionToken,
+      });
+
+      if (legacyCharacterId) {
+        const character = await getCharacterById(legacyCharacterId);
+        avatar = character?.avatar ?? "bunny";
+      } else {
+        avatar = await getAvatarForUsername(mockUser);
+      }
 
       game.players[socket.id] = buildSpawnPlayerState(
         socket.id,
