@@ -1,0 +1,41 @@
+{
+  "kind": "collectionType",
+  "collectionName": "town_news_items",
+  "info": {
+    "singularName": "town-news",
+    "pluralName": "town-news-items",
+    "displayName": "Town News",
+    "description": "News entries for towns and events"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "title",
+      "required": true
+    },
+    "townId": {
+      "type": "string",
+      "required": true
+    },
+    "excerpt": {
+      "type": "text"
+    },
+    "body": {
+      "type": "richtext"
+    },
+    "publishedAtGameTime": {
+      "type": "datetime"
+    },
+    "isPinned": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

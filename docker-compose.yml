@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bbtown-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bbtown
+      POSTGRES_PASSWORD: bbtown
+      POSTGRES_DB: bbtown
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bbtown -d bbtown"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  cms:
+    image: strapi/strapi:latest
+    container_name: bbtown-cms
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      DATABASE_CLIENT: postgres
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: bbtown
+      DATABASE_USERNAME: bbtown
+      DATABASE_PASSWORD: bbtown
+      DATABASE_SSL: "false"
+      HOST: 0.0.0.0
+      PORT: 1337
+      APP_KEYS: "devKeyA,devKeyB,devKeyC,devKeyD"
+      API_TOKEN_SALT: "devApiTokenSalt"
+      ADMIN_JWT_SECRET: "devAdminJwtSecret"
+      TRANSFER_TOKEN_SALT: "devTransferTokenSalt"
+      JWT_SECRET: "devJwtSecret"
+      ENCRYPTION_KEY: "devEncryptionKey0123456789012345"
+    ports:
+      - "1337:1337"
+    volumes:
+      - ./apps/cms:/srv/app
+
+volumes:
+  postgres_data:

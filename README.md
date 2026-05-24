@@ -1,41 +1,63 @@
-# BoozedBunnyTown is a 3D browser based Multiplayer Game
+# BoozedBunnyTown (Monorepo)
 
-<img alt="BB Frontend" src="https://www.boozedbunnytown.com/media/logo.png">
+3D browserbasiertes Multiplayer-Game mit Next.js (Web-App), plus vorbereiteter CMS- und DB-Stack (Strapi + PostgreSQL via Docker).
 
-This project is a browser-based 3D multiplayer game built with Next.js, React Three Fiber, Prisma, and Socket.io.
+## Neue Monorepo-Struktur
+
+- apps/web: bestehende Next.js + Socket.io Game-App
+- apps/cms: Strapi-App-Volume (wird vom Container befüllt)
+- docker-compose.yml: PostgreSQL + Strapi
 
 ## Tech Stack
-- **Node.js**: 22
-- **Next.js**: 15 (App Router)
-- **3D Engine**: React Three Fiber, @react-three/drei
-- **Database**: Prisma with SQLite
-- **Multiplayer**: Socket.io with a custom Express server
-- **UI**: Tailwind CSS, shadcn/ui
 
-## Getting Started
+- Node.js: 22+
+- Next.js: 15 (App Router)
+- 3D: React Three Fiber, drei
+- Web-Datenzugriff (aktuell): Prisma
+- Datenbank-Ziel: PostgreSQL
+- CMS: Strapi (Docker)
 
-### 1. Install Dependencies
-```bash
+## Quickstart
+
+1) Dependencies installieren
+
 npm install
-```
 
-### 2. Set Up Database
-```bash
-npx prisma migrate dev --name init
-npx ts-node --esm prisma/seed.ts
-```
+2) DB + CMS starten
 
-### 3. Run Development Server
-```bash
-npm run dev
-```
+npm run stack:up
 
-The app will be available at [http://localhost:3000](http://localhost:3000).
+- Postgres: localhost:5432
+- Strapi Admin: http://localhost:1337/admin
 
-## Production
-To run in production:
-```bash
-npm run build
-npm start
-```
-(For PM2, use `pm2 start "npm start" --name bbtown`)
+3) Web-App starten
+
+npm run dev:web
+
+Web läuft auf http://localhost:3004
+
+## Prisma auf PostgreSQL umstellen (web)
+
+Die Prisma-Config in apps/web/prisma/schema.prisma ist auf PostgreSQL vorbereitet.
+
+Beispiel .env (siehe auch .env.example):
+
+DATABASE_URL="postgresql://bbtown:bbtown@localhost:5432/bbtown?schema=public"
+
+Dann:
+
+npm run prisma:generate --workspace web
+npm run prisma:migrate --workspace web -- --name init_pg
+npm run prisma:seed --workspace web
+
+Hinweis: Bestehende SQLite-Daten werden bewusst nicht migriert (Beta-Reset).
+
+## Wichtige Scripts
+
+- npm run dev:web
+- npm run build:web
+- npm run start:web
+- npm run db:up
+- npm run cms:up
+- npm run stack:up
+- npm run stack:down
