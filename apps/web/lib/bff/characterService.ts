@@ -8,7 +8,7 @@ export async function createLegacyCharacter(input: {
   userId: string;
 }) {
   return oneOrNull(
-    'INSERT INTO "Character" ("id", "name", "appearanceColor", "avatar", "userId", "updatedAt") VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *',
+    'INSERT INTO "Character" ("id", "name", "appearanceColor", "avatar", "userId") VALUES ($1, $2, $3, $4, $5) RETURNING *',
     [randomUUID(), input.name, input.appearanceColor, input.avatar, input.userId],
   );
 }

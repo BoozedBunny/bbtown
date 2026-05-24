@@ -58,7 +58,7 @@ export async function ensureLegacyCharacterFromSessionShape(input: {
   }
 
   const created = await oneOrNull<{ id: string }>(
-    'INSERT INTO "Character" ("id", "userId", "name", "appearanceColor", "avatar", "description", "wallet", "arenaMaxRounds", "experience", "loanStatus", "loanLockedUntil", "lastSoloArenaAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW()) RETURNING "id"',
+    'INSERT INTO "Character" ("id", "userId", "name", "appearanceColor", "avatar", "description", "wallet", "arenaMaxRounds", "experience", "loanStatus", "loanLockedUntil", "lastSoloArenaAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING "id"',
     [
       randomUUID(),
       legacyUser.id,
