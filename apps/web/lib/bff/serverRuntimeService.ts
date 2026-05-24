@@ -135,11 +135,11 @@ export async function buyStockForCharacter(input: {
   await withTransaction(async (tx) => {
     await tx.query('UPDATE "Character" SET "wallet" = "wallet" - $2 WHERE "id" = $1', [input.characterId, cost]);
     await tx.query(
-      `INSERT INTO "PortfolioItem" ("characterId", "stockId", "quantity")
-       VALUES ($1, $2, $3)
+      `INSERT INTO "PortfolioItem" ("id", "characterId", "stockId", "quantity")
+       VALUES ($1, $2, $3, $4)
        ON CONFLICT ("characterId", "stockId") DO UPDATE
        SET "quantity" = "PortfolioItem"."quantity" + EXCLUDED."quantity"`,
-      [input.characterId, stock.id, input.quantity],
+      [randomUUID(), input.characterId, stock.id, input.quantity],
     );
   });
 
