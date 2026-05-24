@@ -3,7 +3,6 @@ import { parse } from "url";
 import next from "next";
 import { Server } from "socket.io";
 import express from "express";
-import { PrismaClient } from "@prisma/client";
 import { COMPANY_PROFILES } from "./lib/market/companyProfiles";
 import { runTreasuryDailySettlement } from "./lib/treasury/treasuryService";
 import { runLoanDelinquencySweep } from "./lib/treasury/loanService";
@@ -21,6 +20,13 @@ import type {
   ChatSendPayload,
 } from "./lib/chat/chatTypes";
 import { getPlayerProfile, strapiMe, updatePlayerProfile } from "./lib/strapiAuth";
+import { prisma } from "./lib/prisma";
+import {
+  ensureCompanyStocksFromProfiles,
+  getCharacterById,
+  tickStocksAndReturnSorted,
+  upsertLegacyCharacterForUsername,
+} from "./lib/bff/serverRuntimeService";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
@@ -29,25 +35,11 @@ const port = parseInt(process.env.PORT || "3000", 10);
 const ROUND_DURATION_SECONDS = 30;
 const TOTAL_ROUNDS = 30;
 
-const prisma = new PrismaClient();
-
 const app = (next as any)({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
 app.prepare().then(async () => {
-  // Initialize exchange company universe from shared profile config.
-  for (const stock of COMPANY_PROFILES) {
-    await prisma.stock.upsert({
-      where: { symbol: stock.symbol },
-      update: {},
-      create: {
-        symbol: stock.symbol,
-        name: stock.name,
-        price: stock.basePrice,
-        previousPrice: stock.basePrice,
-      },
-    });
-  }
+  await ensureCompanyStocksFromProfiles(COMPANY_PROFILES);
 
   const server = express();
   const httpServer = createServer(server);
@@ -308,33 +300,8 @@ app.prepare().then(async () => {
     }
   };
 
-  // Stock update interval
   setInterval(async () => {
-    const stocks = await prisma.stock.findMany();
-    for (const stock of stocks) {
-      // Random movement between -5% and +5%
-      const changePercent = Math.random() * 0.1 - 0.05;
-      const newPrice = Math.max(0.01, stock.price * (1 + changePercent));
-
-      await prisma.$transaction([
-        prisma.stock.update({
-          where: { id: stock.id },
-          data: {
-            previousPrice: stock.price,
-            price: newPrice,
-          },
-        }),
-        prisma.stockHistory.create({
-          data: {
-            stockId: stock.id,
-            price: newPrice,
-          },
-        }),
-      ]);
-    }
-    const updatedStocks = await prisma.stock.findMany({
-      orderBy: { symbol: "asc" },
-    });
+    const updatedStocks = await tickStocksAndReturnSorted();
     io.emit("stocks_updated", updatedStocks);
   }, 10000);
 
@@ -377,44 +344,15 @@ app.prepare().then(async () => {
       }
     }
 
-    const legacyUser = await prisma.user.upsert({
-      where: { username },
-      update: {},
-      create: { username },
+    return upsertLegacyCharacterForUsername(username, {
+      wallet: profileWallet,
+      name: profileName,
+      avatar: profileAvatar,
+      description: profileDescription,
+      appearanceColor: profileAppearanceColor,
+      arenaMaxRounds: profileArenaMaxRounds,
+      experience: profileExperience,
     });
-
-    const existingCharacter = await prisma.character.findUnique({ where: { userId: legacyUser.id } });
-
-    if (existingCharacter) {
-      await prisma.character.update({
-        where: { id: existingCharacter.id },
-        data: {
-          name: profileName ?? existingCharacter.name,
-          avatar: profileAvatar ?? existingCharacter.avatar,
-          description: profileDescription ?? existingCharacter.description,
-          appearanceColor: profileAppearanceColor ?? existingCharacter.appearanceColor,
-          wallet: profileWallet ?? existingCharacter.wallet,
-          arenaMaxRounds: profileArenaMaxRounds ?? existingCharacter.arenaMaxRounds,
-          experience: profileExperience ?? existingCharacter.experience,
-        },
-      });
-      return existingCharacter.id;
-    }
-
-    const created = await prisma.character.create({
-      data: {
-        userId: legacyUser.id,
-        name: profileName ?? username,
-        appearanceColor: profileAppearanceColor ?? "#BD00FF",
-        avatar: profileAvatar ?? "bunny",
-        description: profileDescription ?? null,
-        wallet: profileWallet ?? 1000,
-        arenaMaxRounds: profileArenaMaxRounds ?? 0,
-        experience: profileExperience ?? 0,
-      },
-    });
-
-    return created.id;
   }
 
   io.on("connection", (socket) => {
@@ -436,7 +374,7 @@ app.prepare().then(async () => {
         });
         if (!legacyCharacterId) return;
 
-        const character = await prisma.character.findUnique({ where: { id: legacyCharacterId } });
+        const character = await getCharacterById(legacyCharacterId);
         if (!character) return;
 
         const me = await strapiMe(sessionToken);
@@ -609,7 +547,7 @@ app.prepare().then(async () => {
         });
         if (!legacyCharacterId) return;
 
-        const character = await prisma.character.findUnique({ where: { id: legacyCharacterId } });
+        const character = await getCharacterById(legacyCharacterId);
         if (!character) return;
 
         const stock = await prisma.stock.findUnique({ where: { symbol } });
@@ -686,7 +624,7 @@ app.prepare().then(async () => {
         });
         if (!legacyCharacterId) return;
 
-        const character = await prisma.character.findUnique({ where: { id: legacyCharacterId } });
+        const character = await getCharacterById(legacyCharacterId);
         if (!character) return;
 
         const stock = await prisma.stock.findUnique({ where: { symbol } });
