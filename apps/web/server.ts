@@ -362,7 +362,16 @@ app.prepare().then(async () => {
     // Identify user via cookies for secure communication
     const cookieHeader = socket.handshake.headers.cookie;
     const cookies = cookieHeader
-      ? Object.fromEntries(cookieHeader.split("; ").map((c) => c.split("=")))
+      ? Object.fromEntries(
+          cookieHeader.split(";").map((part) => {
+            const trimmed = part.trim();
+            const eqIndex = trimmed.indexOf("=");
+            if (eqIndex === -1) return [trimmed, ""];
+            const key = trimmed.slice(0, eqIndex);
+            const value = trimmed.slice(eqIndex + 1);
+            return [key, decodeURIComponent(value)];
+          }),
+        )
       : {};
     const mockUser = cookies["mock_user"] || cookies["bbtown_user"];
     const sessionToken = cookies["bbtown_session"];

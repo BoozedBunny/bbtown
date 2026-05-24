@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { oneOrNull } from "@/lib/db";
 
 export async function getLegacyUserByUsername(username: string) {
@@ -33,8 +34,8 @@ export async function ensureLegacyCharacterFromSessionShape(input: {
   if (directCharacter) return directCharacter.id;
 
   const legacyUser = await oneOrNull<{ id: string }>(
-    'INSERT INTO "User" ("username") VALUES ($1) ON CONFLICT ("username") DO UPDATE SET "username" = EXCLUDED."username" RETURNING "id"',
-    [input.username],
+    'INSERT INTO "User" ("id", "username") VALUES ($1, $2) ON CONFLICT ("username") DO UPDATE SET "username" = EXCLUDED."username" RETURNING "id"',
+    [randomUUID(), input.username],
   );
   if (!legacyUser) throw new Error("Failed to upsert legacy user");
 

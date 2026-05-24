@@ -45,8 +45,8 @@ export async function upsertLegacyCharacterForUsername(
   profile?: LegacyCharacterProfileSync,
 ) {
   const legacyUser = await oneOrNull<{ id: string }>(
-    'INSERT INTO "User" ("username") VALUES ($1) ON CONFLICT ("username") DO UPDATE SET "username" = EXCLUDED."username" RETURNING "id"',
-    [username],
+    'INSERT INTO "User" ("id", "username") VALUES ($1, $2) ON CONFLICT ("username") DO UPDATE SET "username" = EXCLUDED."username" RETURNING "id"',
+    [randomUUID(), username],
   );
   if (!legacyUser) throw new Error("Failed to upsert user");
 
