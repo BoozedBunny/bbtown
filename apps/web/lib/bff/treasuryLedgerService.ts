@@ -1,13 +1,22 @@
-import { Prisma, TreasuryLedgerKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { treasuryConfig } from "@/lib/treasury/config";
 import { addUtcDays, clamp, seededPercent, toUtcDateKey, roundInt } from "@/lib/treasury/utils";
 
+type TxClient = Parameters<typeof prisma.$transaction>[0] extends (tx: infer T) => Promise<any> ? T : never;
+
+type LedgerKind =
+  | "DAILY_VARIATION"
+  | "LOAN_PRINCIPAL_OUTFLOW"
+  | "LOAN_FEE_INFLOW"
+  | "LOAN_REPAYMENT_PRINCIPAL_INFLOW"
+  | "LOAN_INTEREST_INFLOW"
+  | "BUILDING_SALE_INFLOW";
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export async function createLedgerEntry(tx: Prisma.TransactionClient, input: {
+export async function createLedgerEntry(tx: TxClient, input: {
   townId: number;
-  kind: TreasuryLedgerKind;
+  kind: LedgerKind;
   amount: number;
   referenceType: string;
   referenceId: string;

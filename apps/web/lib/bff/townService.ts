@@ -1,4 +1,3 @@
-import { TreasuryLedgerKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export async function buyBuildingLegacy(input: {
@@ -34,7 +33,7 @@ export async function buyBuildingLegacy(input: {
       await tx.treasuryLedgerEntry.create({
         data: {
           townId,
-          kind: TreasuryLedgerKind.BUILDING_SALE_INFLOW,
+          kind: "BUILDING_SALE_INFLOW",
           amount: building.price,
           referenceType: "BuildingState",
           referenceId: building.id,

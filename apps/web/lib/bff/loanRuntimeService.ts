@@ -1,10 +1,16 @@
 import crypto from "crypto";
-import { LoanPaymentSource, LoanStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { treasuryConfig } from "@/lib/treasury/config";
 import { addUtcDays, toUtcDateKey } from "@/lib/treasury/utils";
 import { createLedgerEntry } from "@/lib/bff/treasuryLedgerService";
 import { updatePlayerProfileByAuthUserId } from "@/lib/strapiAuth";
+
+const LOAN_PAYMENT_SOURCE_MANUAL = "MANUAL" as const;
+const LOAN_STATUS = {
+  ACTIVE: "ACTIVE",
+  DELINQUENT: "DELINQUENT",
+  DEFAULTED: "DEFAULTED",
+} as const;
 
 export const LoanReasonCode = {
   HAS_ACTIVE_LOAN: "HAS_ACTIVE_LOAN",
@@ -190,7 +196,7 @@ export async function repayLoan(characterId: string, loanId: string, amount: num
     if (appliedFees > 0) await createLedgerEntry(tx, { townId: loan.townId, kind: "LOAN_FEE_INFLOW", amount: appliedFees, referenceType: "CharacterLoan", referenceId: loan.id });
 
     await tx.loanRepayment.create({
-      data: { loanId: loan.id, characterId, amountPaid: amount, appliedFees, appliedInterest, appliedPrincipal, paymentSource: LoanPaymentSource.MANUAL },
+      data: { loanId: loan.id, characterId, amountPaid: amount, appliedFees, appliedInterest, appliedPrincipal, paymentSource: LOAN_PAYMENT_SOURCE_MANUAL },
     });
 
     const result = {
@@ -206,7 +212,7 @@ export async function repayLoan(characterId: string, loanId: string, amount: num
 
 export async function runLoanDelinquencySweep(now = new Date()) {
   if (!treasuryConfig.ffLoansDelinquency) return;
-  const loans = await prisma.characterLoan.findMany({ where: { status: { in: [LoanStatus.ACTIVE, LoanStatus.DELINQUENT] } } });
+  const loans = await prisma.characterLoan.findMany({ where: { status: { in: [LOAN_STATUS.ACTIVE, LOAN_STATUS.DELINQUENT] } } });
   const today = toUtcDateKey(now);
 
   const loanUpdatesByDelinquentDays = new Map<number, string[]>();
@@ -239,7 +245,7 @@ export async function runLoanDelinquencySweep(now = new Date()) {
     await prisma.characterLoan.updateMany({
       where: { id: { in: loanIds } },
       data: {
-        status: shouldDefault ? LoanStatus.DEFAULTED : LoanStatus.DELINQUENT,
+        status: shouldDefault ? LOAN_STATUS.DEFAULTED : LOAN_STATUS.DELINQUENT,
         lateFeesAccrued: delinquentDays * treasuryConfig.loanLateFeeFlat,
         missedPaymentDays: delinquentDays,
       },
