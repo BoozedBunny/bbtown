@@ -7,9 +7,6 @@
     "dev": "PORT=3004 nodemon --watch server.ts --exec \"tsx server.ts\"",
     "build": "next build",
     "start": "PORT=3000 NODE_ENV=production tsx server.ts",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "ts-node --esm prisma/seed.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -25,7 +22,6 @@
   },
   "homepage": "https://github.com/BoozedBunny/bbtown#readme",
   "dependencies": {
-    "@prisma/client": "6.19.3",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.4",
@@ -67,7 +63,6 @@
     "@types/express": "^5.0.6",
     "@types/recharts": "^1.8.29",
     "nodemon": "^3.1.14",
-    "prisma": "6.19.3",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0"
   }

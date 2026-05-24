@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { oneOrNull, withTransaction } from "@/lib/db";
 
 export async function buyBuildingLegacy(input: {
   buildingId: string;
@@ -6,74 +6,54 @@ export async function buyBuildingLegacy(input: {
 }) {
   const { buildingId, legacyCharacterId } = input;
 
-  return prisma.$transaction(async (tx) => {
-    const building = await tx.buildingState.findUnique({ where: { id: buildingId } });
+  return withTransaction(async (tx) => {
+    const building = await oneOrNull<any>('SELECT * FROM "BuildingState" WHERE "id" = $1 LIMIT 1', [buildingId], tx);
 
     if (!building) throw new Error("Building not found");
     if (!building.forSale) throw new Error("Building is not for sale");
 
-    const buyerUpdate = await tx.character.updateMany({
-      where: { id: legacyCharacterId, wallet: { gte: building.price } },
-      data: { wallet: { decrement: building.price } },
-    });
+    const buyerUpdate = await tx.query(
+      'UPDATE "Character" SET "wallet" = "wallet" - $2 WHERE "id" = $1 AND "wallet" >= $2',
+      [legacyCharacterId, building.price],
+    );
 
-    if (buyerUpdate.count === 0) throw new Error("Not enough funds");
+    if (buyerUpdate.rowCount === 0) throw new Error("Not enough funds");
 
     if (building.ownerId) {
-      await tx.character.update({
-        where: { id: building.ownerId },
-        data: { wallet: { increment: building.price } },
-      });
+      await tx.query('UPDATE "Character" SET "wallet" = "wallet" + $2 WHERE "id" = $1', [building.ownerId, building.price]);
     } else {
       const townId = parseInt(building.townId, 10);
-      await tx.town.update({
-        where: { id: townId },
-        data: { bankBalance: { increment: building.price } },
-      });
-      await tx.treasuryLedgerEntry.create({
-        data: {
-          townId,
-          kind: "BUILDING_SALE_INFLOW",
-          amount: building.price,
-          referenceType: "BuildingState",
-          referenceId: building.id,
-          metadataJson: JSON.stringify({ source: "buyBuilding" }),
-        },
-      });
+      await tx.query('UPDATE "Town" SET "bankBalance" = "bankBalance" + $2 WHERE "id" = $1', [townId, building.price]);
+      await tx.query(
+        'INSERT INTO "TreasuryLedgerEntry" ("townId", "kind", "amount", "referenceType", "referenceId", "metadataJson") VALUES ($1, $2, $3, $4, $5, $6)',
+        [townId, "BUILDING_SALE_INFLOW", building.price, "BuildingState", building.id, JSON.stringify({ source: "buyBuilding" })],
+      );
     }
 
-    const buildingUpdate = await tx.buildingState.updateMany({
-      where: {
-        id: buildingId,
-        forSale: true,
-        ownerId: building.ownerId,
-      },
-      data: { ownerId: legacyCharacterId, forSale: false },
-    });
+    const buildingUpdate = await tx.query(
+      'UPDATE "BuildingState" SET "ownerId" = $2, "forSale" = false WHERE "id" = $1 AND "forSale" = true AND "ownerId" IS NOT DISTINCT FROM $3',
+      [buildingId, legacyCharacterId, building.ownerId],
+    );
 
-    if (buildingUpdate.count === 0) {
+    if (buildingUpdate.rowCount === 0) {
       throw new Error("Building state changed unexpectedly during purchase");
     }
 
-    const updatedBuyer = await tx.character.findUnique({ where: { id: legacyCharacterId } });
+    const updatedBuyer = await oneOrNull<{ wallet: number }>('SELECT "wallet" FROM "Character" WHERE "id" = $1 LIMIT 1', [legacyCharacterId], tx);
     return { walletAfter: updatedBuyer?.wallet ?? null };
   });
 }
 
 export async function getBuildingById(buildingId: string) {
-  return prisma.buildingState.findUnique({ where: { id: buildingId } });
+  return oneOrNull('SELECT * FROM "BuildingState" WHERE "id" = $1 LIMIT 1', [buildingId]);
 }
 
 export async function updateBuildingSettingsLegacy(
   buildingId: string,
   input: { title: string; price: number; forSale: boolean },
 ) {
-  return prisma.buildingState.update({
-    where: { id: buildingId },
-    data: {
-      title: input.title,
-      price: input.price,
-      forSale: input.forSale,
-    },
-  });
+  return oneOrNull(
+    'UPDATE "BuildingState" SET "title" = $2, "price" = $3, "forSale" = $4 WHERE "id" = $1 RETURNING *',
+    [buildingId, input.title, input.price, input.forSale],
+  );
 }
