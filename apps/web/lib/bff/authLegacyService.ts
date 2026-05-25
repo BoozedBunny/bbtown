@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { oneOrNull } from "@/lib/db";
+import { getRuntimeFlags } from "@/lib/config/runtimeFlags";
 
 export async function getLegacyUserByUsername(username: string) {
   return oneOrNull(
@@ -36,9 +37,15 @@ export async function ensureLegacyCharacterFromSessionShape(input: {
     lastSoloArenaAt?: Date | null;
   };
 }) {
+  const flags = getRuntimeFlags();
+
   if (looksLikeUuid(input.characterIdFromSession)) {
     const directCharacter = await oneOrNull<{ id: string }>('SELECT "id" FROM "Character" WHERE "id" = $1 LIMIT 1', [input.characterIdFromSession]);
     if (directCharacter) return directCharacter.id;
+  }
+
+  if (!flags.legacyWriteEnabled || flags.strapiSotMode === "on") {
+    throw new Error("Legacy character missing while legacy writes are disabled (STRAPI_SOT_MODE=on)");
   }
 
   const legacyUser = await oneOrNull<{ id: string }>(

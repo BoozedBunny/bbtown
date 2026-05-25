@@ -3,6 +3,7 @@ import { type PoolClient } from "pg";
 import { many, oneOrNull, withTransaction } from "@/lib/db";
 import { treasuryConfig } from "@/lib/treasury/config";
 import { addUtcDays, clamp, seededPercent, toUtcDateKey, roundInt } from "@/lib/treasury/utils";
+import { getRuntimeFlags } from "@/lib/config/runtimeFlags";
 
 type TxClient = PoolClient | any;
 
@@ -15,6 +16,17 @@ type LedgerKind =
   | "BUILDING_SALE_INFLOW";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+function logTreasuryWrite(action: string, details: Record<string, unknown> = {}) {
+  const flags = getRuntimeFlags();
+  const writeTarget = flags.strapiSotMode === "on" ? "strapi" : "legacy";
+  console.info("[treasury-write]", {
+    action,
+    write_target: writeTarget,
+    source: "system_tick",
+    ...details,
+  });
+}
 
 export async function createLedgerEntry(tx: TxClient, input: {
   townId: number;
@@ -68,6 +80,8 @@ export async function settleTreasuryDay(townId: number, dateKey: string) {
     }
 
     const closingBalance = openingBalance + variationAmount;
+
+    logTreasuryWrite("daily_settlement", { townId, dateKey, openingBalance, variationAmount, closingBalance });
 
     await tx.query('UPDATE "Town" SET "bankBalance" = $2 WHERE "id" = $1', [townId, closingBalance]);
 

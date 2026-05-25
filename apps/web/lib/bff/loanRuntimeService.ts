@@ -4,8 +4,20 @@ import { treasuryConfig } from "@/lib/treasury/config";
 import { addUtcDays, toUtcDateKey } from "@/lib/treasury/utils";
 import { createLedgerEntry } from "@/lib/bff/treasuryLedgerService";
 import { updatePlayerProfileByAuthUserId } from "@/lib/strapiAuth";
+import { getRuntimeFlags } from "@/lib/config/runtimeFlags";
 
 const LOAN_PAYMENT_SOURCE_MANUAL = "MANUAL" as const;
+
+function logLoanWrite(action: string, details: Record<string, unknown> = {}) {
+  const flags = getRuntimeFlags();
+  const writeTarget = flags.strapiSotMode === "on" ? "strapi" : "legacy";
+  console.info("[loan-write]", {
+    action,
+    write_target: writeTarget,
+    source: "user_action",
+    ...details,
+  });
+}
 const LOAN_STATUS = {
   ACTIVE: "ACTIVE",
   DELINQUENT: "DELINQUENT",
@@ -136,6 +148,14 @@ export async function issueLoan(characterId: string, quote: any, quoteHashValue:
     const nextWallet = character.wallet + quote.netDisbursement;
     const nextTown = town.bankBalance - quote.principal + quote.fee;
 
+    logLoanWrite("issue", {
+      characterId,
+      loanId: loan.id,
+      principal: quote.principal,
+      fee: quote.fee,
+      townId: quote.townId,
+    });
+
     await tx.query('UPDATE "Character" SET "wallet" = $2, "loanStatus" = $3 WHERE "id" = $1', [characterId, nextWallet, "ACTIVE"]);
     await tx.query('UPDATE "Town" SET "bankBalance" = $2 WHERE "id" = $1', [quote.townId, nextTown]);
 
@@ -198,6 +218,12 @@ export async function repayLoan(characterId: string, loanId: string, amount: num
     await tx.query('UPDATE "Character" SET "wallet" = $2 WHERE "id" = $1', [characterId, nextWallet]);
 
     const isClosed = remainingPrincipal === 0 && remainingFees === 0 && interestDue - appliedInterest === 0;
+    logLoanWrite("repay", {
+      characterId,
+      loanId: loan.id,
+      amount,
+      isClosed,
+    });
     await tx.query(
       'UPDATE "CharacterLoan" SET "remainingPrincipal" = $2, "lateFeesAccrued" = $3, "status" = $4, "lastInterestAccrualDateKey" = $5, "version" = "version" + 1 WHERE "id" = $1',
       [loan.id, remainingPrincipal, remainingFees, isClosed ? "PAID" : loan.status, nowDateKey],

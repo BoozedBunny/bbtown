@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { many, oneOrNull, withTransaction } from "@/lib/db";
+import { getRuntimeFlags } from "@/lib/config/runtimeFlags";
 
 const STRAPI_BASE_URL = process.env.STRAPI_URL ?? "http://127.0.0.1:1339";
 
@@ -38,6 +39,17 @@ async function syncStrapiPortfolioAndWallet(input: {
   quantityDelta: number;
   walletAfterTrade: number;
 }) {
+  const flags = getRuntimeFlags();
+  if (flags.strapiSotMode === "on") {
+    console.info("[market-write] skip legacy->strapi sync (STRAPI_SOT_MODE=on)", {
+      write_target: "strapi",
+      source: "user_action",
+      username: input.username,
+      symbol: input.symbol,
+    });
+    return;
+  }
+
   const headers = getStrapiServiceHeaders();
   if (!headers) return;
 

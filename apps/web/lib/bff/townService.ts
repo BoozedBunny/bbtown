@@ -1,5 +1,17 @@
 import { randomUUID } from "node:crypto";
 import { oneOrNull, withTransaction } from "@/lib/db";
+import { getRuntimeFlags } from "@/lib/config/runtimeFlags";
+
+function logTownWrite(action: string, details: Record<string, unknown> = {}) {
+  const flags = getRuntimeFlags();
+  const writeTarget = flags.strapiSotMode === "on" ? "strapi" : "legacy";
+  console.info("[town-write]", {
+    action,
+    write_target: writeTarget,
+    source: "user_action",
+    ...details,
+  });
+}
 
 export async function buyBuildingLegacy(input: {
   buildingId: string;
@@ -24,6 +36,7 @@ export async function buyBuildingLegacy(input: {
       await tx.query('UPDATE "Character" SET "wallet" = "wallet" + $2 WHERE "id" = $1', [building.ownerId, building.price]);
     } else {
       const townId = parseInt(building.townId, 10);
+      logTownWrite("buy_building_treasury_inflow", { buildingId: building.id, townId, amount: building.price });
       await tx.query('UPDATE "Town" SET "bankBalance" = "bankBalance" + $2 WHERE "id" = $1', [townId, building.price]);
       await tx.query(
         'INSERT INTO "TreasuryLedgerEntry" ("id", "townId", "kind", "amount", "referenceType", "referenceId", "metadataJson") VALUES ($1, $2, $3, $4, $5, $6, $7)',
