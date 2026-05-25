@@ -26,7 +26,7 @@ export async function createLedgerEntry(tx: TxClient, input: {
 }) {
   if (typeof tx?.query === "function") {
     return oneOrNull(
-      'INSERT INTO "TreasuryLedgerEntry" ("id", "townId", "kind", "amount", "referenceType", "referenceId", "metadataJson", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) RETURNING *',
+      'INSERT INTO "TreasuryLedgerEntry" ("id", "townId", "kind", "amount", "referenceType", "referenceId", "metadataJson") VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
       [randomUUID(), input.townId, input.kind, input.amount, input.referenceType, input.referenceId, input.metadataJson ?? null],
       tx,
     );
@@ -81,7 +81,7 @@ export async function settleTreasuryDay(townId: number, dateKey: string) {
     });
 
     return oneOrNull(
-      'INSERT INTO "TreasuryDaySnapshot" ("id", "townId", "dateKey", "openingBalance", "variationAmount", "loanNetAmount", "otherNetAmount", "closingBalance", "createdAt") VALUES ($1, $2, $3, $4, $5, 0, 0, $6, NOW()) RETURNING *',
+      'INSERT INTO "TreasuryDaySnapshot" ("id", "townId", "dateKey", "openingBalance", "variationAmount", "loanNetAmount", "otherNetAmount", "closingBalance") VALUES ($1, $2, $3, $4, $5, 0, 0, $6) RETURNING *',
       [randomUUID(), townId, dateKey, openingBalance, variationAmount, closingBalance],
       tx,
     );

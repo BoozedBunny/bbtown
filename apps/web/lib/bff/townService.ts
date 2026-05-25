@@ -26,7 +26,7 @@ export async function buyBuildingLegacy(input: {
       const townId = parseInt(building.townId, 10);
       await tx.query('UPDATE "Town" SET "bankBalance" = "bankBalance" + $2 WHERE "id" = $1', [townId, building.price]);
       await tx.query(
-        'INSERT INTO "TreasuryLedgerEntry" ("id", "townId", "kind", "amount", "referenceType", "referenceId", "metadataJson", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())',
+        'INSERT INTO "TreasuryLedgerEntry" ("id", "townId", "kind", "amount", "referenceType", "referenceId", "metadataJson") VALUES ($1, $2, $3, $4, $5, $6, $7)',
         [randomUUID(), townId, "BUILDING_SALE_INFLOW", building.price, "BuildingState", building.id, JSON.stringify({ source: "buyBuilding" })],
       );
     }
