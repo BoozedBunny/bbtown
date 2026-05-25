@@ -35,6 +35,7 @@ type StrapiPortfolioItem = {
 
 async function syncStrapiPortfolioAndWallet(input: {
   username: string;
+  authUserId?: number;
   symbol: string;
   quantityDelta: number;
   walletAfterTrade: number;
@@ -54,7 +55,11 @@ async function syncStrapiPortfolioAndWallet(input: {
   if (!headers) return;
 
   const profileUrl = new URL(`${STRAPI_BASE_URL}/api/player-profiles`);
-  profileUrl.searchParams.set("filters[displayName][$eq]", input.username);
+  if (typeof input.authUserId === "number" && Number.isFinite(input.authUserId)) {
+    profileUrl.searchParams.set("filters[authUserId][$eq]", String(input.authUserId));
+  } else {
+    profileUrl.searchParams.set("filters[displayName][$eq]", input.username);
+  }
   profileUrl.searchParams.set("pagination[limit]", "1");
 
   const profileRes = await fetch(profileUrl, { headers, cache: "no-store" });
@@ -77,7 +82,11 @@ async function syncStrapiPortfolioAndWallet(input: {
   const stockIdentifier = stock.documentId ?? String(stock.id);
 
   const itemUrl = new URL(`${STRAPI_BASE_URL}/api/portfolio-items`);
-  itemUrl.searchParams.set("filters[playerProfile][displayName][$eq]", input.username);
+  if (typeof input.authUserId === "number" && Number.isFinite(input.authUserId)) {
+    itemUrl.searchParams.set("filters[playerProfile][authUserId][$eq]", String(input.authUserId));
+  } else {
+    itemUrl.searchParams.set("filters[playerProfile][displayName][$eq]", input.username);
+  }
   itemUrl.searchParams.set("filters[stock][symbol][$eq]", input.symbol);
   itemUrl.searchParams.set("pagination[limit]", "1");
 
@@ -285,8 +294,8 @@ export async function buyStockForCharacter(input: {
   });
 
   const newWallet = Math.max(0, character.wallet - cost);
-  const owner = await oneOrNull<{ username: string }>(
-    `SELECT u."username"
+  const owner = await oneOrNull<{ username: string; authUserId: number | null }>(
+    `SELECT u."username", u."id" as "authUserId"
      FROM "Character" c
      JOIN "User" u ON u."id" = c."userId"
      WHERE c."id" = $1
@@ -298,6 +307,7 @@ export async function buyStockForCharacter(input: {
     try {
       await syncStrapiPortfolioAndWallet({
         username: owner.username,
+        authUserId: owner.authUserId ?? undefined,
         symbol: input.symbol,
         quantityDelta: input.quantity,
         walletAfterTrade: newWallet,
@@ -343,8 +353,8 @@ export async function sellStockForCharacter(input: {
   });
 
   const newWallet = Math.max(0, Math.floor(character.wallet + gain));
-  const owner = await oneOrNull<{ username: string }>(
-    `SELECT u."username"
+  const owner = await oneOrNull<{ username: string; authUserId: number | null }>(
+    `SELECT u."username", u."id" as "authUserId"
      FROM "Character" c
      JOIN "User" u ON u."id" = c."userId"
      WHERE c."id" = $1
@@ -356,6 +366,7 @@ export async function sellStockForCharacter(input: {
     try {
       await syncStrapiPortfolioAndWallet({
         username: owner.username,
+        authUserId: owner.authUserId ?? undefined,
         symbol: input.symbol,
         quantityDelta: -input.quantity,
         walletAfterTrade: newWallet,
