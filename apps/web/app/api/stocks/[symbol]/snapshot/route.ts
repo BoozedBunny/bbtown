@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCompanyProfile } from "@/lib/market/companyProfiles";
-import { getCompanyProfileFromCms } from "@/lib/cms/companyProfiles";
 import { getMarketNewsSnippets } from "@/lib/marketNews";
 import { getStockWithRecentHistory } from "@/lib/bff/marketReadService";
 
@@ -16,8 +14,6 @@ export async function GET(
       return NextResponse.json({ error: "Stock not found" }, { status: 404 });
     }
 
-    const cmsProfile = await getCompanyProfileFromCms(stock.symbol);
-    const profile = cmsProfile ?? getCompanyProfile(stock.symbol);
     const changeAbs = stock.price - stock.previousPrice;
     const changePct = stock.previousPrice > 0 ? (changeAbs / stock.previousPrice) * 100 : 0;
     const prices = [stock.price, ...stock.history.map((h) => h.price)];
@@ -36,12 +32,12 @@ export async function GET(
         trend: changeAbs > 0 ? "UP" : changeAbs < 0 ? "DOWN" : "FLAT",
       },
       profile: {
-        sector: profile?.sector ?? "General",
-        exchange: profile?.exchange ?? "BBX",
-        marketCapBand: profile?.marketCapBand ?? "MID",
-        volatilityClass: profile?.volatilityClass ?? "MEDIUM",
-        description: profile?.description ?? "Fictional listed company in the BBTown market.",
-        hqRegion: profile?.hqRegion ?? "Central District",
+        sector: stock.sector,
+        exchange: stock.exchange,
+        marketCapBand: stock.marketCapBand,
+        volatilityClass: stock.volatilityClass,
+        description: stock.description,
+        hqRegion: stock.hqRegion,
       },
       stats: {
         dayHigh,
@@ -49,7 +45,7 @@ export async function GET(
         dayRangePct: dayLow > 0 ? ((dayHigh - dayLow) / dayLow) * 100 : 0,
         lastUpdatedAt: stock.updatedAt,
       },
-      news: getMarketNewsSnippets({ symbol: stock.symbol, sector: profile?.sector, changePct }),
+      news: getMarketNewsSnippets({ symbol: stock.symbol, sector: stock.sector, changePct }),
     });
   } catch (error) {
     console.error(error);

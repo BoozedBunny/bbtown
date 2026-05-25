@@ -13,8 +13,8 @@
 - Node.js: 22+
 - Next.js: 15 (App Router)
 - 3D: React Three Fiber, drei
-- Web-Datenzugriff (aktuell): Prisma
-- Datenbank-Ziel: PostgreSQL
+- Web-Datenzugriff (aktuell): Strapi-first + PostgreSQL-Fallback
+- Datenbank: PostgreSQL
 - CMS: Strapi (Docker)
 
 ## Quickstart
@@ -36,21 +36,26 @@ npm run dev:web
 
 Web läuft auf http://localhost:3004
 
-## Prisma auf PostgreSQL umstellen (web)
-
-Die Prisma-Config in apps/web/prisma/schema.prisma ist auf PostgreSQL vorbereitet.
+## Strapi-First Setup (web)
 
 Beispiel .env (siehe auch .env.example):
 
-DATABASE_URL="postgresql://bbtown:bbtown@localhost:5432/bbtown?schema=public"
+DATABASE_URL="postgresql://bbtown:***@localhost:5432/bbtown?schema=public"
+STRAPI_URL="http://127.0.0.1:1339"
+STRAPI_API_TOKEN="***"
 
-Dann:
+Initiale Daten nach Strapi einspielen:
 
-npm run prisma:generate --workspace web
-npm run prisma:migrate --workspace web -- --name init_pg
-npm run prisma:seed --workspace web
+npm run seed:towns:strapi
+npm run seed:buildings:strapi
+npm run seed:building-states:strapi
+npm run seed:stocks:strapi
+npm run seed:stock-history:strapi
+npm run seed:portfolio:strapi
 
-Hinweis: Bestehende SQLite-Daten werden bewusst nicht migriert (Beta-Reset).
+Konsistenzcheck Market (DB vs Strapi):
+
+npm run check:market-sync
 
 ## Wichtige Scripts
 

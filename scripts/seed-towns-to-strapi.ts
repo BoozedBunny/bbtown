@@ -2,7 +2,7 @@ import { TOWNS } from "../apps/web/app/town/towns";
 
 type StrapiEntity = { id: number; documentId?: string; townId?: number; name?: string };
 
-const baseUrl = process.env.STRAPI_URL ?? "http://127.0.0.1:1338";
+const baseUrl = process.env.STRAPI_URL ?? "http://127.0.0.1:1339";
 const token = process.env.STRAPI_API_TOKEN;
 
 if (!token) {

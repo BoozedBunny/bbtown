@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { ensureLegacyCharacterForSession, getSessionUser } from "@/lib/auth";
+import { ensureLegacyCharacterForSession, isUnauthorizedError, requireSessionUserWithCharacter } from "@/lib/auth";
 import { repayLoan } from "@/lib/treasury/loanService";
 import { AUTH_COOKIE_NAME, updatePlayerProfile } from "@/lib/strapiAuth";
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getSessionUser();
-    if (!user?.character) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const user = await requireSessionUserWithCharacter();
     const body = await request.json();
     const legacyCharacterId = await ensureLegacyCharacterForSession(user);
     const result = await repayLoan(legacyCharacterId, body.loanId, Number(body.amount), body.idempotencyKey);
@@ -32,6 +31,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
+    if (isUnauthorizedError(error)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("POST /api/loans/repay failed", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

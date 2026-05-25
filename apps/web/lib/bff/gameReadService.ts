@@ -109,7 +109,60 @@ async function getTownStateFromDb(townId: string) {
   return { buildings, town };
 }
 
-export async function getPortfolioForCharacter(characterId: string) {
+type StrapiPortfolioStock = {
+  id: number;
+  documentId?: string;
+  symbol?: string;
+  name?: string;
+  price?: number | string;
+  previousPrice?: number | string;
+  updatedAt?: string;
+};
+
+type StrapiPortfolioItem = {
+  id: number;
+  documentId?: string;
+  quantity?: number | string;
+  stock?: StrapiPortfolioStock | null;
+};
+
+async function getPortfolioFromStrapi(characterId: string, authUserId?: string, username?: string) {
+  if (!authUserId && !username) return [];
+
+  const authUserIdNumber = Number(authUserId);
+  const hasNumericAuthUserId = Number.isFinite(authUserIdNumber);
+  const profileFilter = hasNumericAuthUserId
+    ? `filters[playerProfile][authUserId][$eq]=${authUserIdNumber}`
+    : `filters[playerProfile][displayName][$eq]=${encodeURIComponent(username ?? "")}`;
+
+  const response = await strapiFetchList<StrapiPortfolioItem>(
+    `/api/portfolio-items?${profileFilter}&populate[stock][fields][0]=symbol&populate[stock][fields][1]=name&populate[stock][fields][2]=price&populate[stock][fields][3]=previousPrice&populate[stock][fields][4]=updatedAt&pagination[limit]=500`,
+  );
+
+  return (response.data ?? [])
+    .map((item) => {
+      const stock = item.stock;
+      if (!stock || !stock.symbol) return null;
+
+      return {
+        id: item.documentId ?? String(item.id),
+        characterId,
+        stockId: stock.documentId ?? String(stock.id),
+        quantity: Number(item.quantity ?? 0),
+        stock: {
+          id: stock.documentId ?? String(stock.id),
+          symbol: stock.symbol ?? "",
+          name: stock.name ?? "",
+          price: Number(stock.price ?? 0),
+          previousPrice: Number(stock.previousPrice ?? 0),
+          updatedAt: stock.updatedAt ?? new Date(0).toISOString(),
+        },
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => Boolean(row));
+}
+
+async function getPortfolioFromDb(characterId: string) {
   return many(
     `SELECT
       p."id",
@@ -129,6 +182,21 @@ export async function getPortfolioForCharacter(characterId: string) {
     WHERE p."characterId" = $1`,
     [characterId],
   );
+}
+
+export async function getPortfolioForCharacter(characterId: string, authUserId?: string, username?: string) {
+  try {
+    const portfolio = await getPortfolioFromStrapi(characterId, authUserId, username);
+    if (portfolio.length > 0) return portfolio;
+    console.warn(`[portfolio-read] Strapi portfolio empty for authUserId=${authUserId ?? "n/a"}, falling back to DB.`);
+  } catch (error) {
+    console.error(
+      `[portfolio-read] Strapi portfolio read failed for authUserId=${authUserId ?? "n/a"}, falling back to DB.`,
+      error,
+    );
+  }
+
+  return getPortfolioFromDb(characterId);
 }
 
 export async function getTownStateById(townId: string) {

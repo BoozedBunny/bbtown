@@ -53,6 +53,12 @@
     },
     "lastSoloArenaAt": {
       "type": "datetime"
+    },
+    "portfolioItems": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::portfolio-item.portfolio-item",
+      "mappedBy": "playerProfile"
     }
   }
 }

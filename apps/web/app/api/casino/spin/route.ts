@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getSessionUser } from "@/lib/auth";
+import { requireSessionUserWithCharacter, isUnauthorizedError } from "@/lib/auth";
 import { AUTH_COOKIE_NAME, incrementWallet } from "@/lib/strapiAuth";
 import { runLegacyCasinoSpin } from "@/lib/bff/casinoService";
 
@@ -117,10 +117,7 @@ function evaluatePaylines(matrix: string[][], betAmount: number) {
 
 export async function POST(request: Request) {
   try {
-    const user = await getSessionUser();
-    if (!user || !user.character) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const user = await requireSessionUserWithCharacter();
 
     const body = await request.json();
     const betAmount = parseInt(body.betAmount, 10);
@@ -161,6 +158,9 @@ export async function POST(request: Request) {
       winningLines,
     });
   } catch (error: any) {
+    if (isUnauthorizedError(error)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     if (error.message === "Insufficient funds") {
       return NextResponse.json({ error: "Insufficient funds" }, { status: 400 });
     }

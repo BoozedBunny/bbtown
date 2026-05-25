@@ -1,6 +1,125 @@
 import { randomUUID } from "crypto";
 import { many, oneOrNull, withTransaction } from "@/lib/db";
 
+const STRAPI_BASE_URL = process.env.STRAPI_URL ?? "http://127.0.0.1:1339";
+
+function getStrapiServiceHeaders(): HeadersInit | null {
+  const token = process.env.STRAPI_API_TOKEN;
+  if (!token) return null;
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+}
+
+type StrapiPlayerProfile = {
+  id: number;
+  documentId?: string;
+  authUserId?: number;
+  displayName?: string;
+  wallet?: number;
+};
+
+type StrapiStock = {
+  id: number;
+  documentId?: string;
+  symbol?: string;
+};
+
+type StrapiPortfolioItem = {
+  id: number;
+  documentId?: string;
+  quantity?: number;
+};
+
+async function syncStrapiPortfolioAndWallet(input: {
+  username: string;
+  symbol: string;
+  quantityDelta: number;
+  walletAfterTrade: number;
+}) {
+  const headers = getStrapiServiceHeaders();
+  if (!headers) return;
+
+  const profileUrl = new URL(`${STRAPI_BASE_URL}/api/player-profiles`);
+  profileUrl.searchParams.set("filters[displayName][$eq]", input.username);
+  profileUrl.searchParams.set("pagination[limit]", "1");
+
+  const profileRes = await fetch(profileUrl, { headers, cache: "no-store" });
+  if (!profileRes.ok) throw new Error(`Strapi profile lookup failed (${profileRes.status})`);
+  const profileJson = (await profileRes.json()) as { data?: StrapiPlayerProfile[] };
+  const profile = profileJson.data?.[0];
+  if (!profile) return;
+
+  const stockUrl = new URL(`${STRAPI_BASE_URL}/api/stocks`);
+  stockUrl.searchParams.set("filters[symbol][$eq]", input.symbol);
+  stockUrl.searchParams.set("pagination[limit]", "1");
+
+  const stockRes = await fetch(stockUrl, { headers, cache: "no-store" });
+  if (!stockRes.ok) throw new Error(`Strapi stock lookup failed (${stockRes.status})`);
+  const stockJson = (await stockRes.json()) as { data?: StrapiStock[] };
+  const stock = stockJson.data?.[0];
+  if (!stock) return;
+
+  const profileIdentifier = profile.documentId ?? String(profile.id);
+  const stockIdentifier = stock.documentId ?? String(stock.id);
+
+  const itemUrl = new URL(`${STRAPI_BASE_URL}/api/portfolio-items`);
+  itemUrl.searchParams.set("filters[playerProfile][displayName][$eq]", input.username);
+  itemUrl.searchParams.set("filters[stock][symbol][$eq]", input.symbol);
+  itemUrl.searchParams.set("pagination[limit]", "1");
+
+  const itemRes = await fetch(itemUrl, { headers, cache: "no-store" });
+  if (!itemRes.ok) throw new Error(`Strapi portfolio lookup failed (${itemRes.status})`);
+  const itemJson = (await itemRes.json()) as { data?: StrapiPortfolioItem[] };
+  const existing = itemJson.data?.[0];
+
+  if (!existing && input.quantityDelta > 0) {
+    const createRes = await fetch(`${STRAPI_BASE_URL}/api/portfolio-items`, {
+      method: "POST",
+      headers,
+      cache: "no-store",
+      body: JSON.stringify({
+        data: {
+          playerProfile: profileIdentifier,
+          stock: stockIdentifier,
+          quantity: input.quantityDelta,
+        },
+      }),
+    });
+    if (!createRes.ok) {
+      const text = await createRes.text();
+      throw new Error(`Strapi portfolio create failed (${createRes.status}): ${text}`);
+    }
+  }
+
+  if (existing) {
+    const nextQuantity = Math.max(0, Number(existing.quantity ?? 0) + input.quantityDelta);
+    const itemIdentifier = existing.documentId ?? String(existing.id);
+    const updateRes = await fetch(`${STRAPI_BASE_URL}/api/portfolio-items/${itemIdentifier}`, {
+      method: "PUT",
+      headers,
+      cache: "no-store",
+      body: JSON.stringify({ data: { quantity: nextQuantity } }),
+    });
+    if (!updateRes.ok) {
+      const text = await updateRes.text();
+      throw new Error(`Strapi portfolio update failed (${updateRes.status}): ${text}`);
+    }
+  }
+
+  const profileUpdateRes = await fetch(`${STRAPI_BASE_URL}/api/player-profiles/${profileIdentifier}`, {
+    method: "PUT",
+    headers,
+    cache: "no-store",
+    body: JSON.stringify({ data: { wallet: input.walletAfterTrade } }),
+  });
+  if (!profileUpdateRes.ok) {
+    const text = await profileUpdateRes.text();
+    throw new Error(`Strapi wallet update failed (${profileUpdateRes.status}): ${text}`);
+  }
+}
+
 type CompanyProfileSeed = {
   symbol: string;
   name: string;
@@ -143,10 +262,33 @@ export async function buyStockForCharacter(input: {
     );
   });
 
+  const newWallet = Math.max(0, character.wallet - cost);
+  const owner = await oneOrNull<{ username: string }>(
+    `SELECT u."username"
+     FROM "Character" c
+     JOIN "User" u ON u."id" = c."userId"
+     WHERE c."id" = $1
+     LIMIT 1`,
+    [input.characterId],
+  );
+
+  if (owner?.username) {
+    try {
+      await syncStrapiPortfolioAndWallet({
+        username: owner.username,
+        symbol: input.symbol,
+        quantityDelta: input.quantity,
+        walletAfterTrade: newWallet,
+      });
+    } catch (error) {
+      console.error("[market-write] Strapi sync failed after buy; DB write kept as source of truth.", error);
+    }
+  }
+
   return {
     ok: true as const,
     cost,
-    newWallet: Math.max(0, character.wallet - cost),
+    newWallet,
   };
 }
 
@@ -178,10 +320,33 @@ export async function sellStockForCharacter(input: {
     await tx.query('UPDATE "PortfolioItem" SET "quantity" = "quantity" - $2 WHERE "id" = $1', [portfolioItem.id, input.quantity]);
   });
 
+  const newWallet = Math.max(0, Math.floor(character.wallet + gain));
+  const owner = await oneOrNull<{ username: string }>(
+    `SELECT u."username"
+     FROM "Character" c
+     JOIN "User" u ON u."id" = c."userId"
+     WHERE c."id" = $1
+     LIMIT 1`,
+    [input.characterId],
+  );
+
+  if (owner?.username) {
+    try {
+      await syncStrapiPortfolioAndWallet({
+        username: owner.username,
+        symbol: input.symbol,
+        quantityDelta: -input.quantity,
+        walletAfterTrade: newWallet,
+      });
+    } catch (error) {
+      console.error("[market-write] Strapi sync failed after sell; DB write kept as source of truth.", error);
+    }
+  }
+
   return {
     ok: true as const,
     gain,
-    newWallet: Math.max(0, Math.floor(character.wallet + gain)),
+    newWallet,
   };
 }
 

@@ -572,49 +572,6 @@ export interface ApiGlobalSettingGlobalSetting extends Struct.SingleTypeSchema {
   };
 }
 
-export interface ApiMarketCompanyProfileMarketCompanyProfile
-  extends Struct.CollectionTypeSchema {
-  collectionName: 'market_company_profiles';
-  info: {
-    description: 'CMS source for market metadata by symbol';
-    displayName: 'Market Company Profile';
-    pluralName: 'market-company-profiles';
-    singularName: 'market-company-profile';
-  };
-  options: {
-    draftAndPublish: true;
-  };
-  attributes: {
-    basePrice: Schema.Attribute.Decimal;
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    description: Schema.Attribute.Text;
-    displayOrder: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<100>;
-    exchange: Schema.Attribute.String;
-    hqRegion: Schema.Attribute.String;
-    locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::market-company-profile.market-company-profile'
-    > &
-      Schema.Attribute.Private;
-    marketCapBand: Schema.Attribute.Enumeration<['SMALL', 'MID', 'LARGE']> &
-      Schema.Attribute.DefaultTo<'MID'>;
-    name: Schema.Attribute.String & Schema.Attribute.Required;
-    publishedAt: Schema.Attribute.DateTime;
-    sector: Schema.Attribute.String;
-    symbol: Schema.Attribute.String &
-      Schema.Attribute.Required &
-      Schema.Attribute.Unique;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    volatilityClass: Schema.Attribute.Enumeration<['LOW', 'MEDIUM', 'HIGH']> &
-      Schema.Attribute.DefaultTo<'MEDIUM'>;
-  };
-}
-
 export interface ApiPlayerProfilePlayerProfile
   extends Struct.CollectionTypeSchema {
   collectionName: 'player_profiles';
@@ -651,11 +608,139 @@ export interface ApiPlayerProfilePlayerProfile
       'api::player-profile.player-profile'
     > &
       Schema.Attribute.Private;
+    portfolioItems: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::portfolio-item.portfolio-item'
+    >;
     publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     wallet: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<1000>;
+  };
+}
+
+export interface ApiPortfolioItemPortfolioItem
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'portfolio_items';
+  info: {
+    description: 'Holdings of a player profile';
+    displayName: 'Portfolio Item';
+    pluralName: 'portfolio-items';
+    singularName: 'portfolio-item';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::portfolio-item.portfolio-item'
+    > &
+      Schema.Attribute.Private;
+    playerProfile: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::player-profile.player-profile'
+    >;
+    publishedAt: Schema.Attribute.DateTime;
+    quantity: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    stock: Schema.Attribute.Relation<'manyToOne', 'api::stock.stock'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiStockHistoryStockHistory
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'stock_histories';
+  info: {
+    description: 'Historical stock price points';
+    displayName: 'Stock History';
+    pluralName: 'stock-histories';
+    singularName: 'stock-history';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::stock-history.stock-history'
+    > &
+      Schema.Attribute.Private;
+    price: Schema.Attribute.Decimal &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    publishedAt: Schema.Attribute.DateTime;
+    stock: Schema.Attribute.Relation<'manyToOne', 'api::stock.stock'>;
+    timestamp: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiStockStock extends Struct.CollectionTypeSchema {
+  collectionName: 'stocks';
+  info: {
+    description: 'Tradable market instruments';
+    displayName: 'Stock';
+    pluralName: 'stocks';
+    singularName: 'stock';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.Text;
+    displayOrder: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<999>;
+    exchange: Schema.Attribute.String & Schema.Attribute.DefaultTo<'BBX'>;
+    histories: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::stock-history.stock-history'
+    >;
+    hqRegion: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'Central District'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::stock.stock'> &
+      Schema.Attribute.Private;
+    marketCapBand: Schema.Attribute.Enumeration<['SMALL', 'MID', 'LARGE']> &
+      Schema.Attribute.DefaultTo<'MID'>;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    portfolioItems: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::portfolio-item.portfolio-item'
+    >;
+    previousPrice: Schema.Attribute.Decimal &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    price: Schema.Attribute.Decimal &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    publishedAt: Schema.Attribute.DateTime;
+    sector: Schema.Attribute.String & Schema.Attribute.DefaultTo<'General'>;
+    symbol: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    volatilityClass: Schema.Attribute.Enumeration<['LOW', 'MEDIUM', 'HIGH']> &
+      Schema.Attribute.DefaultTo<'MEDIUM'>;
   };
 }
 
@@ -1244,8 +1329,10 @@ declare module '@strapi/strapi' {
       'api::building-state.building-state': ApiBuildingStateBuildingState;
       'api::building.building': ApiBuildingBuilding;
       'api::global-setting.global-setting': ApiGlobalSettingGlobalSetting;
-      'api::market-company-profile.market-company-profile': ApiMarketCompanyProfileMarketCompanyProfile;
       'api::player-profile.player-profile': ApiPlayerProfilePlayerProfile;
+      'api::portfolio-item.portfolio-item': ApiPortfolioItemPortfolioItem;
+      'api::stock-history.stock-history': ApiStockHistoryStockHistory;
+      'api::stock.stock': ApiStockStock;
       'api::town-news.town-news': ApiTownNewsTownNews;
       'api::town.town': ApiTownTown;
       'plugin::content-releases.release': PluginContentReleasesRelease;
