@@ -1,14 +1,13 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { ensureLegacyCharacterForSession, getSessionUser } from "../../lib/auth";
+import { ensureLegacyCharacterForSession, requireSessionUserWithCharacter } from "../../lib/auth";
 import { createLegacyCharacter, updateLegacyCharacterProfile } from "@/lib/bff/characterService";
 import { revalidatePath } from "next/cache";
 import { AUTH_COOKIE_NAME, updatePlayerProfile } from "../../lib/strapiAuth";
 
 export async function createCharacter(formData: FormData) {
-  const user = await getSessionUser();
-  if (!user) throw new Error("Unauthorized");
+  const user = await requireSessionUserWithCharacter();
 
   const name = formData.get("name") as string;
   const appearanceColor = formData.get("appearanceColor") as string;
@@ -40,8 +39,7 @@ export async function createCharacter(formData: FormData) {
 }
 
 export async function updateCharacter(formData: FormData) {
-  const user = await getSessionUser();
-  if (!user || !user.character) throw new Error("Unauthorized");
+  const user = await requireSessionUserWithCharacter();
 
   const name = formData.get("name") as string;
   const avatar = formData.get("avatar") as string;

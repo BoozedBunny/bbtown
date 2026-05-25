@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import {
   ensureLegacyCharacterFromSessionShape,
-  getLegacyUserByUsername,
 } from "@/lib/bff/authLegacyService";
 import {
   AUTH_COOKIE_NAME,
@@ -26,6 +25,17 @@ export type SessionUser = {
     lastSoloArenaAt?: Date | null;
   } | null;
 };
+
+export class UnauthorizedError extends Error {
+  constructor(message = "Unauthorized") {
+    super(message);
+    this.name = "UnauthorizedError";
+  }
+}
+
+export function isUnauthorizedError(error: unknown): error is UnauthorizedError {
+  return error instanceof UnauthorizedError;
+}
 
 async function getSessionUserFromStrapi(token: string): Promise<SessionUser | null> {
   try {
@@ -62,32 +72,6 @@ async function getSessionUserFromStrapi(token: string): Promise<SessionUser | nu
   }
 }
 
-async function getSessionUserFromLegacyMock(mockUsername: string): Promise<SessionUser | null> {
-  const user = await getLegacyUserByUsername(mockUsername);
-
-  if (!user) return null;
-
-  return {
-    id: user.id,
-    username: user.username,
-    character: user.character
-      ? {
-          id: user.character.id,
-          name: user.character.name,
-          avatar: user.character.avatar,
-          description: user.character.description,
-          wallet: user.character.wallet,
-          arenaMaxRounds: user.character.arenaMaxRounds,
-          experience: user.character.experience,
-          appearanceColor: user.character.appearanceColor,
-          loanStatus: user.character.loanStatus,
-          loanLockedUntil: user.character.loanLockedUntil,
-          lastSoloArenaAt: user.character.lastSoloArenaAt,
-        }
-      : null,
-  };
-}
-
 export async function getSessionUser(): Promise<SessionUser | null> {
   const cookieStore = await cookies();
 
@@ -97,15 +81,28 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     if (strapiUser) return strapiUser;
   }
 
-  const legacyUsername = cookieStore.get("mock_user")?.value;
-  if (!legacyUsername) return null;
+  return null;
+}
 
-  return getSessionUserFromLegacyMock(legacyUsername);
+export async function requireSessionUser(): Promise<SessionUser> {
+  const user = await getSessionUser();
+  if (!user) {
+    throw new UnauthorizedError();
+  }
+  return user;
+}
+
+export async function requireSessionUserWithCharacter(): Promise<SessionUser & { character: NonNullable<SessionUser["character"]> }> {
+  const user = await requireSessionUser();
+  if (!user.character) {
+    throw new UnauthorizedError();
+  }
+  return user as SessionUser & { character: NonNullable<SessionUser["character"]> };
 }
 
 export async function ensureLegacyCharacterForSession(user: SessionUser): Promise<string> {
   if (!user.character) {
-    throw new Error("Unauthorized");
+    throw new UnauthorizedError();
   }
 
   return ensureLegacyCharacterFromSessionShape({

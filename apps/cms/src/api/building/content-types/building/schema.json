@@ -1,0 +1,67 @@
+{
+  "kind": "collectionType",
+  "collectionName": "buildings",
+  "info": {
+    "singularName": "building",
+    "pluralName": "buildings",
+    "displayName": "Building",
+    "description": "Static building blueprint data migrated from town-config"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "buildingId": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "type": {
+      "type": "string"
+    },
+    "image": {
+      "type": "text"
+    },
+    "color": {
+      "type": "string",
+      "default": "#BD00FF"
+    },
+    "positionX": {
+      "type": "decimal"
+    },
+    "positionY": {
+      "type": "decimal"
+    },
+    "positionZ": {
+      "type": "decimal"
+    },
+    "rotationX": {
+      "type": "decimal"
+    },
+    "rotationY": {
+      "type": "decimal"
+    },
+    "rotationZ": {
+      "type": "decimal"
+    },
+    "scale": {
+      "type": "decimal"
+    },
+    "iconPosition": {
+      "type": "decimal"
+    },
+    "spriteConfig": {
+      "type": "json"
+    },
+    "buildingStates": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::building-state.building-state",
+      "mappedBy": "building"
+    }
+  }
+}

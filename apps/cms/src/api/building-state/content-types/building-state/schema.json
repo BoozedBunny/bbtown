@@ -1,0 +1,56 @@
+{
+  "kind": "collectionType",
+  "collectionName": "building_states",
+  "info": {
+    "singularName": "building-state",
+    "pluralName": "building-states",
+    "displayName": "Building State",
+    "description": "Dynamic ownership and market state for buildings per town"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "stateId": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "forSale": {
+      "type": "boolean",
+      "required": true,
+      "default": true
+    },
+    "price": {
+      "type": "integer",
+      "required": true,
+      "default": 0
+    },
+    "employees": {
+      "type": "integer",
+      "required": true,
+      "default": 0
+    },
+    "town": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::town.town",
+      "inversedBy": "buildingStates"
+    },
+    "building": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::building.building",
+      "inversedBy": "buildingStates"
+    },
+    "owner": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::player-profile.player-profile"
+    }
+  }
+}

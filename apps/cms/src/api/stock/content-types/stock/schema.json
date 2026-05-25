@@ -1,0 +1,75 @@
+{
+  "kind": "collectionType",
+  "collectionName": "stocks",
+  "info": {
+    "singularName": "stock",
+    "pluralName": "stocks",
+    "displayName": "Stock",
+    "description": "Tradable market instruments"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "symbol": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "price": {
+      "type": "decimal",
+      "required": true,
+      "default": 0
+    },
+    "previousPrice": {
+      "type": "decimal",
+      "required": true,
+      "default": 0
+    },
+    "sector": {
+      "type": "string",
+      "default": "General"
+    },
+    "exchange": {
+      "type": "string",
+      "default": "BBX"
+    },
+    "marketCapBand": {
+      "type": "enumeration",
+      "enum": ["SMALL", "MID", "LARGE"],
+      "default": "MID"
+    },
+    "volatilityClass": {
+      "type": "enumeration",
+      "enum": ["LOW", "MEDIUM", "HIGH"],
+      "default": "MEDIUM"
+    },
+    "description": {
+      "type": "text"
+    },
+    "hqRegion": {
+      "type": "string",
+      "default": "Central District"
+    },
+    "displayOrder": {
+      "type": "integer",
+      "default": 999
+    },
+    "histories": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::stock-history.stock-history",
+      "mappedBy": "stock"
+    },
+    "portfolioItems": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::portfolio-item.portfolio-item",
+      "mappedBy": "stock"
+    }
+  }
+}

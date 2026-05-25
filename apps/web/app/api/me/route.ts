@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/auth";
+import { isUnauthorizedError, requireSessionUserWithCharacter } from "@/lib/auth";
 
 export async function GET() {
   try {
-    const user = await getSessionUser();
-    if (!user || !user.character) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const user = await requireSessionUserWithCharacter();
 
     return NextResponse.json({
       username: user.username,
@@ -18,6 +15,9 @@ export async function GET() {
       experience: user.character.experience,
     });
   } catch (error) {
+    if (isUnauthorizedError(error)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error(error);
     return NextResponse.json(
       { error: "Failed to fetch user state" },

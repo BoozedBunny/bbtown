@@ -1,10 +1,10 @@
 "use server";
 
-import { getSessionUser } from "../../lib/auth";
+import { requireSessionUserWithCharacter } from "../../lib/auth";
 import { getCharacterPublicProfileById } from "@/lib/bff/userReadService";
 
 export async function getCurrentUser() {
-  const user = await getSessionUser();
+  const user = await requireSessionUserWithCharacter();
   if (!user || !user.character) return null;
   return {
     id: user.id,
@@ -22,8 +22,7 @@ export async function getCurrentUser() {
 }
 
 export async function getCharacterProfile(characterId: string) {
-  const user = await getSessionUser();
-  if (!user || !user.character) throw new Error("Unauthorized");
+  const user = await requireSessionUserWithCharacter();
 
   if (String(user.character.id) === String(characterId)) {
     return {

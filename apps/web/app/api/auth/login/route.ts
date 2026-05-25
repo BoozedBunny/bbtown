@@ -32,14 +32,7 @@ export async function POST(request: Request) {
       maxAge: 60 * 60 * 24 * 30,
     });
 
-    response.cookies.set("bbtown_user", auth.user.username, {
-      httpOnly: false,
-      secure: isHttps,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30,
-    });
-
+    response.cookies.delete("bbtown_user");
     response.cookies.delete("mock_user");
 
     return response;

@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getCompanyProfile } from "@/lib/market/companyProfiles";
 import { listStocks } from "@/lib/bff/marketReadService";
 
 export async function GET() {
@@ -8,7 +7,6 @@ export async function GET() {
 
     const tickerRows = stocks
       .map((stock) => {
-        const profile = getCompanyProfile(stock.symbol);
         const changeAbs = stock.price - stock.previousPrice;
         const changePct = stock.previousPrice > 0 ? (changeAbs / stock.previousPrice) * 100 : 0;
         return {
@@ -16,7 +14,7 @@ export async function GET() {
           price: stock.price,
           changePct,
           trend: changeAbs > 0 ? "UP" : changeAbs < 0 ? "DOWN" : "FLAT",
-          displayOrder: profile?.displayOrder ?? 999,
+          displayOrder: stock.displayOrder ?? 999,
         };
       })
       .sort((a, b) => a.displayOrder - b.displayOrder || a.symbol.localeCompare(b.symbol));

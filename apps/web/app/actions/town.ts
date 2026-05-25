@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { ensureLegacyCharacterForSession, getSessionUser } from "../../lib/auth";
+import { ensureLegacyCharacterForSession, requireSessionUserWithCharacter } from "../../lib/auth";
 import { AUTH_COOKIE_NAME, strapiMe, updatePlayerProfile } from "../../lib/strapiAuth";
 import {
   buyBuildingLegacy,
@@ -10,8 +10,7 @@ import {
 } from "@/lib/bff/townService";
 
 export async function buyBuilding(buildingId: string) {
-  const user = await getSessionUser();
-  if (!user || !user.character) throw new Error("Unauthorized or no character");
+  const user = await requireSessionUserWithCharacter();
 
   const legacyCharacterId = await ensureLegacyCharacterForSession(user);
   const sessionToken = (await cookies()).get(AUTH_COOKIE_NAME)?.value;
@@ -36,8 +35,7 @@ export async function buyBuilding(buildingId: string) {
 }
 
 export async function updateBuildingSettings(buildingId: string, title: string, price: number, forSale: boolean) {
-  const user = await getSessionUser();
-  if (!user || !user.character) throw new Error("Unauthorized");
+  const user = await requireSessionUserWithCharacter();
 
   const legacyCharacterId = await ensureLegacyCharacterForSession(user);
 

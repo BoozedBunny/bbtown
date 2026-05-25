@@ -1,0 +1,30 @@
+{
+  "kind": "collectionType",
+  "collectionName": "stock_histories",
+  "info": {
+    "singularName": "stock-history",
+    "pluralName": "stock-histories",
+    "displayName": "Stock History",
+    "description": "Historical stock price points"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "price": {
+      "type": "decimal",
+      "required": true,
+      "default": 0
+    },
+    "timestamp": {
+      "type": "datetime",
+      "required": true
+    },
+    "stock": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::stock.stock",
+      "inversedBy": "histories"
+    }
+  }
+}

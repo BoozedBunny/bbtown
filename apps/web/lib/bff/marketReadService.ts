@@ -1,12 +1,121 @@
+import { strapiFetchList } from "@/lib/cms/strapi";
 import { many, oneOrNull } from "@/lib/db";
+import { getCompanyProfile } from "@/lib/market/companyProfiles";
 
-export async function listStocks() {
-  return many(
-    'SELECT "id", "symbol", "name", "price", "previousPrice", "updatedAt" FROM "Stock" ORDER BY "symbol" ASC',
-  );
+type StrapiStock = {
+  id: number;
+  documentId?: string;
+  symbol?: string;
+  name?: string;
+  price?: number | string;
+  previousPrice?: number | string;
+  updatedAt?: string;
+  sector?: string;
+  exchange?: string;
+  marketCapBand?: "SMALL" | "MID" | "LARGE";
+  volatilityClass?: "LOW" | "MEDIUM" | "HIGH";
+  description?: string;
+  hqRegion?: string;
+  displayOrder?: number | string;
+};
+
+type StrapiStockHistory = {
+  id: number;
+  documentId?: string;
+  price?: number | string;
+  timestamp?: string;
+};
+
+function asNumber(value: unknown): number {
+  if (typeof value === "number") return value;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
 }
 
-export async function getStockWithRecentHistory(symbol: string, historyLimit = 50) {
+function enrichStockMetadata<T extends { symbol: string }>(stock: T) {
+  const fallback = getCompanyProfile(stock.symbol);
+  return {
+    ...stock,
+    sector: (stock as any).sector ?? fallback?.sector ?? "General",
+    exchange: (stock as any).exchange ?? fallback?.exchange ?? "BBX",
+    marketCapBand: (stock as any).marketCapBand ?? fallback?.marketCapBand ?? "MID",
+    volatilityClass: (stock as any).volatilityClass ?? fallback?.volatilityClass ?? "MEDIUM",
+    description:
+      (stock as any).description ?? fallback?.description ?? "Fictional listed company in the BBTown market.",
+    hqRegion: (stock as any).hqRegion ?? fallback?.hqRegion ?? "Central District",
+    displayOrder: Number((stock as any).displayOrder ?? fallback?.displayOrder ?? 999),
+  };
+}
+
+function mapStrapiStock(row: StrapiStock) {
+  return enrichStockMetadata({
+    id: row.documentId ?? String(row.id),
+    symbol: row.symbol ?? "",
+    name: row.name ?? "",
+    price: asNumber(row.price),
+    previousPrice: asNumber(row.previousPrice),
+    updatedAt: row.updatedAt ?? new Date(0).toISOString(),
+    sector: row.sector,
+    exchange: row.exchange,
+    marketCapBand: row.marketCapBand,
+    volatilityClass: row.volatilityClass,
+    description: row.description,
+    hqRegion: row.hqRegion,
+    displayOrder: asNumber(row.displayOrder),
+  });
+}
+
+async function listStocksFromStrapi() {
+  const response = await strapiFetchList<StrapiStock>(
+    "/api/stocks?pagination[limit]=500&sort=symbol:asc",
+  );
+
+  return (response.data ?? []).map(mapStrapiStock).filter((stock) => stock.symbol);
+}
+
+async function getStockWithRecentHistoryFromStrapi(symbol: string, historyLimit = 50) {
+  const [stockResponse, historyResponse] = await Promise.all([
+    strapiFetchList<StrapiStock>(
+      `/api/stocks?filters[symbol][$eq]=${encodeURIComponent(symbol)}&pagination[limit]=1`,
+    ),
+    strapiFetchList<StrapiStockHistory>(
+      `/api/stock-histories?filters[stock][symbol][$eq]=${encodeURIComponent(symbol)}&sort=timestamp:desc&pagination[limit]=${historyLimit}`,
+    ),
+  ]);
+
+  const stock = stockResponse.data?.[0];
+  if (!stock) return null;
+
+  const mappedStock = mapStrapiStock(stock);
+  const history = (historyResponse.data ?? []).map((row) => ({
+    id: row.documentId ?? String(row.id),
+    stockId: mappedStock.id,
+    price: asNumber(row.price),
+    timestamp: row.timestamp ?? new Date(0).toISOString(),
+  }));
+
+  return { ...mappedStock, history };
+}
+
+async function listStocksFromDb() {
+  const rows = await many<{
+    id: string;
+    symbol: string;
+    name: string;
+    price: number;
+    previousPrice: number;
+    updatedAt: string;
+  }>(
+    'SELECT "id", "symbol", "name", "price", "previousPrice", "updatedAt" FROM "Stock" ORDER BY "symbol" ASC',
+  );
+
+  return rows.map((row) => enrichStockMetadata(row));
+}
+
+async function getStockWithRecentHistoryFromDb(symbol: string, historyLimit = 50) {
   const stock = await oneOrNull<{
     id: string;
     symbol: string;
@@ -26,5 +135,29 @@ export async function getStockWithRecentHistory(symbol: string, historyLimit = 5
     [stock.id, historyLimit],
   );
 
-  return { ...stock, history };
+  return { ...enrichStockMetadata(stock), history };
+}
+
+export async function listStocks() {
+  try {
+    const stocks = await listStocksFromStrapi();
+    if (stocks.length > 0) return stocks;
+    console.warn("[market-read] Strapi stocks empty, falling back to DB.");
+  } catch (error) {
+    console.error("[market-read] Strapi stocks read failed, falling back to DB.", error);
+  }
+
+  return listStocksFromDb();
+}
+
+export async function getStockWithRecentHistory(symbol: string, historyLimit = 50) {
+  try {
+    const stock = await getStockWithRecentHistoryFromStrapi(symbol, historyLimit);
+    if (stock) return stock;
+    console.warn(`[market-read] Strapi stock missing for symbol=${symbol}, falling back to DB.`);
+  } catch (error) {
+    console.error(`[market-read] Strapi history read failed for symbol=${symbol}, falling back to DB.`, error);
+  }
+
+  return getStockWithRecentHistoryFromDb(symbol, historyLimit);
 }

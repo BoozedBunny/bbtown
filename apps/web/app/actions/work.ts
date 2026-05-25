@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { ensureLegacyCharacterForSession, getSessionUser } from "../../lib/auth";
+import { ensureLegacyCharacterForSession, requireSessionUserWithCharacter } from "../../lib/auth";
 import { incrementLegacyCharacterWallet } from "@/lib/bff/characterService";
 import { revalidatePath } from "next/cache";
 import { AUTH_COOKIE_NAME, incrementWallet } from "../../lib/strapiAuth";
@@ -11,8 +11,7 @@ export async function doWork(formData?: FormData) {
     throw new Error("Go to Work is not available in production.");
   }
 
-  const user = await getSessionUser();
-  if (!user || !user.character) throw new Error("Unauthorized");
+  const user = await requireSessionUserWithCharacter();
 
   const cookieStore = await cookies();
   const sessionToken = cookieStore.get(AUTH_COOKIE_NAME)?.value;

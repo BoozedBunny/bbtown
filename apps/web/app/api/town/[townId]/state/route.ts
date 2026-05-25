@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/auth";
+import { isUnauthorizedError, requireSessionUserWithCharacter } from "@/lib/auth";
 import { getTownStateById } from "@/lib/bff/gameReadService";
 
 export async function GET(
@@ -7,10 +7,7 @@ export async function GET(
   { params }: { params: Promise<{ townId: string }> },
 ) {
   try {
-    const user = await getSessionUser();
-    if (!user || !user.character) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const user = await requireSessionUserWithCharacter();
 
     const { townId } = await params;
 
@@ -21,6 +18,9 @@ export async function GET(
       town,
     });
   } catch (error) {
+    if (isUnauthorizedError(error)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("Error fetching town state:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },

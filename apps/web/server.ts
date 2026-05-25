@@ -359,7 +359,7 @@ app.prepare().then(async () => {
     });
   }
 
-  io.on("connection", (socket) => {
+  io.on("connection", async (socket) => {
     // Identify user via cookies for secure communication
     const cookieHeader = socket.handshake.headers.cookie;
     const cookies = cookieHeader
@@ -374,8 +374,17 @@ app.prepare().then(async () => {
           }),
         )
       : {};
-    const mockUser = cookies["mock_user"] || cookies["bbtown_user"];
     const sessionToken = cookies["bbtown_session"];
+
+    let mockUser: string | undefined;
+    if (sessionToken) {
+      try {
+        const me = await strapiMe(sessionToken);
+        mockUser = me.username;
+      } catch {
+        mockUser = undefined;
+      }
+    }
 
     const syncStrapiProfileFromLegacyForCurrentSocketUser = async () => {
       if (!mockUser || !sessionToken) return;
@@ -580,15 +589,6 @@ app.prepare().then(async () => {
 
         const cost = tradeResult.cost;
 
-        if (sessionToken) {
-          try {
-            const me = await strapiMe(sessionToken);
-            await updatePlayerProfile(sessionToken, me.id, { wallet: tradeResult.newWallet });
-          } catch (error) {
-            console.error("Failed to sync Strapi wallet after buy_stock", error);
-          }
-        }
-
         io.to(`user:${mockUser}`).emit("portfolio_updated", {
           message: `Bought ${quantity} shares of ${symbol} for $${cost.toFixed(2)}`,
           type: "success",
@@ -634,15 +634,6 @@ app.prepare().then(async () => {
         }
 
         const gain = tradeResult.gain;
-
-        if (sessionToken) {
-          try {
-            const me = await strapiMe(sessionToken);
-            await updatePlayerProfile(sessionToken, me.id, { wallet: tradeResult.newWallet });
-          } catch (error) {
-            console.error("Failed to sync Strapi wallet after sell_stock", error);
-          }
-        }
 
         io.to(`user:${mockUser}`).emit("portfolio_updated", {
           message: `Sold ${quantity} shares of ${symbol} for $${gain.toFixed(2)}`,

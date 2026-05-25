@@ -1,0 +1,32 @@
+{
+  "kind": "collectionType",
+  "collectionName": "portfolio_items",
+  "info": {
+    "singularName": "portfolio-item",
+    "pluralName": "portfolio-items",
+    "displayName": "Portfolio Item",
+    "description": "Holdings of a player profile"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "quantity": {
+      "type": "integer",
+      "required": true,
+      "default": 0
+    },
+    "playerProfile": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::player-profile.player-profile",
+      "inversedBy": "portfolioItems"
+    },
+    "stock": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::stock.stock",
+      "inversedBy": "portfolioItems"
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "kind": "collectionType",
+  "collectionName": "towns",
+  "info": {
+    "singularName": "town",
+    "pluralName": "towns",
+    "displayName": "Town",
+    "description": "Core town entity for game world and treasury"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "townId": {
+      "type": "integer",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "bankBalance": {
+      "type": "integer",
+      "required": true,
+      "default": 1000000
+    },
+    "buildingStates": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::building-state.building-state",
+      "mappedBy": "town"
+    }
+  }
+}

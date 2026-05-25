@@ -9,7 +9,7 @@ export type StrapiSingleResponse<T> = {
   error?: unknown;
 };
 
-const DEFAULT_STRAPI_BASE_URL = "http://127.0.0.1:1338";
+const DEFAULT_STRAPI_BASE_URL = "http://127.0.0.1:1339";
 
 function getStrapiBaseUrl(): string {
   return process.env.STRAPI_URL ?? DEFAULT_STRAPI_BASE_URL;

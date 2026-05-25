@@ -1,9 +1,25 @@
-const DEFAULT_STRAPI_BASE_URL = process.env.STRAPI_URL ?? "http://127.0.0.1:1338";
+const DEFAULT_STRAPI_BASE_URL = process.env.STRAPI_URL ?? "http://127.0.0.1:1339";
 
 export const AUTH_COOKIE_NAME = "bbtown_session";
 
 function getServiceToken() {
   return process.env.STRAPI_API_TOKEN;
+}
+
+async function resolveAuthenticatedUserId(jwt: string, expectedUserId?: number) {
+  const me = await strapiMe(jwt);
+  if (typeof expectedUserId === "number" && me.id !== expectedUserId) {
+    throw new Error("Session user mismatch");
+  }
+  return me.id;
+}
+
+function requireServiceToken() {
+  const token = getServiceToken();
+  if (!token) {
+    throw new Error("Missing STRAPI_API_TOKEN env var");
+  }
+  return token;
 }
 
 type StrapiAuthResponse = {
@@ -87,10 +103,13 @@ export async function strapiMe(jwt: string) {
 }
 
 export async function ensurePlayerProfile(jwt: string, userId: number, username: string) {
+  const serviceToken = requireServiceToken();
+  const authenticatedUserId = await resolveAuthenticatedUserId(jwt, userId);
+
   const existing = await fetch(
-    `${DEFAULT_STRAPI_BASE_URL}/api/player-profiles?filters[authUserId][$eq]=${userId}&pagination[limit]=1`,
+    `${DEFAULT_STRAPI_BASE_URL}/api/player-profiles?filters[authUserId][$eq]=${authenticatedUserId}&pagination[limit]=1`,
     {
-      headers: { Authorization: `Bearer ${jwt}` },
+      headers: { Authorization: `Bearer ${serviceToken}` },
       cache: "no-store",
     },
   );
@@ -106,11 +125,11 @@ export async function ensurePlayerProfile(jwt: string, userId: number, username:
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${jwt}`,
+      Authorization: `Bearer ${serviceToken}`,
     },
     body: JSON.stringify({
       data: {
-        authUserId: userId,
+        authUserId: authenticatedUserId,
         displayName: username,
         appearanceColor: "#BD00FF",
         avatar: "bunny",
@@ -133,10 +152,13 @@ export async function ensurePlayerProfile(jwt: string, userId: number, username:
 }
 
 export async function getPlayerProfile(jwt: string, userId: number) {
+  const serviceToken = requireServiceToken();
+  const authenticatedUserId = await resolveAuthenticatedUserId(jwt, userId);
+
   const response = await fetch(
-    `${DEFAULT_STRAPI_BASE_URL}/api/player-profiles?filters[authUserId][$eq]=${userId}&pagination[limit]=1`,
+    `${DEFAULT_STRAPI_BASE_URL}/api/player-profiles?filters[authUserId][$eq]=${authenticatedUserId}&pagination[limit]=1`,
     {
-      headers: { Authorization: `Bearer ${jwt}` },
+      headers: { Authorization: `Bearer ${serviceToken}` },
       cache: "no-store",
     },
   );
