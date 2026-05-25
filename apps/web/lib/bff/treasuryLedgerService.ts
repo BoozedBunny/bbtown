@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { type PoolClient } from "pg";
 import { many, oneOrNull, withTransaction } from "@/lib/db";
 import { treasuryConfig } from "@/lib/treasury/config";
@@ -25,8 +26,8 @@ export async function createLedgerEntry(tx: TxClient, input: {
 }) {
   if (typeof tx?.query === "function") {
     return oneOrNull(
-      'INSERT INTO "TreasuryLedgerEntry" ("townId", "kind", "amount", "referenceType", "referenceId", "metadataJson") VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [input.townId, input.kind, input.amount, input.referenceType, input.referenceId, input.metadataJson ?? null],
+      'INSERT INTO "TreasuryLedgerEntry" ("id", "townId", "kind", "amount", "referenceType", "referenceId", "metadataJson", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) RETURNING *',
+      [randomUUID(), input.townId, input.kind, input.amount, input.referenceType, input.referenceId, input.metadataJson ?? null],
       tx,
     );
   }

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { oneOrNull, withTransaction } from "@/lib/db";
 
 export async function buyBuildingLegacy(input: {
@@ -25,8 +26,8 @@ export async function buyBuildingLegacy(input: {
       const townId = parseInt(building.townId, 10);
       await tx.query('UPDATE "Town" SET "bankBalance" = "bankBalance" + $2 WHERE "id" = $1', [townId, building.price]);
       await tx.query(
-        'INSERT INTO "TreasuryLedgerEntry" ("townId", "kind", "amount", "referenceType", "referenceId", "metadataJson") VALUES ($1, $2, $3, $4, $5, $6)',
-        [townId, "BUILDING_SALE_INFLOW", building.price, "BuildingState", building.id, JSON.stringify({ source: "buyBuilding" })],
+        'INSERT INTO "TreasuryLedgerEntry" ("id", "townId", "kind", "amount", "referenceType", "referenceId", "metadataJson", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())',
+        [randomUUID(), townId, "BUILDING_SALE_INFLOW", building.price, "BuildingState", building.id, JSON.stringify({ source: "buyBuilding" })],
       );
     }
 
