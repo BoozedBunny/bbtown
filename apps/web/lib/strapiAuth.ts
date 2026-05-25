@@ -181,9 +181,16 @@ export async function updatePlayerProfile(
     >
   >,
 ) {
+  const serviceToken = requireServiceToken();
+  const authenticatedUserId = await resolveAuthenticatedUserId(jwt, userId);
+
   const existing = await getPlayerProfile(jwt, userId);
   if (!existing) {
     throw new Error("Profile not found");
+  }
+
+  if (typeof existing.authUserId === "number" && existing.authUserId !== authenticatedUserId) {
+    throw new Error("Profile ownership mismatch");
   }
 
   const profileIdentifier = existing.documentId ?? String(existing.id);
@@ -192,7 +199,7 @@ export async function updatePlayerProfile(
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${jwt}`,
+      Authorization: `Bearer ${serviceToken}`,
     },
     body: JSON.stringify({ data }),
     cache: "no-store",
