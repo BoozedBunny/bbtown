@@ -129,7 +129,8 @@ export function CombinedMarketView({
     const onStocksUpdated = (updatedStocks: Stock[]) => {
       setStocks(updatedStocks);
       if (selectedStock) {
-        const updated = updatedStocks.find((s) => s.id === selectedStock.id);
+        const selectedSymbol = selectedStock.symbol.toUpperCase();
+        const updated = updatedStocks.find((s) => s.symbol.toUpperCase() === selectedSymbol);
         if (updated) setSelectedStock(updated);
       }
     };
@@ -282,7 +283,8 @@ export function CombinedMarketView({
 
   const currentHolding = useMemo(() => {
     if (!selectedStock) return 0;
-    return portfolio.find((p) => p.stockId === selectedStock.id)?.quantity || 0;
+    const selectedSymbol = selectedStock.symbol.toUpperCase();
+    return portfolio.find((p) => p.stock?.symbol?.toUpperCase() === selectedSymbol)?.quantity || 0;
   }, [portfolio, selectedStock]);
 
   const lineStroke = (selectedStock?.price ?? 0) >= (selectedStock?.previousPrice ?? 0) ? CHART_STROKE_UP : CHART_STROKE_DOWN;
@@ -373,7 +375,7 @@ export function CombinedMarketView({
                     {stocks.map((stock) => {
                       const diff = stock.price - stock.previousPrice;
                       const isUp = diff >= 0;
-                      const owned = portfolio.find((p) => p.stockId === stock.id)?.quantity || 0;
+                      const owned = portfolio.find((p) => p.stock?.symbol?.toUpperCase() === stock.symbol.toUpperCase())?.quantity || 0;
                       return (
                         <button key={stock.id} onClick={() => setSelectedStock(stock)} className="flex justify-between items-center p-4 bg-black/40 border border-white/10 hover:border-brand-primary/50 hover:bg-brand-primary/5 transition-all group text-left relative overflow-hidden">
                           <div className={`absolute left-0 top-0 w-1 h-full ${isUp ? "bg-brand-secondary" : "bg-brand-tertiary"}`} />
