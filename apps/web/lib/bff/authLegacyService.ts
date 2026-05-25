@@ -14,6 +14,12 @@ export async function getLegacyUserByUsername(username: string) {
   );
 }
 
+const UUID_V4_OR_V1_LIKE_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function looksLikeUuid(value: string | null | undefined) {
+  return typeof value === "string" && UUID_V4_OR_V1_LIKE_RE.test(value);
+}
+
 export async function ensureLegacyCharacterFromSessionShape(input: {
   characterIdFromSession: string;
   username: string;
@@ -30,8 +36,10 @@ export async function ensureLegacyCharacterFromSessionShape(input: {
     lastSoloArenaAt?: Date | null;
   };
 }) {
-  const directCharacter = await oneOrNull<{ id: string }>('SELECT "id" FROM "Character" WHERE "id" = $1 LIMIT 1', [input.characterIdFromSession]);
-  if (directCharacter) return directCharacter.id;
+  if (looksLikeUuid(input.characterIdFromSession)) {
+    const directCharacter = await oneOrNull<{ id: string }>('SELECT "id" FROM "Character" WHERE "id" = $1 LIMIT 1', [input.characterIdFromSession]);
+    if (directCharacter) return directCharacter.id;
+  }
 
   const legacyUser = await oneOrNull<{ id: string }>(
     'INSERT INTO "User" ("id", "username", "updatedAt") VALUES ($1, $2, NOW()) ON CONFLICT ("username") DO UPDATE SET "username" = EXCLUDED."username", "updatedAt" = NOW() RETURNING "id"',
