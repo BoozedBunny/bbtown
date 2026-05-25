@@ -102,11 +102,11 @@ export function CombinedMarketView({
     const fetchData = async () => {
       const townId = townData?.id ?? 1;
       const [pRes, sRes, meRes, treasuryRes, loanRes] = await Promise.all([
-        fetch("/api/portfolio"),
-        fetch("/api/stocks"),
-        fetch("/api/me"),
-        fetch(`/api/treasury/${townId}`),
-        fetch("/api/loans/me"),
+        fetch("/api/portfolio", { cache: "no-store" }),
+        fetch("/api/stocks", { cache: "no-store" }),
+        fetch("/api/me", { cache: "no-store" }),
+        fetch(`/api/treasury/${townId}`, { cache: "no-store" }),
+        fetch("/api/loans/me", { cache: "no-store" }),
       ]);
       if (pRes.ok) setPortfolio(await pRes.json());
       if (sRes.ok) setStocks(await sRes.json());
@@ -135,8 +135,8 @@ export function CombinedMarketView({
     };
 
     const onPortfolioUpdated = ({ message, type }: { message?: string; type?: string }) => {
-      fetch("/api/portfolio").then((res) => res.json()).then(setPortfolio);
-      fetch("/api/me").then((res) => res.json()).then((data) => setWallet(data.wallet));
+      fetch("/api/portfolio", { cache: "no-store" }).then((res) => res.json()).then(setPortfolio);
+      fetch("/api/me", { cache: "no-store" }).then((res) => res.json()).then((data) => setWallet(data.wallet));
       if (message) {
         if (type === "success") toast.success(message);
         else if (type === "error") toast.error(message);
@@ -206,9 +206,9 @@ export function CombinedMarketView({
   const refreshFinance = async () => {
     const townId = townData?.id ?? 1;
     const [meRes, treasuryRes, loanRes] = await Promise.all([
-      fetch("/api/me"),
-      fetch(`/api/treasury/${townId}`),
-      fetch("/api/loans/me"),
+      fetch("/api/me", { cache: "no-store" }),
+      fetch(`/api/treasury/${townId}`, { cache: "no-store" }),
+      fetch("/api/loans/me", { cache: "no-store" }),
     ]);
     if (meRes.ok) {
       const me = await meRes.json();
