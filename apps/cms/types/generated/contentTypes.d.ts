@@ -440,6 +440,102 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiBuildingStateBuildingState
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'building_states';
+  info: {
+    description: 'Dynamic ownership and market state for buildings per town';
+    displayName: 'Building State';
+    pluralName: 'building-states';
+    singularName: 'building-state';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    building: Schema.Attribute.Relation<'manyToOne', 'api::building.building'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    employees: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    forSale: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<true>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::building-state.building-state'
+    > &
+      Schema.Attribute.Private;
+    owner: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::player-profile.player-profile'
+    >;
+    price: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    publishedAt: Schema.Attribute.DateTime;
+    stateId: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    town: Schema.Attribute.Relation<'manyToOne', 'api::town.town'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiBuildingBuilding extends Struct.CollectionTypeSchema {
+  collectionName: 'buildings';
+  info: {
+    description: 'Static building blueprint data migrated from town-config';
+    displayName: 'Building';
+    pluralName: 'buildings';
+    singularName: 'building';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    buildingId: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    buildingStates: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::building-state.building-state'
+    >;
+    color: Schema.Attribute.String & Schema.Attribute.DefaultTo<'#BD00FF'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    iconPosition: Schema.Attribute.Decimal;
+    image: Schema.Attribute.Text;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::building.building'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    positionX: Schema.Attribute.Decimal;
+    positionY: Schema.Attribute.Decimal;
+    positionZ: Schema.Attribute.Decimal;
+    publishedAt: Schema.Attribute.DateTime;
+    rotationX: Schema.Attribute.Decimal;
+    rotationY: Schema.Attribute.Decimal;
+    rotationZ: Schema.Attribute.Decimal;
+    scale: Schema.Attribute.Decimal;
+    spriteConfig: Schema.Attribute.JSON;
+    type: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiGlobalSettingGlobalSetting extends Struct.SingleTypeSchema {
   collectionName: 'global_settings';
   info: {
@@ -592,6 +688,42 @@ export interface ApiTownNewsTownNews extends Struct.CollectionTypeSchema {
     slug: Schema.Attribute.UID<'title'> & Schema.Attribute.Required;
     title: Schema.Attribute.String & Schema.Attribute.Required;
     townId: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiTownTown extends Struct.CollectionTypeSchema {
+  collectionName: 'towns';
+  info: {
+    description: 'Core town entity for game world and treasury';
+    displayName: 'Town';
+    pluralName: 'towns';
+    singularName: 'town';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    bankBalance: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<1000000>;
+    buildingStates: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::building-state.building-state'
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::town.town'> &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    townId: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1109,10 +1241,13 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::building-state.building-state': ApiBuildingStateBuildingState;
+      'api::building.building': ApiBuildingBuilding;
       'api::global-setting.global-setting': ApiGlobalSettingGlobalSetting;
       'api::market-company-profile.market-company-profile': ApiMarketCompanyProfileMarketCompanyProfile;
       'api::player-profile.player-profile': ApiPlayerProfilePlayerProfile;
       'api::town-news.town-news': ApiTownNewsTownNews;
+      'api::town.town': ApiTownTown;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;
