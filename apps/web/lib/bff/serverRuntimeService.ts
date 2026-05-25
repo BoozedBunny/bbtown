@@ -120,6 +120,16 @@ async function syncStrapiPortfolioAndWallet(input: {
     }
   }
 
+  if (flags.strapiAdminOverrideWins) {
+    console.info("[market-write] skip strapi wallet overwrite (STRAPI_ADMIN_OVERRIDE_WINS=true)", {
+      write_target: "strapi",
+      source: "user_action",
+      username: input.username,
+      symbol: input.symbol,
+    });
+    return;
+  }
+
   const profileUpdateRes = await fetch(`${STRAPI_BASE_URL}/api/player-profiles/${profileIdentifier}`, {
     method: "PUT",
     headers,
