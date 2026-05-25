@@ -81,8 +81,8 @@ export async function settleTreasuryDay(townId: number, dateKey: string) {
     });
 
     return oneOrNull(
-      'INSERT INTO "TreasuryDaySnapshot" ("townId", "dateKey", "openingBalance", "variationAmount", "loanNetAmount", "otherNetAmount", "closingBalance") VALUES ($1, $2, $3, $4, 0, 0, $5) RETURNING *',
-      [townId, dateKey, openingBalance, variationAmount, closingBalance],
+      'INSERT INTO "TreasuryDaySnapshot" ("id", "townId", "dateKey", "openingBalance", "variationAmount", "loanNetAmount", "otherNetAmount", "closingBalance", "createdAt") VALUES ($1, $2, $3, $4, $5, 0, 0, $6, NOW()) RETURNING *',
+      [randomUUID(), townId, dateKey, openingBalance, variationAmount, closingBalance],
       tx,
     );
   });
