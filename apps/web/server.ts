@@ -19,7 +19,11 @@ import type {
   ChatSendAckPayload,
   ChatSendPayload,
 } from "./lib/chat/chatTypes";
-import { getPlayerProfile, strapiMe, updatePlayerProfile } from "./lib/strapiAuth";
+import {
+  getPlayerProfile,
+  strapiMe,
+  updatePlayerProfileByAuthUserId,
+} from "./lib/strapiAuth";
 import {
   applyArenaResult,
   buyStockForCharacter,
@@ -404,7 +408,7 @@ app.prepare().then(async () => {
         if (!character) return;
 
         const me = await strapiMe(sessionToken);
-        await updatePlayerProfile(sessionToken, me.id, {
+        const synced = await updatePlayerProfileByAuthUserId(me.id, {
           wallet: character.wallet,
           experience: character.experience,
           arenaMaxRounds: character.arenaMaxRounds,
@@ -412,6 +416,10 @@ app.prepare().then(async () => {
           loanStatus: character.loanStatus,
           loanLockedUntil: character.loanLockedUntil ? character.loanLockedUntil.toISOString() : null,
         });
+
+        if (!synced) {
+          console.warn(`Skipped Strapi profile sync for ${mockUser}: profile/token unavailable`);
+        }
       } catch (error) {
         console.error("Failed to sync Strapi profile from legacy socket state", error);
       }
