@@ -1,10 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { type PoolClient } from "pg";
-import { many, oneOrNull, withTransaction } from "@/lib/db";
 import { treasuryConfig } from "@/lib/treasury/config";
 import { addUtcDays, clamp, seededPercent, toUtcDateKey, roundInt } from "@/lib/treasury/utils";
 
-type TxClient = PoolClient | any;
+const STRAPI_BASE_URL = process.env.STRAPI_URL ?? "http://127.0.0.1:1339";
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 type LedgerKind =
   | "DAILY_VARIATION"
@@ -14,18 +13,76 @@ type LedgerKind =
   | "LOAN_INTEREST_INFLOW"
   | "BUILDING_SALE_INFLOW";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+type LedgerEntry = {
+  id: string;
+  townId: number;
+  kind: LedgerKind;
+  amount: number;
+  referenceType: string;
+  referenceId: string;
+  metadataJson?: string;
+  createdAt: string;
+};
 
-function logTreasuryWrite(action: string, details: Record<string, unknown> = {}) {
-  console.info("[treasury-write]", {
-    action,
-    write_target: "legacy",
-    source: "system_tick",
-    ...details,
-  });
+type DaySnapshot = {
+  id: string;
+  townId: number;
+  dateKey: string;
+  openingBalance: number;
+  variationAmount: number;
+  loanNetAmount: number;
+  otherNetAmount: number;
+  closingBalance: number;
+};
+
+const ledgerStore: LedgerEntry[] = [];
+const daySnapshotStore = new Map<string, DaySnapshot>(); // key townId:dateKey
+
+function getHeaders(): HeadersInit {
+  const token = process.env.STRAPI_API_TOKEN;
+  if (!token) throw new Error("Missing STRAPI_API_TOKEN");
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
 }
 
-export async function createLedgerEntry(tx: TxClient, input: {
+async function getTownByTownId(townId: number) {
+  const headers = getHeaders();
+  const url = new URL(`${STRAPI_BASE_URL}/api/towns`);
+  url.searchParams.set("filters[townId][$eq]", String(townId));
+  url.searchParams.set("pagination[limit]", "1");
+  const res = await fetch(url, { headers, cache: "no-store" });
+  if (!res.ok) throw new Error(`Town fetch failed: ${res.status}`);
+  const payload = (await res.json()) as { data?: Array<{ id: number; documentId?: string; townId?: number | string; bankBalance?: number }> };
+  return payload.data?.[0] ?? null;
+}
+
+async function listAllTowns() {
+  const headers = getHeaders();
+  const url = new URL(`${STRAPI_BASE_URL}/api/towns`);
+  url.searchParams.set("pagination[limit]", "500");
+  const res = await fetch(url, { headers, cache: "no-store" });
+  if (!res.ok) throw new Error(`Town list failed: ${res.status}`);
+  const payload = (await res.json()) as { data?: Array<{ id: number; documentId?: string; townId?: number | string; bankBalance?: number }> };
+  return payload.data ?? [];
+}
+
+async function updateTownBalance(townIdentifier: string, nextBalance: number) {
+  const headers = getHeaders();
+  const res = await fetch(`${STRAPI_BASE_URL}/api/towns/${encodeURIComponent(townIdentifier)}`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify({ data: { bankBalance: nextBalance } }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Town balance update failed: ${res.status} ${txt}`);
+  }
+}
+
+export async function createLedgerEntry(_tx: unknown, input: {
   townId: number;
   kind: LedgerKind;
   amount: number;
@@ -33,109 +90,106 @@ export async function createLedgerEntry(tx: TxClient, input: {
   referenceId: string;
   metadataJson?: string;
 }) {
-  if (typeof tx?.query === "function") {
-    return oneOrNull(
-      'INSERT INTO "TreasuryLedgerEntry" ("id", "townId", "kind", "amount", "referenceType", "referenceId", "metadataJson") VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [randomUUID(), input.townId, input.kind, input.amount, input.referenceType, input.referenceId, input.metadataJson ?? null],
-      tx,
-    );
-  }
-
-  if (tx?.treasuryLedgerEntry?.create) {
-    return tx.treasuryLedgerEntry.create({ data: input });
-  }
-
-  throw new Error("Unsupported transaction client in createLedgerEntry");
+  const entry: LedgerEntry = {
+    id: randomUUID(),
+    townId: input.townId,
+    kind: input.kind,
+    amount: input.amount,
+    referenceType: input.referenceType,
+    referenceId: input.referenceId,
+    metadataJson: input.metadataJson,
+    createdAt: new Date().toISOString(),
+  };
+  ledgerStore.push(entry);
+  return entry;
 }
 
 export async function settleTreasuryDay(townId: number, dateKey: string) {
-  return withTransaction(async (tx) => {
-    const existing = await oneOrNull(
-      'SELECT * FROM "TreasuryDaySnapshot" WHERE "townId" = $1 AND "dateKey" = $2 LIMIT 1',
-      [townId, dateKey],
-      tx,
-    );
-    if (existing) return existing;
+  const key = `${townId}:${dateKey}`;
+  const existing = daySnapshotStore.get(key);
+  if (existing) return existing;
 
-    const town = await oneOrNull<{ bankBalance: number }>(
-      'SELECT "bankBalance" FROM "Town" WHERE "id" = $1 LIMIT 1',
-      [townId],
-      tx,
-    );
-    if (!town) throw new Error("Town not found");
+  const town = await getTownByTownId(townId);
+  if (!town) throw new Error("Town not found");
 
-    const openingBalance = town.bankBalance;
-    const seed = `${townId}:${dateKey}:${treasuryConfig.quoteSalt}`;
-    const pct = seededPercent(seed, treasuryConfig.dailyVariationMinPct, treasuryConfig.dailyVariationMaxPct);
-    const raw = roundInt(openingBalance * pct);
-    let variationAmount = clamp(raw, treasuryConfig.dailyVariationFloorAbs, treasuryConfig.dailyVariationCapAbs);
-    const unclampedClosing = openingBalance + variationAmount;
-    let clamped = false;
-    if (unclampedClosing < treasuryConfig.treasuryFloorBalance) {
-      variationAmount = treasuryConfig.treasuryFloorBalance - openingBalance;
-      clamped = true;
-    }
+  const openingBalance = Number(town.bankBalance ?? 0);
+  const seed = `${townId}:${dateKey}:${treasuryConfig.quoteSalt}`;
+  const pct = seededPercent(seed, treasuryConfig.dailyVariationMinPct, treasuryConfig.dailyVariationMaxPct);
+  const raw = roundInt(openingBalance * pct);
+  let variationAmount = clamp(raw, treasuryConfig.dailyVariationFloorAbs, treasuryConfig.dailyVariationCapAbs);
+  const unclampedClosing = openingBalance + variationAmount;
+  let clampedByFloor = false;
+  if (unclampedClosing < treasuryConfig.treasuryFloorBalance) {
+    variationAmount = treasuryConfig.treasuryFloorBalance - openingBalance;
+    clampedByFloor = true;
+  }
 
-    const closingBalance = openingBalance + variationAmount;
+  const closingBalance = openingBalance + variationAmount;
+  const townIdentifier = town.documentId ?? String(town.id);
+  await updateTownBalance(townIdentifier, closingBalance);
 
-    logTreasuryWrite("daily_settlement", { townId, dateKey, openingBalance, variationAmount, closingBalance });
-
-    await tx.query('UPDATE "Town" SET "bankBalance" = $2 WHERE "id" = $1', [townId, closingBalance]);
-
-    await createLedgerEntry(tx, {
-      townId,
-      kind: "DAILY_VARIATION",
-      amount: variationAmount,
-      referenceType: "TreasuryDaySnapshot",
-      referenceId: `${townId}:${dateKey}`,
-      metadataJson: JSON.stringify({ pct, clamped }),
-    });
-
-    return oneOrNull(
-      'INSERT INTO "TreasuryDaySnapshot" ("id", "townId", "dateKey", "openingBalance", "variationAmount", "loanNetAmount", "otherNetAmount", "closingBalance") VALUES ($1, $2, $3, $4, $5, 0, 0, $6) RETURNING *',
-      [randomUUID(), townId, dateKey, openingBalance, variationAmount, closingBalance],
-      tx,
-    );
+  await createLedgerEntry(null, {
+    townId,
+    kind: "DAILY_VARIATION",
+    amount: variationAmount,
+    referenceType: "TreasuryDaySnapshot",
+    referenceId: key,
+    metadataJson: JSON.stringify({ pct, clampedByFloor }),
   });
+
+  const snapshot: DaySnapshot = {
+    id: randomUUID(),
+    townId,
+    dateKey,
+    openingBalance,
+    variationAmount,
+    loanNetAmount: 0,
+    otherNetAmount: 0,
+    closingBalance,
+  };
+  daySnapshotStore.set(key, snapshot);
+  return snapshot;
 }
 
 export async function runTreasuryDailySettlement(now = new Date()) {
   if (!treasuryConfig.ffDailyVariation) return;
-  const towns = await many<{ id: number }>('SELECT "id" FROM "Town"');
+  const towns = await listAllTowns();
   const todayKey = toUtcDateKey(now);
 
   for (const town of towns) {
-    const last = await oneOrNull<{ dateKey: string }>(
-      'SELECT "dateKey" FROM "TreasuryDaySnapshot" WHERE "townId" = $1 ORDER BY "dateKey" DESC LIMIT 1',
-      [town.id],
-    );
+    const normalizedTownId = Number(town.townId ?? town.id);
+    if (!Number.isFinite(normalizedTownId)) continue;
 
+    const existingForTown = Array.from(daySnapshotStore.values())
+      .filter((row) => row.townId === normalizedTownId)
+      .sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+
+    const last = existingForTown[existingForTown.length - 1];
     const startDate = last ? addUtcDays(new Date(`${last.dateKey}T00:00:00.000Z`), 1) : now;
+
     for (let d = startDate; toUtcDateKey(d) <= todayKey; d = new Date(d.getTime() + DAY_MS)) {
-      await settleTreasuryDay(town.id, toUtcDateKey(d));
+      await settleTreasuryDay(normalizedTownId, toUtcDateKey(d));
     }
   }
 }
 
 export async function getTreasurySummary(townId: number) {
-  const [town, today, last7, exposure] = await Promise.all([
-    oneOrNull<{ bankBalance: number }>('SELECT "bankBalance" FROM "Town" WHERE "id" = $1 LIMIT 1', [townId]),
-    oneOrNull('SELECT * FROM "TreasuryDaySnapshot" WHERE "townId" = $1 AND "dateKey" = $2 LIMIT 1', [townId, toUtcDateKey(new Date())]),
-    many('SELECT * FROM "TreasuryDaySnapshot" WHERE "townId" = $1 ORDER BY "dateKey" DESC LIMIT 7', [townId]),
-    oneOrNull<{ active_principal: number | null; count_active: number }>(
-      'SELECT COALESCE(SUM("remainingPrincipal"), 0) AS active_principal, COUNT(*)::int AS count_active FROM "CharacterLoan" WHERE "townId" = $1 AND "status" IN (\'ACTIVE\', \'DELINQUENT\')',
-      [townId],
-    ),
-  ]);
+  const town = await getTownByTownId(townId);
+  const todayKey = toUtcDateKey(new Date());
+  const todaySnapshot = daySnapshotStore.get(`${townId}:${todayKey}`) ?? null;
+  const last7Days = Array.from(daySnapshotStore.values())
+    .filter((row) => row.townId === townId)
+    .sort((a, b) => a.dateKey.localeCompare(b.dateKey))
+    .slice(-7);
 
   return {
-    bankBalance: town?.bankBalance ?? 0,
-    todaySnapshot: today,
-    last7Days: [...last7].reverse(),
+    bankBalance: Number(town?.bankBalance ?? 0),
+    todaySnapshot,
+    last7Days,
     loanExposure: {
-      activePrincipal: exposure?.active_principal ?? 0,
+      activePrincipal: 0,
       delinquentPrincipal: 0,
-      countActive: exposure?.count_active ?? 0,
+      countActive: 0,
     },
   };
 }
