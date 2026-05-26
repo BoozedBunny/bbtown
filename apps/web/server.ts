@@ -28,12 +28,8 @@ import {
   applyArenaResult,
   buyStockForCharacter,
   ensureCompanyStocksFromProfiles,
-  getAvatarForUsername,
-  getCharacterById,
-  getCharacterByUsername,
   sellStockForCharacter,
   tickStocksAndReturnSorted,
-  upsertLegacyCharacterForUsername,
 } from "./lib/bff/serverRuntimeService";
 
 const dev = process.env.NODE_ENV !== "production";
@@ -322,45 +318,26 @@ app.prepare().then(async () => {
     }
   }, 60_000);
 
-  async function ensureSocketLegacyCharacter(params: { username?: string; sessionToken?: string }) {
+  async function getSocketProfileSnapshot(params: { username?: string; sessionToken?: string }) {
     const username = params.username?.trim();
-    if (!username) return null;
+    if (!username || !params.sessionToken) return null;
 
-    let profileWallet: number | undefined;
-    let profileName: string | undefined;
-    let profileAvatar: string | undefined;
-    let profileDescription: string | null | undefined;
-    let profileAppearanceColor: string | undefined;
-    let profileArenaMaxRounds: number | undefined;
-    let profileExperience: number | undefined;
-
-    if (params.sessionToken) {
-      try {
-        const me = await strapiMe(params.sessionToken);
-        const profile = await getPlayerProfile(params.sessionToken, me.id);
-        if (profile) {
-          profileWallet = profile.wallet;
-          profileName = profile.displayName ?? me.username;
-          profileAvatar = profile.avatar ?? "bunny";
-          profileDescription = profile.description ?? null;
-          profileAppearanceColor = profile.appearanceColor ?? "#BD00FF";
-          profileArenaMaxRounds = profile.arenaMaxRounds ?? 0;
-          profileExperience = profile.experience ?? 0;
-        }
-      } catch {
-        // ignore Strapi lookup errors; fallback to legacy-only flow
-      }
+    try {
+      const me = await strapiMe(params.sessionToken);
+      const profile = await getPlayerProfile(params.sessionToken, me.id);
+      if (!profile) return null;
+      return {
+        avatar: profile.avatar ?? "bunny",
+        wallet: profile.wallet ?? 0,
+        experience: profile.experience ?? 0,
+        arenaMaxRounds: profile.arenaMaxRounds ?? 0,
+        lastSoloArenaAt: profile.lastSoloArenaAt ?? null,
+        loanStatus: profile.loanStatus ?? "NONE",
+        loanLockedUntil: profile.loanLockedUntil ?? null,
+      };
+    } catch {
+      return null;
     }
-
-    return upsertLegacyCharacterForUsername(username, {
-      wallet: profileWallet,
-      name: profileName,
-      avatar: profileAvatar,
-      description: profileDescription,
-      appearanceColor: profileAppearanceColor,
-      arenaMaxRounds: profileArenaMaxRounds,
-      experience: profileExperience,
-    });
   }
 
   io.on("connection", async (socket) => {
@@ -391,39 +368,10 @@ app.prepare().then(async () => {
     }
 
     const syncStrapiProfileFromLegacyForCurrentSocketUser = async () => {
-      if (!mockUser || !sessionToken) return;
-
-      try {
-        let character = await getCharacterByUsername(mockUser);
-
-        if (!character) {
-          const legacyCharacterId = await ensureSocketLegacyCharacter({
-            username: mockUser,
-            sessionToken,
-          });
-          if (!legacyCharacterId) return;
-          character = await getCharacterById(legacyCharacterId);
-        }
-
-        if (!character) return;
-
-        const me = await strapiMe(sessionToken);
-        const synced = await updatePlayerProfileByAuthUserId(me.id, {
-          wallet: character.wallet,
-          experience: character.experience,
-          arenaMaxRounds: character.arenaMaxRounds,
-          lastSoloArenaAt: character.lastSoloArenaAt ? character.lastSoloArenaAt.toISOString() : null,
-          loanStatus: character.loanStatus,
-          loanLockedUntil: character.loanLockedUntil ? character.loanLockedUntil.toISOString() : null,
-        });
-
-        if (!synced) {
-          console.warn(`Skipped Strapi profile sync for ${mockUser}: profile/token unavailable`);
-        }
-      } catch (error) {
-        console.error("Failed to sync Strapi profile from legacy socket state", error);
-      }
+      // Strapi ist Source-of-Truth; kein Legacy->Strapi Sync mehr nötig.
+      return;
     };
+
 
     if (mockUser) {
       socket.join(`user:${mockUser}`);
@@ -901,18 +849,11 @@ app.prepare().then(async () => {
       const sequence = game.nextSpawnSequence++;
       const isSolo = roomId.startsWith("solo-");
 
-      let avatar = "bunny";
-      const legacyCharacterId = await ensureSocketLegacyCharacter({
+      const profileSnapshot = await getSocketProfileSnapshot({
         username: mockUser,
         sessionToken,
       });
-
-      if (legacyCharacterId) {
-        const character = await getCharacterById(legacyCharacterId);
-        avatar = character?.avatar ?? "bunny";
-      } else {
-        avatar = await getAvatarForUsername(mockUser);
-      }
+      const avatar = profileSnapshot?.avatar ?? "bunny";
 
       game.players[socket.id] = buildSpawnPlayerState(
         socket.id,
