@@ -1,6 +1,17 @@
 import { strapiFetchList } from "@/lib/cms/strapi";
 import { many, oneOrNull } from "@/lib/db";
 
+const STRAPI_BASE_URL = process.env.STRAPI_URL ?? "http://127.0.0.1:1339";
+
+function getStrapiServiceHeaders(): HeadersInit | null {
+  const token = process.env.STRAPI_API_TOKEN;
+  if (!token) return null;
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+}
+
 type StrapiRelation<T> = {
   data?: T | null;
 };
@@ -184,6 +195,86 @@ async function getPortfolioFromDb(characterId: string) {
   );
 }
 
+type PortfolioRow = Awaited<ReturnType<typeof getPortfolioFromDb>>[number];
+
+async function backfillStrapiPortfolioFromLegacy(input: {
+  authUserId?: string;
+  username?: string;
+  portfolio: PortfolioRow[];
+}) {
+  const headers = getStrapiServiceHeaders();
+  if (!headers) return;
+  if (!input.portfolio.length) return;
+
+  const profileUrl = new URL(`${STRAPI_BASE_URL}/api/player-profiles`);
+  const authUserIdNumber = Number(input.authUserId);
+  if (Number.isFinite(authUserIdNumber)) {
+    profileUrl.searchParams.set("filters[authUserId][$eq]", String(authUserIdNumber));
+  } else if (input.username) {
+    profileUrl.searchParams.set("filters[displayName][$eq]", input.username);
+  } else {
+    return;
+  }
+  profileUrl.searchParams.set("pagination[limit]", "1");
+
+  const profileRes = await fetch(profileUrl, { headers, cache: "no-store" });
+  if (!profileRes.ok) return;
+  const profileJson = (await profileRes.json()) as { data?: Array<{ id: number; documentId?: string }> };
+  const profile = profileJson.data?.[0];
+  if (!profile) return;
+  const profileIdentifier = profile.documentId ?? String(profile.id);
+
+  for (const row of input.portfolio) {
+    const symbol = row.stock?.symbol;
+    if (!symbol || row.quantity <= 0) continue;
+
+    const stockLookupUrl = new URL(`${STRAPI_BASE_URL}/api/stocks`);
+    stockLookupUrl.searchParams.set("filters[symbol][$eq]", symbol);
+    stockLookupUrl.searchParams.set("pagination[limit]", "1");
+
+    const stockRes = await fetch(stockLookupUrl, { headers, cache: "no-store" });
+    if (!stockRes.ok) continue;
+    const stockJson = (await stockRes.json()) as { data?: Array<{ id: number; documentId?: string }> };
+    const stock = stockJson.data?.[0];
+    if (!stock) continue;
+    const stockIdentifier = stock.documentId ?? String(stock.id);
+
+    const itemLookupUrl = new URL(`${STRAPI_BASE_URL}/api/portfolio-items`);
+    if (Number.isFinite(authUserIdNumber)) {
+      itemLookupUrl.searchParams.set("filters[playerProfile][authUserId][$eq]", String(authUserIdNumber));
+    } else if (input.username) {
+      itemLookupUrl.searchParams.set("filters[playerProfile][displayName][$eq]", input.username);
+    }
+    itemLookupUrl.searchParams.set("filters[stock][symbol][$eq]", symbol);
+    itemLookupUrl.searchParams.set("pagination[limit]", "1");
+
+    const itemRes = await fetch(itemLookupUrl, { headers, cache: "no-store" });
+    if (!itemRes.ok) continue;
+    const itemJson = (await itemRes.json()) as { data?: Array<{ id: number; documentId?: string; quantity?: number }> };
+    const existing = itemJson.data?.[0];
+
+    if (!existing) {
+      await fetch(`${STRAPI_BASE_URL}/api/portfolio-items`, {
+        method: "POST",
+        headers,
+        cache: "no-store",
+        body: JSON.stringify({ data: { playerProfile: profileIdentifier, stock: stockIdentifier, quantity: row.quantity } }),
+      });
+      continue;
+    }
+
+    const itemIdentifier = existing.documentId ?? String(existing.id);
+    if (Number(existing.quantity ?? 0) !== row.quantity) {
+      await fetch(`${STRAPI_BASE_URL}/api/portfolio-items/${itemIdentifier}`, {
+        method: "PUT",
+        headers,
+        cache: "no-store",
+        body: JSON.stringify({ data: { quantity: row.quantity } }),
+      });
+    }
+  }
+}
+
 export async function getPortfolioForCharacter(characterId: string, authUserId?: string, username?: string) {
   try {
     const portfolio = await getPortfolioFromStrapi(characterId, authUserId, username);
@@ -196,7 +287,13 @@ export async function getPortfolioForCharacter(characterId: string, authUserId?:
     );
   }
 
-  return getPortfolioFromDb(characterId);
+  const legacyPortfolio = await getPortfolioFromDb(characterId);
+  try {
+    await backfillStrapiPortfolioFromLegacy({ authUserId, username, portfolio: legacyPortfolio });
+  } catch (error) {
+    console.error(`[portfolio-sync] Legacy->Strapi backfill failed for authUserId=${authUserId ?? "n/a"}.`, error);
+  }
+  return legacyPortfolio;
 }
 
 export async function getTownStateById(townId: string) {
