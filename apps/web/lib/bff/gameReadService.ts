@@ -137,17 +137,52 @@ type StrapiPortfolioItem = {
   stock?: StrapiPortfolioStock | null;
 };
 
+async function resolveNumericStrapiUserId(authUserId?: string, username?: string): Promise<number | null> {
+  const parsed = Number(authUserId);
+  if (Number.isFinite(parsed)) return parsed;
+  if (!username) return null;
+
+  const headers = getStrapiServiceHeaders();
+  if (!headers) return null;
+
+  const userLookupUrl = new URL(`${STRAPI_BASE_URL}/api/users`);
+  userLookupUrl.searchParams.set("filters[username][$eq]", username);
+  userLookupUrl.searchParams.set("pagination[limit]", "1");
+
+  const userRes = await fetch(userLookupUrl, { headers, cache: "no-store" });
+  if (!userRes.ok) return null;
+  const userJson = (await userRes.json()) as { data?: Array<{ id?: number }> };
+  const userId = Number(userJson.data?.[0]?.id);
+  return Number.isFinite(userId) ? userId : null;
+}
+
 async function getPortfolioFromStrapi(characterId: string, authUserId?: string, username?: string) {
   if (!authUserId && !username) return [];
 
-  const authUserIdNumber = Number(authUserId);
-  const hasNumericAuthUserId = Number.isFinite(authUserIdNumber);
-  const profileFilter = hasNumericAuthUserId
-    ? `filters[playerProfile][authUserId][$eq]=${authUserIdNumber}`
-    : `filters[playerProfile][displayName][$eq]=${encodeURIComponent(username ?? "")}`;
+  const resolvedAuthUserId = await resolveNumericStrapiUserId(authUserId, username);
+
+  const profileUrl = new URL(`${STRAPI_BASE_URL}/api/player-profiles`);
+  if (resolvedAuthUserId !== null) {
+    profileUrl.searchParams.set("filters[authUserId][$eq]", String(resolvedAuthUserId));
+  } else if (username) {
+    profileUrl.searchParams.set("filters[displayName][$eq]", username);
+  } else {
+    return [];
+  }
+  profileUrl.searchParams.set("pagination[limit]", "1");
+
+  const headers = getStrapiServiceHeaders();
+  if (!headers) return [];
+
+  const profileRes = await fetch(profileUrl, { headers, cache: "no-store" });
+  if (!profileRes.ok) return [];
+  const profileJson = (await profileRes.json()) as { data?: Array<{ id: number; documentId?: string }> };
+  const profile = profileJson.data?.[0];
+  if (!profile) return [];
+  const profileIdentifier = profile.documentId ?? String(profile.id);
 
   const response = await strapiFetchList<StrapiPortfolioItem>(
-    `/api/portfolio-items?${profileFilter}&populate[stock][fields][0]=symbol&populate[stock][fields][1]=name&populate[stock][fields][2]=price&populate[stock][fields][3]=previousPrice&populate[stock][fields][4]=updatedAt&pagination[limit]=500`,
+    `/api/portfolio-items?filters[playerProfile][documentId][$eq]=${encodeURIComponent(profileIdentifier)}&populate[stock][fields][0]=symbol&populate[stock][fields][1]=name&populate[stock][fields][2]=price&populate[stock][fields][3]=previousPrice&populate[stock][fields][4]=updatedAt&pagination[limit]=500`,
   );
 
   return (response.data ?? [])
@@ -207,9 +242,9 @@ async function backfillStrapiPortfolioFromLegacy(input: {
   if (!input.portfolio.length) return;
 
   const profileUrl = new URL(`${STRAPI_BASE_URL}/api/player-profiles`);
-  const authUserIdNumber = Number(input.authUserId);
-  if (Number.isFinite(authUserIdNumber)) {
-    profileUrl.searchParams.set("filters[authUserId][$eq]", String(authUserIdNumber));
+  const resolvedAuthUserId = await resolveNumericStrapiUserId(input.authUserId, input.username);
+  if (resolvedAuthUserId !== null) {
+    profileUrl.searchParams.set("filters[authUserId][$eq]", String(resolvedAuthUserId));
   } else if (input.username) {
     profileUrl.searchParams.set("filters[displayName][$eq]", input.username);
   } else {
@@ -240,11 +275,7 @@ async function backfillStrapiPortfolioFromLegacy(input: {
     const stockIdentifier = stock.documentId ?? String(stock.id);
 
     const itemLookupUrl = new URL(`${STRAPI_BASE_URL}/api/portfolio-items`);
-    if (Number.isFinite(authUserIdNumber)) {
-      itemLookupUrl.searchParams.set("filters[playerProfile][authUserId][$eq]", String(authUserIdNumber));
-    } else if (input.username) {
-      itemLookupUrl.searchParams.set("filters[playerProfile][displayName][$eq]", input.username);
-    }
+    itemLookupUrl.searchParams.set("filters[playerProfile][documentId][$eq]", profileIdentifier);
     itemLookupUrl.searchParams.set("filters[stock][symbol][$eq]", symbol);
     itemLookupUrl.searchParams.set("pagination[limit]", "1");
 
