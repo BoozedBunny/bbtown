@@ -1,6 +1,12 @@
-import { TOWNS } from "../apps/web/app/town/towns";
-
 type StrapiEntity = { id: number; documentId?: string; townId?: number; name?: string };
+
+type TownSeed = { id: number; name: string };
+
+const TOWN_SEED: TownSeed[] = [
+  { id: 1, name: "HangoverHollow" },
+  { id: 2, name: "TipsyToadstool" },
+  { id: 3, name: "RumTumbleWeed" },
+];
 
 const baseUrl = process.env.STRAPI_URL ?? "http://127.0.0.1:1339";
 const token = process.env.STRAPI_API_TOKEN;
@@ -54,20 +60,19 @@ async function main() {
   let created = 0;
   let updated = 0;
 
-  for (const town of TOWNS) {
-    const townId = Number(town.id);
-    const existing = await fetchOneTownByTownId(townId);
+  for (const town of TOWN_SEED) {
+    const existing = await fetchOneTownByTownId(town.id);
     if (!existing) {
-      await createTown(townId, town.name);
+      await createTown(town.id, town.name);
       created += 1;
-      console.log(`created town ${townId} (${town.name})`);
+      console.log(`created town ${town.id} (${town.name})`);
       continue;
     }
 
     const identifier = existing.documentId ?? String(existing.id);
-    await updateTown(identifier, townId, town.name);
+    await updateTown(identifier, town.id, town.name);
     updated += 1;
-    console.log(`updated town ${townId} (${town.name})`);
+    console.log(`updated town ${town.id} (${town.name})`);
   }
 
   console.log(`done: created=${created} updated=${updated}`);
