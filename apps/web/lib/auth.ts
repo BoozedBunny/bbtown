@@ -97,12 +97,3 @@ export async function requireSessionUserWithCharacter(): Promise<SessionUser & {
   return user as SessionUser & { character: NonNullable<SessionUser["character"]> };
 }
 
-export async function ensureLegacyCharacterForSession(user: SessionUser): Promise<string> {
-  if (!user.character) {
-    throw new UnauthorizedError();
-  }
-
-  // Strapi ist Source-of-Truth: Session-Character-ID direkt verwenden,
-  // kein Legacy-Bootstrap/Auto-Create mehr.
-  return user.character.id;
-}

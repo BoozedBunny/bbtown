@@ -112,9 +112,9 @@ function normalizeOwnerId(owner: BuildingLite["owner"]): string | null {
   return null;
 }
 
-export async function buyBuildingLegacy(input: { buildingId: string; legacyCharacterId: string }) {
-  const { buildingId, legacyCharacterId } = input;
-  const [building, buyer] = await Promise.all([getBuildingRecord(buildingId), fetchProfileByIdentifier(legacyCharacterId)]);
+export async function buyBuildingState(input: { buildingId: string; characterId: string }) {
+  const { buildingId, characterId } = input;
+  const [building, buyer] = await Promise.all([getBuildingRecord(buildingId), fetchProfileByIdentifier(characterId)]);
 
   if (!building) throw new Error("Building not found");
   if (!building.forSale) throw new Error("Building is not for sale");
@@ -164,7 +164,7 @@ export async function getBuildingById(buildingId: string) {
   };
 }
 
-export async function updateBuildingSettingsLegacy(
+export async function updateBuildingSettings(
   buildingId: string,
   input: { title: string; price: number; forSale: boolean },
 ) {

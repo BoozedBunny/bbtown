@@ -1,25 +1,25 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { ensureLegacyCharacterForSession, requireSessionUserWithCharacter } from "../../lib/auth";
+import { requireSessionUserWithCharacter } from "../../lib/auth";
 import { AUTH_COOKIE_NAME, strapiMe, updatePlayerProfile } from "../../lib/strapiAuth";
 import {
-  buyBuildingLegacy,
+  buyBuildingState,
   getBuildingById,
-  updateBuildingSettingsLegacy,
+  updateBuildingSettings as updateBuildingStateSettings,
 } from "@/lib/bff/townService";
 
 export async function buyBuilding(buildingId: string) {
   const user = await requireSessionUserWithCharacter();
 
-  const legacyCharacterId = await ensureLegacyCharacterForSession(user);
+  const characterId = user.character.id;
   const sessionToken = (await cookies()).get(AUTH_COOKIE_NAME)?.value;
 
   if (buildingId === "4") throw new Error("You cannot buy the Bank.");
 
-  const result = await buyBuildingLegacy({
+  const result = await buyBuildingState({
     buildingId,
-    legacyCharacterId,
+    characterId,
   });
 
   if (sessionToken && typeof result.walletAfter === "number") {
@@ -37,18 +37,18 @@ export async function buyBuilding(buildingId: string) {
 export async function updateBuildingSettings(buildingId: string, title: string, price: number, forSale: boolean) {
   const user = await requireSessionUserWithCharacter();
 
-  const legacyCharacterId = await ensureLegacyCharacterForSession(user);
+  const characterId = user.character.id;
 
   const building = await getBuildingById(buildingId);
 
   if (!building) throw new Error("Building not found");
-  if (building.ownerId !== legacyCharacterId) throw new Error("Not the owner");
+  if (building.ownerId !== characterId) throw new Error("Not the owner");
   if (!Number.isFinite(price) || price < 0) throw new Error("Price must be a non-negative number");
 
   const normalizedTitle = title.trim();
   if (!normalizedTitle) throw new Error("Title cannot be empty");
 
-  await updateBuildingSettingsLegacy(buildingId, {
+  await updateBuildingStateSettings(buildingId, {
     title: normalizedTitle,
     price,
     forSale,
