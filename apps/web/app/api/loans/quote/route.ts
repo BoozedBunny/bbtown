@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ensureLegacyCharacterForSession, isUnauthorizedError, requireSessionUserWithCharacter } from "@/lib/auth";
+import { isUnauthorizedError, requireSessionUserWithCharacter } from "@/lib/auth";
 import { createLoanQuote } from "@/lib/treasury/loanService";
 
 export async function POST(request: NextRequest) {
@@ -7,8 +7,7 @@ export async function POST(request: NextRequest) {
     const user = await requireSessionUserWithCharacter();
     const body = await request.json();
     const requestedPrincipal = Number(body?.requestedPrincipal ?? 0);
-    const legacyCharacterId = await ensureLegacyCharacterForSession(user);
-    const response = await createLoanQuote(legacyCharacterId, requestedPrincipal);
+    const response = await createLoanQuote(user.character.id, requestedPrincipal);
     return NextResponse.json(response);
   } catch (error) {
     if (isUnauthorizedError(error)) {
