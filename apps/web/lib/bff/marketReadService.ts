@@ -1,5 +1,4 @@
 import { strapiFetchList } from "@/lib/cms/strapi";
-import { many, oneOrNull } from "@/lib/db";
 import { getCompanyProfile } from "@/lib/market/companyProfiles";
 
 type StrapiStock = {
@@ -100,68 +99,11 @@ async function getStockWithRecentHistoryFromStrapi(symbol: string, historyLimit 
   return { ...mappedStock, history };
 }
 
-async function listStocksFromDb() {
-  const rows = await many<{
-    id: string;
-    symbol: string;
-    name: string;
-    price: number;
-    previousPrice: number;
-    updatedAt: string;
-  }>(
-    'SELECT "id", "symbol", "name", "price", "previousPrice", "updatedAt" FROM "Stock" ORDER BY "symbol" ASC',
-  );
-
-  return rows.map((row) => enrichStockMetadata(row));
-}
-
-async function getStockWithRecentHistoryFromDb(symbol: string, historyLimit = 50) {
-  const stock = await oneOrNull<{
-    id: string;
-    symbol: string;
-    name: string;
-    price: number;
-    previousPrice: number;
-    updatedAt: string;
-  }>(
-    'SELECT "id", "symbol", "name", "price", "previousPrice", "updatedAt" FROM "Stock" WHERE "symbol" = $1 LIMIT 1',
-    [symbol],
-  );
-
-  if (!stock) return null;
-
-  const history = await many(
-    'SELECT "id", "stockId", "price", "timestamp" FROM "StockHistory" WHERE "stockId" = $1 ORDER BY "timestamp" DESC LIMIT $2',
-    [stock.id, historyLimit],
-  );
-
-  return { ...enrichStockMetadata(stock), history };
-}
-
 export async function listStocks() {
-  try {
-    const stocks = await listStocksFromStrapi();
-    if (stocks.length > 0) return stocks;
-    console.warn("[market-read] Strapi stocks empty, falling back to DB.");
-  } catch (error) {
-    console.error("[market-read] Strapi stocks read failed, falling back to DB.", error);
-  }
-
-  return listStocksFromDb();
+  const stocks = await listStocksFromStrapi();
+  return stocks;
 }
 
 export async function getStockWithRecentHistory(symbol: string, historyLimit = 50) {
-  try {
-    const stock = await getStockWithRecentHistoryFromStrapi(symbol, historyLimit);
-    if (stock && stock.history.length > 0) return stock;
-    if (stock && stock.history.length === 0) {
-      console.warn(`[market-read] Strapi history empty for symbol=${symbol}, falling back to DB history.`);
-    } else {
-      console.warn(`[market-read] Strapi stock missing for symbol=${symbol}, falling back to DB.`);
-    }
-  } catch (error) {
-    console.error(`[market-read] Strapi history read failed for symbol=${symbol}, falling back to DB.`, error);
-  }
-
-  return getStockWithRecentHistoryFromDb(symbol, historyLimit);
+  return getStockWithRecentHistoryFromStrapi(symbol, historyLimit);
 }

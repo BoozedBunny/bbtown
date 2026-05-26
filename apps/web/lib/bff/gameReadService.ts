@@ -1,5 +1,4 @@
 import { strapiFetchList } from "@/lib/cms/strapi";
-import { many, oneOrNull } from "@/lib/db";
 
 const STRAPI_BASE_URL = process.env.STRAPI_URL ?? "http://127.0.0.1:1339";
 
@@ -97,29 +96,6 @@ async function getTownStateFromStrapi(townId: string) {
   };
 }
 
-async function getTownStateFromDb(townId: string) {
-  const [buildings, town] = await Promise.all([
-    many(
-      `SELECT
-        b."id",
-        b."townId",
-        b."title",
-        b."forSale",
-        b."price",
-        b."employees",
-        b."ownerId",
-        CASE WHEN c."id" IS NULL THEN NULL ELSE json_build_object('name', c."name", 'avatar', c."avatar") END AS "owner"
-      FROM "BuildingState" b
-      LEFT JOIN "Character" c ON c."id" = b."ownerId"
-      WHERE b."townId" = $1`,
-      [townId],
-    ),
-    oneOrNull('SELECT "id", "name", "bankBalance" FROM "Town" WHERE "id" = $1 LIMIT 1', [parseInt(townId, 10)]),
-  ]);
-
-  return { buildings, town };
-}
-
 type StrapiPortfolioStock = {
   id: number;
   documentId?: string;
@@ -208,139 +184,16 @@ async function getPortfolioFromStrapi(characterId: string, authUserId?: string, 
     .filter((row): row is NonNullable<typeof row> => Boolean(row));
 }
 
-async function getPortfolioFromDb(characterId: string) {
-  return many(
-    `SELECT
-      p."id",
-      p."characterId",
-      p."stockId",
-      p."quantity",
-      json_build_object(
-        'id', s."id",
-        'symbol', s."symbol",
-        'name', s."name",
-        'price', s."price",
-        'previousPrice', s."previousPrice",
-        'updatedAt', s."updatedAt"
-      ) AS "stock"
-    FROM "PortfolioItem" p
-    JOIN "Stock" s ON s."id" = p."stockId"
-    WHERE p."characterId" = $1`,
-    [characterId],
-  );
-}
-
-type PortfolioRow = Awaited<ReturnType<typeof getPortfolioFromDb>>[number];
-
-async function backfillStrapiPortfolioFromLegacy(input: {
-  authUserId?: string;
-  username?: string;
-  portfolio: PortfolioRow[];
-}) {
-  const headers = getStrapiServiceHeaders();
-  if (!headers) return;
-  if (!input.portfolio.length) return;
-
-  const profileUrl = new URL(`${STRAPI_BASE_URL}/api/player-profiles`);
-  const resolvedAuthUserId = await resolveNumericStrapiUserId(input.authUserId, input.username);
-  if (resolvedAuthUserId !== null) {
-    profileUrl.searchParams.set("filters[authUserId][$eq]", String(resolvedAuthUserId));
-  } else if (input.username) {
-    profileUrl.searchParams.set("filters[displayName][$eq]", input.username);
-  } else {
-    return;
-  }
-  profileUrl.searchParams.set("pagination[limit]", "1");
-
-  const profileRes = await fetch(profileUrl, { headers, cache: "no-store" });
-  if (!profileRes.ok) return;
-  const profileJson = (await profileRes.json()) as { data?: Array<{ id: number; documentId?: string }> };
-  const profile = profileJson.data?.[0];
-  if (!profile) return;
-  const profileIdentifier = profile.documentId ?? String(profile.id);
-
-  for (const row of input.portfolio) {
-    const symbol = row.stock?.symbol;
-    if (!symbol || row.quantity <= 0) continue;
-
-    const stockLookupUrl = new URL(`${STRAPI_BASE_URL}/api/stocks`);
-    stockLookupUrl.searchParams.set("filters[symbol][$eq]", symbol);
-    stockLookupUrl.searchParams.set("pagination[limit]", "1");
-
-    const stockRes = await fetch(stockLookupUrl, { headers, cache: "no-store" });
-    if (!stockRes.ok) continue;
-    const stockJson = (await stockRes.json()) as { data?: Array<{ id: number; documentId?: string }> };
-    const stock = stockJson.data?.[0];
-    if (!stock) continue;
-    const stockIdentifier = stock.documentId ?? String(stock.id);
-
-    const itemLookupUrl = new URL(`${STRAPI_BASE_URL}/api/portfolio-items`);
-    itemLookupUrl.searchParams.set("filters[playerProfile][documentId][$eq]", profileIdentifier);
-    itemLookupUrl.searchParams.set("filters[stock][symbol][$eq]", symbol);
-    itemLookupUrl.searchParams.set("pagination[limit]", "1");
-
-    const itemRes = await fetch(itemLookupUrl, { headers, cache: "no-store" });
-    if (!itemRes.ok) continue;
-    const itemJson = (await itemRes.json()) as { data?: Array<{ id: number; documentId?: string; quantity?: number }> };
-    const existing = itemJson.data?.[0];
-
-    if (!existing) {
-      await fetch(`${STRAPI_BASE_URL}/api/portfolio-items`, {
-        method: "POST",
-        headers,
-        cache: "no-store",
-        body: JSON.stringify({ data: { playerProfile: profileIdentifier, stock: stockIdentifier, quantity: row.quantity } }),
-      });
-      continue;
-    }
-
-    const itemIdentifier = existing.documentId ?? String(existing.id);
-    if (Number(existing.quantity ?? 0) !== row.quantity) {
-      await fetch(`${STRAPI_BASE_URL}/api/portfolio-items/${itemIdentifier}`, {
-        method: "PUT",
-        headers,
-        cache: "no-store",
-        body: JSON.stringify({ data: { quantity: row.quantity } }),
-      });
-    }
-  }
-}
-
 export async function getPortfolioForCharacter(characterId: string, authUserId?: string, username?: string) {
-  try {
-    const portfolio = await getPortfolioFromStrapi(characterId, authUserId, username);
-    if (portfolio.length > 0) {
-      console.info(`[portfolio-read] source=strapi authUserId=${authUserId ?? "n/a"} username=${username ?? "n/a"} count=${portfolio.length}`);
-      return portfolio;
-    }
-    console.warn(`[portfolio-read] Strapi portfolio empty for authUserId=${authUserId ?? "n/a"}, falling back to DB.`);
-  } catch (error) {
-    console.error(
-      `[portfolio-read] Strapi portfolio read failed for authUserId=${authUserId ?? "n/a"}, falling back to DB.`,
-      error,
-    );
-  }
-
-  const legacyPortfolio = await getPortfolioFromDb(characterId);
-  console.info(`[portfolio-read] source=db authUserId=${authUserId ?? "n/a"} username=${username ?? "n/a"} count=${legacyPortfolio.length}`);
-  try {
-    await backfillStrapiPortfolioFromLegacy({ authUserId, username, portfolio: legacyPortfolio });
-  } catch (error) {
-    console.error(`[portfolio-sync] Legacy->Strapi backfill failed for authUserId=${authUserId ?? "n/a"}.`, error);
-  }
-  return legacyPortfolio;
+  const portfolio = await getPortfolioFromStrapi(characterId, authUserId, username);
+  console.info(`[portfolio-read] source=strapi authUserId=${authUserId ?? "n/a"} username=${username ?? "n/a"} count=${portfolio.length}`);
+  return portfolio;
 }
 
 export async function getTownStateById(townId: string) {
-  try {
-    const strapiState = await getTownStateFromStrapi(townId);
-    if (strapiState) {
-      return strapiState;
-    }
-    console.warn(`[town-state] Strapi had no town for townId=${townId}, falling back to DB.`);
-  } catch (error) {
-    console.error(`[town-state] Strapi read failed for townId=${townId}, falling back to DB.`, error);
+  const strapiState = await getTownStateFromStrapi(townId);
+  if (!strapiState) {
+    throw new Error(`[town-state] Missing town in Strapi for townId=${townId}`);
   }
-
-  return getTownStateFromDb(townId);
+  return strapiState;
 }
