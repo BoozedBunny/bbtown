@@ -43,18 +43,16 @@ async function syncStrapiPortfolioAndWallet(input: {
   walletAfterTrade: number;
 }) {
   const flags = getRuntimeFlags();
-  if (flags.strapiSotMode === "on") {
-    console.info("[market-write] skip legacy->strapi sync (STRAPI_SOT_MODE=on)", {
-      write_target: "strapi",
-      source: "user_action",
+
+  const headers = getStrapiServiceHeaders();
+  if (!headers) {
+    console.warn("[market-write] STRAPI_API_TOKEN missing - cannot sync portfolio/wallet to Strapi", {
       username: input.username,
       symbol: input.symbol,
+      strapiSotMode: flags.strapiSotMode,
     });
     return;
   }
-
-  const headers = getStrapiServiceHeaders();
-  if (!headers) return;
 
   const profileUrl = new URL(`${STRAPI_BASE_URL}/api/player-profiles`);
   if (typeof input.authUserId === "number" && Number.isFinite(input.authUserId)) {
