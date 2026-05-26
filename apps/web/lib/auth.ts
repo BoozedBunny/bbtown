@@ -1,8 +1,5 @@
 import { cookies } from "next/headers";
 import {
-  ensureLegacyCharacterFromSessionShape,
-} from "@/lib/bff/authLegacyService";
-import {
   AUTH_COOKIE_NAME,
   getPlayerProfile,
   strapiMe,
@@ -105,20 +102,7 @@ export async function ensureLegacyCharacterForSession(user: SessionUser): Promis
     throw new UnauthorizedError();
   }
 
-  return ensureLegacyCharacterFromSessionShape({
-    characterIdFromSession: user.character.id,
-    username: user.username,
-    character: {
-      name: user.character.name,
-      appearanceColor: user.character.appearanceColor,
-      avatar: user.character.avatar,
-      description: user.character.description,
-      wallet: user.character.wallet,
-      arenaMaxRounds: user.character.arenaMaxRounds,
-      experience: user.character.experience,
-      loanStatus: user.character.loanStatus,
-      loanLockedUntil: user.character.loanLockedUntil,
-      lastSoloArenaAt: user.character.lastSoloArenaAt,
-    },
-  });
+  // Strapi ist Source-of-Truth: Session-Character-ID direkt verwenden,
+  // kein Legacy-Bootstrap/Auto-Create mehr.
+  return user.character.id;
 }
