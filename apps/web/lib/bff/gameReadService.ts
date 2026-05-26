@@ -47,13 +47,13 @@ function normalizeTownId(value: unknown): string | null {
   return null;
 }
 
-function mapStrapiBuildingState(row: StrapiBuildingState, fallbackTownId: string) {
+function mapStrapiBuildingState(row: StrapiBuildingState, townIdFromContext: string) {
   const stateId = row.stateId ?? "";
   const buildingId = stateId.includes(":") ? stateId.split(":")[1] : stateId;
 
   return {
     id: buildingId || stateId,
-    townId: fallbackTownId,
+    townId: townIdFromContext,
     title: row.title ?? "",
     forSale: Boolean(row.forSale),
     price: Number(row.price ?? 0),

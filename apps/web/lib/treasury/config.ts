@@ -1,13 +1,13 @@
-const parseNumber = (value: string | undefined, fallback: number) => {
-  if (!value) return fallback;
+const parseNumber = (value: string | undefined, defaultValue: number) => {
+  if (!value) return defaultValue;
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
+  return Number.isFinite(parsed) ? parsed : defaultValue;
 };
 
-const parseIntNumber = (value: string | undefined, fallback: number) => {
-  if (!value) return fallback;
+const parseIntNumber = (value: string | undefined, defaultValue: number) => {
+  if (!value) return defaultValue;
   const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) ? parsed : fallback;
+  return Number.isFinite(parsed) ? parsed : defaultValue;
 };
 
 export const treasuryConfig = {
