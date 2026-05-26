@@ -63,21 +63,10 @@ async function syncStrapiPortfolioAndWallet(input: {
     return;
   }
 
-  const profileUrl = new URL(`${STRAPI_BASE_URL}/api/player-profiles`);
-  if (typeof input.authUserId === "number" && Number.isFinite(input.authUserId)) {
-    profileUrl.searchParams.set("filters[authUserId][$eq]", String(input.authUserId));
-  } else {
-    profileUrl.searchParams.set("filters[displayName][$eq]", input.username);
-  }
-  profileUrl.searchParams.set("pagination[limit]", "1");
+  const resolveAuthUserId = async (): Promise<number | null> => {
+    const parsed = Number(input.authUserId);
+    if (Number.isFinite(parsed)) return parsed;
 
-  const profileRes = await fetch(profileUrl, { headers, cache: "no-store" });
-  console.info("[market-sync] profile lookup", { status: profileRes.status, url: profileUrl.toString() });
-  if (!profileRes.ok) throw new Error(`Strapi profile lookup failed (${profileRes.status})`);
-  const profileJson = (await profileRes.json()) as { data?: StrapiPlayerProfile[] };
-  let profile = profileJson.data?.[0];
-  if (!profile) {
-    console.warn("[market-sync] profile missing, attempting auto-create", { username: input.username });
     const userLookupUrl = new URL(`${STRAPI_BASE_URL}/api/users`);
     userLookupUrl.searchParams.set("filters[username][$eq]", input.username);
     userLookupUrl.searchParams.set("pagination[limit]", "1");
@@ -87,9 +76,28 @@ async function syncStrapiPortfolioAndWallet(input: {
       throw new Error(`Strapi user lookup failed (${userRes.status}): ${text}`);
     }
     const users = (await userRes.json()) as Array<{ id: number; username?: string }>;
-    const authUser = users?.[0];
-    if (!authUser?.id) {
-      console.warn("[market-sync] user missing in Strapi; skip sync", { username: input.username });
+    return users?.[0]?.id ?? null;
+  };
+
+  const resolvedAuthUserId = await resolveAuthUserId();
+
+  const profileUrl = new URL(`${STRAPI_BASE_URL}/api/player-profiles`);
+  if (typeof resolvedAuthUserId === "number" && Number.isFinite(resolvedAuthUserId)) {
+    profileUrl.searchParams.set("filters[authUserId][$eq]", String(resolvedAuthUserId));
+  } else {
+    profileUrl.searchParams.set("filters[displayName][$eq]", input.username);
+  }
+  profileUrl.searchParams.set("pagination[limit]", "1");
+
+  const profileRes = await fetch(profileUrl, { headers, cache: "no-store" });
+  console.info("[market-sync] profile lookup", { status: profileRes.status, url: profileUrl.toString(), resolvedAuthUserId });
+  if (!profileRes.ok) throw new Error(`Strapi profile lookup failed (${profileRes.status})`);
+  const profileJson = (await profileRes.json()) as { data?: StrapiPlayerProfile[] };
+  let profile = profileJson.data?.[0];
+  if (!profile) {
+    console.warn("[market-sync] profile missing, attempting auto-create", { username: input.username, resolvedAuthUserId });
+    if (!resolvedAuthUserId) {
+      console.warn("[market-sync] cannot auto-create profile without resolved auth user", { username: input.username });
       return;
     }
 
@@ -99,7 +107,7 @@ async function syncStrapiPortfolioAndWallet(input: {
       cache: "no-store",
       body: JSON.stringify({
         data: {
-          authUserId: authUser.id,
+          authUserId: resolvedAuthUserId,
           displayName: input.username,
           wallet: input.walletAfterTrade,
         },
@@ -111,7 +119,7 @@ async function syncStrapiPortfolioAndWallet(input: {
     }
     const createdProfileJson = (await createProfileRes.json()) as { data?: StrapiPlayerProfile };
     profile = createdProfileJson.data;
-    console.info("[market-sync] profile auto-created", { username: input.username, authUserId: authUser.id });
+    console.info("[market-sync] profile auto-created", { username: input.username, authUserId: resolvedAuthUserId });
   }
   if (!profile) return;
 
