@@ -153,8 +153,12 @@ export async function listStocks() {
 export async function getStockWithRecentHistory(symbol: string, historyLimit = 50) {
   try {
     const stock = await getStockWithRecentHistoryFromStrapi(symbol, historyLimit);
-    if (stock) return stock;
-    console.warn(`[market-read] Strapi stock missing for symbol=${symbol}, falling back to DB.`);
+    if (stock && stock.history.length > 0) return stock;
+    if (stock && stock.history.length === 0) {
+      console.warn(`[market-read] Strapi history empty for symbol=${symbol}, falling back to DB history.`);
+    } else {
+      console.warn(`[market-read] Strapi stock missing for symbol=${symbol}, falling back to DB.`);
+    }
   } catch (error) {
     console.error(`[market-read] Strapi history read failed for symbol=${symbol}, falling back to DB.`, error);
   }

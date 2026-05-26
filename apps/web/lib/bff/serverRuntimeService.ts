@@ -184,6 +184,10 @@ export async function tickStocksAndReturnSorted() {
 
     await withTransaction(async (tx) => {
       await tx.query('UPDATE "Stock" SET "previousPrice" = $2, "price" = $3, "updatedAt" = NOW() WHERE "id" = $1', [stock.id, stock.price, newPrice]);
+      await tx.query(
+        'INSERT INTO "StockHistory" ("id", "stockId", "price", "timestamp") VALUES ($1, $2, $3, NOW())',
+        [randomUUID(), stock.id, newPrice],
+      );
     });
   }
 
