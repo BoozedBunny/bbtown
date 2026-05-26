@@ -575,14 +575,8 @@ app.prepare().then(async () => {
           return;
         }
 
-        const legacyCharacterId = await ensureSocketLegacyCharacter({
-          username: mockUser,
-          sessionToken,
-        });
-        if (!legacyCharacterId) return;
-
         const tradeResult = await buyStockForCharacter({
-          characterId: legacyCharacterId,
+          username: mockUser,
           symbol,
           quantity,
         });
@@ -621,14 +615,8 @@ app.prepare().then(async () => {
           return;
         }
 
-        const legacyCharacterId = await ensureSocketLegacyCharacter({
-          username: mockUser,
-          sessionToken,
-        });
-        if (!legacyCharacterId) return;
-
         const tradeResult = await sellStockForCharacter({
-          characterId: legacyCharacterId,
+          username: mockUser,
           symbol,
           quantity,
         });

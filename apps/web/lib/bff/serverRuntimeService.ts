@@ -451,57 +451,93 @@ export async function getAvatarForUsername(username: string) {
   return user?.avatar ?? "bunny";
 }
 
+async function getStrapiStockPriceBySymbol(symbol: string): Promise<number> {
+  const headers = getStrapiServiceHeaders();
+  if (!headers) throw new Error("Missing STRAPI_API_TOKEN");
+
+  const stockUrl = new URL(`${STRAPI_BASE_URL}/api/stocks`);
+  stockUrl.searchParams.set("filters[symbol][$eq]", symbol);
+  stockUrl.searchParams.set("pagination[limit]", "1");
+
+  const stockRes = await fetch(stockUrl, { headers, cache: "no-store" });
+  if (!stockRes.ok) throw new Error(`Stock lookup failed (${stockRes.status})`);
+  const stockJson = (await stockRes.json()) as { data?: Array<{ price?: number | string }> };
+  const stock = stockJson.data?.[0];
+  if (!stock) throw new Error("Stock not found");
+  return Number(stock.price ?? 0);
+}
+
+async function resolveStrapiNumericUserIdByUsername(username: string): Promise<number> {
+  const headers = getStrapiServiceHeaders();
+  if (!headers) throw new Error("Missing STRAPI_API_TOKEN");
+
+  const userUrl = new URL(`${STRAPI_BASE_URL}/api/users`);
+  userUrl.searchParams.set("filters[username][$eq]", username);
+  userUrl.searchParams.set("pagination[limit]", "1");
+
+  const userRes = await fetch(userUrl, { headers, cache: "no-store" });
+  if (!userRes.ok) throw new Error(`User lookup failed (${userRes.status})`);
+  const users = (await userRes.json()) as Array<{ id: number; username?: string }>;
+  const user = users?.[0];
+  if (!user) throw new Error(`User not found in Strapi: ${username}`);
+  return Number(user.id);
+}
+
+async function getStrapiProfileByAuthUserId(authUserId: number): Promise<StrapiPlayerProfile | null> {
+  const headers = getStrapiServiceHeaders();
+  if (!headers) throw new Error("Missing STRAPI_API_TOKEN");
+
+  const profileUrl = new URL(`${STRAPI_BASE_URL}/api/player-profiles`);
+  profileUrl.searchParams.set("filters[authUserId][$eq]", String(authUserId));
+  profileUrl.searchParams.set("pagination[limit]", "1");
+
+  const profileRes = await fetch(profileUrl, { headers, cache: "no-store" });
+  if (!profileRes.ok) throw new Error(`Profile lookup failed (${profileRes.status})`);
+  const profileJson = (await profileRes.json()) as { data?: StrapiPlayerProfile[] };
+  return profileJson.data?.[0] ?? null;
+}
+
+async function getStrapiPortfolioItems(profileIdentifier: string): Promise<Array<{ quantity?: number; stock?: { symbol?: string } }>> {
+  const headers = getStrapiServiceHeaders();
+  if (!headers) throw new Error("Missing STRAPI_API_TOKEN");
+
+  const itemsUrl = new URL(`${STRAPI_BASE_URL}/api/portfolio-items`);
+  itemsUrl.searchParams.set("filters[playerProfile][documentId][$eq]", profileIdentifier);
+  itemsUrl.searchParams.set("populate[stock][fields][0]", "symbol");
+  itemsUrl.searchParams.set("pagination[limit]", "500");
+
+  const itemsRes = await fetch(itemsUrl, { headers, cache: "no-store" });
+  if (!itemsRes.ok) throw new Error(`Portfolio lookup failed (${itemsRes.status})`);
+  const itemsJson = (await itemsRes.json()) as { data?: Array<{ quantity?: number; stock?: { symbol?: string } }> };
+  return itemsJson.data ?? [];
+}
+
 export async function buyStockForCharacter(input: {
-  characterId: string;
+  username: string;
   symbol: string;
   quantity: number;
 }) {
-  const character = await oneOrNull<{ wallet: number }>('SELECT "wallet" FROM "Character" WHERE "id" = $1 LIMIT 1', [input.characterId]);
-  if (!character) throw new Error("Character not found");
+  const authUserId = await resolveStrapiNumericUserIdByUsername(input.username);
+  const profile = await getStrapiProfileByAuthUserId(authUserId);
+  if (!profile) throw new Error("Player profile not found");
 
-  const stock = await oneOrNull<{ id: string; price: number }>('SELECT "id", "price" FROM "Stock" WHERE "symbol" = $1 LIMIT 1', [input.symbol]);
-  if (!stock) throw new Error("Stock not found");
-
-  const rawCost = stock.price * input.quantity;
+  const price = await getStrapiStockPriceBySymbol(input.symbol);
+  const rawCost = price * input.quantity;
   const cost = Math.max(1, Math.ceil(rawCost));
-  if (character.wallet < cost) {
+
+  const currentWallet = Number(profile.wallet ?? 0);
+  if (currentWallet < cost) {
     return { ok: false as const, reason: "INSUFFICIENT_FUNDS" as const, cost };
   }
 
-  await withTransaction(async (tx) => {
-    await tx.query('UPDATE "Character" SET "wallet" = "wallet" - $2 WHERE "id" = $1', [input.characterId, cost]);
-    await tx.query(
-      `INSERT INTO "PortfolioItem" ("id", "characterId", "stockId", "quantity")
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT ("characterId", "stockId") DO UPDATE
-       SET "quantity" = "PortfolioItem"."quantity" + EXCLUDED."quantity"`,
-      [randomUUID(), input.characterId, stock.id, input.quantity],
-    );
+  const newWallet = Math.max(0, currentWallet - cost);
+  await syncStrapiPortfolioAndWallet({
+    username: input.username,
+    authUserId,
+    symbol: input.symbol,
+    quantityDelta: input.quantity,
+    walletAfterTrade: newWallet,
   });
-
-  const newWallet = Math.max(0, character.wallet - cost);
-  const owner = await oneOrNull<{ username: string; authUserId: number | null }>(
-    `SELECT u."username", u."id" as "authUserId"
-     FROM "Character" c
-     JOIN "User" u ON u."id" = c."userId"
-     WHERE c."id" = $1
-     LIMIT 1`,
-    [input.characterId],
-  );
-
-  if (owner?.username) {
-    try {
-      await syncStrapiPortfolioAndWallet({
-        username: owner.username,
-        authUserId: owner.authUserId ?? undefined,
-        symbol: input.symbol,
-        quantityDelta: input.quantity,
-        walletAfterTrade: newWallet,
-      });
-    } catch (error) {
-      console.error("[market-write] Strapi sync failed after buy; DB write kept as source of truth.", error);
-    }
-  }
 
   return {
     ok: true as const,
@@ -511,56 +547,38 @@ export async function buyStockForCharacter(input: {
 }
 
 export async function sellStockForCharacter(input: {
-  characterId: string;
+  username: string;
   symbol: string;
   quantity: number;
 }) {
-  const character = await oneOrNull<{ wallet: number }>('SELECT "wallet" FROM "Character" WHERE "id" = $1 LIMIT 1', [input.characterId]);
-  if (!character) throw new Error("Character not found");
+  const authUserId = await resolveStrapiNumericUserIdByUsername(input.username);
+  const profile = await getStrapiProfileByAuthUserId(authUserId);
+  if (!profile) throw new Error("Player profile not found");
 
-  const stock = await oneOrNull<{ id: string; price: number }>('SELECT "id", "price" FROM "Stock" WHERE "symbol" = $1 LIMIT 1', [input.symbol]);
-  if (!stock) throw new Error("Stock not found");
+  const holdings = await getStrapiPortfolioItems(profile.documentId ?? String(profile.id));
+  const symbolUpper = input.symbol.toUpperCase();
+  const owned = holdings
+    .filter((item) => item.stock?.symbol?.toUpperCase() === symbolUpper)
+    .reduce((sum, item) => sum + Number(item.quantity ?? 0), 0);
 
-  const portfolioItem = await oneOrNull<{ id: string; quantity: number }>(
-    'SELECT "id", "quantity" FROM "PortfolioItem" WHERE "characterId" = $1 AND "stockId" = $2 LIMIT 1',
-    [input.characterId, stock.id],
-  );
-
-  if (!portfolioItem || portfolioItem.quantity < input.quantity) {
+  if (owned < input.quantity) {
     return { ok: false as const, reason: "NOT_ENOUGH_SHARES" as const };
   }
 
-  const rawGain = stock.price * input.quantity;
+  const price = await getStrapiStockPriceBySymbol(input.symbol);
+  const rawGain = price * input.quantity;
   const gain = Math.max(0, Math.floor(rawGain));
 
-  await withTransaction(async (tx) => {
-    await tx.query('UPDATE "Character" SET "wallet" = "wallet" + $2 WHERE "id" = $1', [input.characterId, gain]);
-    await tx.query('UPDATE "PortfolioItem" SET "quantity" = "quantity" - $2 WHERE "id" = $1', [portfolioItem.id, input.quantity]);
+  const currentWallet = Number(profile.wallet ?? 0);
+  const newWallet = Math.max(0, Math.floor(currentWallet + gain));
+
+  await syncStrapiPortfolioAndWallet({
+    username: input.username,
+    authUserId,
+    symbol: input.symbol,
+    quantityDelta: -input.quantity,
+    walletAfterTrade: newWallet,
   });
-
-  const newWallet = Math.max(0, Math.floor(character.wallet + gain));
-  const owner = await oneOrNull<{ username: string; authUserId: number | null }>(
-    `SELECT u."username", u."id" as "authUserId"
-     FROM "Character" c
-     JOIN "User" u ON u."id" = c."userId"
-     WHERE c."id" = $1
-     LIMIT 1`,
-    [input.characterId],
-  );
-
-  if (owner?.username) {
-    try {
-      await syncStrapiPortfolioAndWallet({
-        username: owner.username,
-        authUserId: owner.authUserId ?? undefined,
-        symbol: input.symbol,
-        quantityDelta: -input.quantity,
-        walletAfterTrade: newWallet,
-      });
-    } catch (error) {
-      console.error("[market-write] Strapi sync failed after sell; DB write kept as source of truth.", error);
-    }
-  }
 
   return {
     ok: true as const,
