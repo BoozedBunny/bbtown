@@ -3,7 +3,6 @@ import { parse } from "url";
 import next from "next";
 import { Server } from "socket.io";
 import express from "express";
-import { COMPANY_PROFILES } from "./lib/market/companyProfiles";
 import { runTreasuryDailySettlement } from "./lib/treasury/treasuryService";
 import { runLoanDelinquencySweep } from "./lib/treasury/loanService";
 import { PostMatchEntry, setGlobalToplist } from "./lib/arena/toplist";
@@ -27,7 +26,6 @@ import {
 import {
   applyArenaResult,
   buyStockForCharacter,
-  ensureCompanyStocksFromProfiles,
   sellStockForCharacter,
   tickStocksAndReturnSorted,
 } from "./lib/bff/serverRuntimeService";
@@ -43,8 +41,6 @@ const app = (next as any)({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
 app.prepare().then(async () => {
-  await ensureCompanyStocksFromProfiles(COMPANY_PROFILES);
-
   const server = express();
   const httpServer = createServer(server);
   const io = new Server(httpServer);

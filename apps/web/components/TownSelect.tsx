@@ -8,9 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TOWNS } from "@/app/town/towns";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 
 type TownSelectProps = {
@@ -18,21 +17,50 @@ type TownSelectProps = {
   onTownChange: (id: any) => void;
 };
 
-export function TownSelect({ currentTownId }: TownSelectProps) {
+type TownOption = {
+  id: string;
+  name: string;
+};
+
+export function TownSelect({ currentTownId, onTownChange }: TownSelectProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [_, setHometownId] = useLocalStorage("hometownId", "1");
+  const [, setHometownId] = useLocalStorage("hometownId", "");
+  const [towns, setTowns] = useState<TownOption[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadTowns = async () => {
+      try {
+        const res = await fetch("/api/towns", { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = (await res.json()) as { towns?: TownOption[] };
+        if (cancelled) return;
+        setTowns((json.towns ?? []).filter((town) => town.id && town.name));
+      } catch (error) {
+        console.error("TownSelect: failed to load towns", error);
+        if (!cancelled) setTowns([]);
+      }
+    };
+
+    void loadTowns();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <Select
       value={currentTownId}
       onValueChange={(val) => {
         setHometownId(val);
+        onTownChange(val);
         startTransition(() => {
           router.push(`/town/${val}`);
         });
       }}
-      disabled={isPending}
+      disabled={isPending || towns.length === 0}
     >
       <SelectTrigger className="w-fit bg-transparent border-none text-[clamp(1.1rem,2vw,1.85rem)] leading-tight font-black italic tracking-tighter cyber-glitch-text text-white focus:ring-0 focus:ring-offset-0 p-0 shadow-none hover:opacity-80 h-auto">
         {isPending ? (
@@ -41,11 +69,11 @@ export function TownSelect({ currentTownId }: TownSelectProps) {
             <span>Traveling...</span>
           </div>
         ) : (
-          <SelectValue placeholder="Select Town" />
+          <SelectValue placeholder={towns.length ? "Select Town" : "No towns available"} />
         )}
       </SelectTrigger>
       <SelectContent className="bg-[#0B0714]/95 backdrop-blur-xl border-white/15 text-white z-[100]">
-        {TOWNS.map((town) => (
+        {towns.map((town) => (
           <SelectItem
             key={town.id}
             value={town.id}

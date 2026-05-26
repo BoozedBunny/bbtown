@@ -4,40 +4,74 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useTownPreload } from "@/hooks/useTownPreload";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { TOWNS } from "@/app/town/towns";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type LobbyTownEntryClientProps = {
   glbAssets: string[];
   staticAssets: string[];
 };
 
+type TownOption = {
+  id: string;
+  name: string;
+};
+
 export function LobbyTownEntryClient({ glbAssets, staticAssets }: LobbyTownEntryClientProps) {
   const router = useRouter();
   const [hometownId] = useLocalStorage("hometownId", "");
-  const [townHref, setTownHref] = useState("/town/1");
+  const [townHref, setTownHref] = useState("");
   const [isClient, setIsClient] = useState(false);
+  const [towns, setTowns] = useState<TownOption[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadTowns = async () => {
+      try {
+        const res = await fetch("/api/towns", { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = (await res.json()) as { towns?: TownOption[] };
+        if (cancelled) return;
+        setTowns((json.towns ?? []).filter((town) => town.id && town.name));
+      } catch (error) {
+        console.error("LobbyTownEntryClient: failed to load towns", error);
+        if (!cancelled) setTowns([]);
+      }
+    };
+
+    void loadTowns();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     setIsClient(true);
-    if (hometownId) {
-      setTownHref(`/town/${hometownId}`);
-    } else {
-      const randomTown = TOWNS[Math.floor(Math.random() * TOWNS.length)];
-      setTownHref(`/town/${randomTown.id}`);
+    if (!towns.length) {
+      setTownHref("");
+      return;
     }
-  }, [hometownId]);
+
+    const hometownMatch = hometownId ? towns.find((town) => town.id === hometownId) : null;
+    if (hometownMatch) {
+      setTownHref(`/town/${hometownMatch.id}`);
+      return;
+    }
+
+    const randomTown = towns[Math.floor(Math.random() * towns.length)];
+    setTownHref(`/town/${randomTown.id}`);
+  }, [hometownId, towns]);
 
   const { status, progress, error, retry } = useTownPreload({
     townHref,
     glbAssets,
     staticAssets,
-    enabled: isClient,
+    enabled: isClient && Boolean(townHref),
     buildVersion: process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ?? "local",
     prefetchRoute: router.prefetch,
   });
 
-  const canEnterTown = status === "ready";
+  const canEnterTown = useMemo(() => status === "ready" && Boolean(townHref), [status, townHref]);
 
   return (
     <div className="mt-8">

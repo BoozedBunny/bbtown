@@ -275,48 +275,6 @@ async function syncStrapiStockTick(input: { symbol: string; previousPrice: numbe
   await pruneStrapiStockHistory(stockIdentifier, headers, 1200, 300);
 }
 
-type CompanyProfileSeed = {
-  symbol: string;
-  name: string;
-  basePrice: number;
-};
-
-export async function ensureCompanyStocksFromProfiles(profiles: CompanyProfileSeed[]) {
-  const headers = getStrapiServiceHeaders();
-  if (!headers) throw new Error("Missing STRAPI_API_TOKEN for stock seed");
-
-  for (const stock of profiles) {
-    const lookupUrl = new URL(`${STRAPI_BASE_URL}/api/stocks`);
-    lookupUrl.searchParams.set("filters[symbol][$eq]", stock.symbol);
-    lookupUrl.searchParams.set("pagination[limit]", "1");
-    const lookupRes = await fetch(lookupUrl, { headers, cache: "no-store" });
-    if (!lookupRes.ok) {
-      const text = await lookupRes.text();
-      throw new Error(`Strapi stock lookup failed (${lookupRes.status}): ${text}`);
-    }
-    const lookupJson = (await lookupRes.json()) as { data?: StrapiStock[] };
-    if (lookupJson.data?.[0]) continue;
-
-    const createRes = await fetch(`${STRAPI_BASE_URL}/api/stocks`, {
-      method: "POST",
-      headers,
-      cache: "no-store",
-      body: JSON.stringify({
-        data: {
-          symbol: stock.symbol,
-          name: stock.name,
-          price: stock.basePrice,
-          previousPrice: stock.basePrice,
-        },
-      }),
-    });
-    if (!createRes.ok) {
-      const text = await createRes.text();
-      throw new Error(`Strapi stock create failed (${createRes.status}): ${text}`);
-    }
-  }
-}
-
 export async function tickStocksAndReturnSorted() {
   const headers = getStrapiServiceHeaders();
   if (!headers) throw new Error("Missing STRAPI_API_TOKEN for stock tick");
