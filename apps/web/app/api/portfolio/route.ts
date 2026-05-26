@@ -10,7 +10,13 @@ export async function GET() {
 
     const portfolio = await getPortfolioForCharacter(legacyCharacterId, user.id, user.username);
 
-    return NextResponse.json(portfolio);
+    return NextResponse.json(portfolio, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
+    });
   } catch (error) {
     if (isUnauthorizedError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

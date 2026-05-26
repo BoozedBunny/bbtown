@@ -16,6 +16,12 @@ export async function GET() {
       description: user.character.description,
       arenaMaxRounds: user.character.arenaMaxRounds,
       experience: user.character.experience,
+    }, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
     });
   } catch (error) {
     if (isUnauthorizedError(error)) {
