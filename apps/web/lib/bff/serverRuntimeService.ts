@@ -1,6 +1,5 @@
 import { randomUUID } from "crypto";
 import { many, oneOrNull, withTransaction } from "@/lib/db";
-import { getRuntimeFlags } from "@/lib/config/runtimeFlags";
 
 const STRAPI_BASE_URL = process.env.STRAPI_URL ?? "http://127.0.0.1:1339";
 
@@ -25,6 +24,7 @@ type StrapiStock = {
   id: number;
   documentId?: string;
   symbol?: string;
+  name?: string;
   price?: number;
   previousPrice?: number;
 };
@@ -42,15 +42,12 @@ async function syncStrapiPortfolioAndWallet(input: {
   quantityDelta: number;
   walletAfterTrade: number;
 }) {
-  const flags = getRuntimeFlags();
   console.info("[market-sync] start", {
     username: input.username,
     authUserId: input.authUserId ?? null,
     symbol: input.symbol,
     quantityDelta: input.quantityDelta,
     walletAfterTrade: input.walletAfterTrade,
-    strapiSotMode: flags.strapiSotMode,
-    strapiAdminOverrideWins: flags.strapiAdminOverrideWins,
   });
 
   const headers = getStrapiServiceHeaders();
@@ -58,7 +55,6 @@ async function syncStrapiPortfolioAndWallet(input: {
     console.warn("[market-write] STRAPI_API_TOKEN missing - cannot sync portfolio/wallet to Strapi", {
       username: input.username,
       symbol: input.symbol,
-      strapiSotMode: flags.strapiSotMode,
     });
     return;
   }
@@ -184,16 +180,6 @@ async function syncStrapiPortfolioAndWallet(input: {
     console.info("[market-sync] portfolio update", { status: updateRes.status, symbol: input.symbol, nextQuantity });
   }
 
-  if (flags.strapiAdminOverrideWins) {
-    console.info("[market-write] skip strapi wallet overwrite (STRAPI_ADMIN_OVERRIDE_WINS=true)", {
-      write_target: "strapi",
-      source: "user_action",
-      username: input.username,
-      symbol: input.symbol,
-    });
-    return;
-  }
-
   const profileUpdateRes = await fetch(`${STRAPI_BASE_URL}/api/player-profiles/${profileIdentifier}`, {
     method: "PUT",
     headers,
@@ -308,42 +294,86 @@ type LegacyCharacterProfileSync = {
 };
 
 export async function ensureCompanyStocksFromProfiles(profiles: CompanyProfileSeed[]) {
+  const headers = getStrapiServiceHeaders();
+  if (!headers) throw new Error("Missing STRAPI_API_TOKEN for stock seed");
+
   for (const stock of profiles) {
-    await oneOrNull(
-      'INSERT INTO "Stock" ("id", "symbol", "name", "price", "previousPrice", "updatedAt") VALUES ($1, $2, $3, $4, $4, NOW()) ON CONFLICT ("symbol") DO NOTHING RETURNING "id"',
-      [randomUUID(), stock.symbol, stock.name, stock.basePrice],
-    );
+    const lookupUrl = new URL(`${STRAPI_BASE_URL}/api/stocks`);
+    lookupUrl.searchParams.set("filters[symbol][$eq]", stock.symbol);
+    lookupUrl.searchParams.set("pagination[limit]", "1");
+    const lookupRes = await fetch(lookupUrl, { headers, cache: "no-store" });
+    if (!lookupRes.ok) {
+      const text = await lookupRes.text();
+      throw new Error(`Strapi stock lookup failed (${lookupRes.status}): ${text}`);
+    }
+    const lookupJson = (await lookupRes.json()) as { data?: StrapiStock[] };
+    if (lookupJson.data?.[0]) continue;
+
+    const createRes = await fetch(`${STRAPI_BASE_URL}/api/stocks`, {
+      method: "POST",
+      headers,
+      cache: "no-store",
+      body: JSON.stringify({
+        data: {
+          symbol: stock.symbol,
+          name: stock.name,
+          price: stock.basePrice,
+          previousPrice: stock.basePrice,
+        },
+      }),
+    });
+    if (!createRes.ok) {
+      const text = await createRes.text();
+      throw new Error(`Strapi stock create failed (${createRes.status}): ${text}`);
+    }
   }
 }
 
 export async function tickStocksAndReturnSorted() {
-  const stocks = await many<any>('SELECT * FROM "Stock"');
-  for (const stock of stocks) {
-    const changePercent = Math.random() * 0.1 - 0.05;
-    const newPrice = Math.max(0.01, stock.price * (1 + changePercent));
-    const tickAtIso = new Date().toISOString();
+  const headers = getStrapiServiceHeaders();
+  if (!headers) throw new Error("Missing STRAPI_API_TOKEN for stock tick");
 
-    await withTransaction(async (tx) => {
-      await tx.query('UPDATE "Stock" SET "previousPrice" = $2, "price" = $3, "updatedAt" = NOW() WHERE "id" = $1', [stock.id, stock.price, newPrice]);
-      await tx.query(
-        'INSERT INTO "StockHistory" ("id", "stockId", "price", "timestamp") VALUES ($1, $2, $3, NOW())',
-        [randomUUID(), stock.id, newPrice],
-      );
-    });
+  const stocksUrl = new URL(`${STRAPI_BASE_URL}/api/stocks`);
+  stocksUrl.searchParams.set("pagination[limit]", "500");
+  stocksUrl.searchParams.set("sort", "symbol:asc");
 
-    try {
-      await syncStrapiStockTick({
-        symbol: stock.symbol,
-        previousPrice: stock.price,
-        price: newPrice,
-        timestampIso: tickAtIso,
-      });
-    } catch (error) {
-      console.error(`[market-write] Strapi tick sync failed for symbol=${stock.symbol}; legacy tick kept.`, error);
-    }
+  const stocksRes = await fetch(stocksUrl, { headers, cache: "no-store" });
+  if (!stocksRes.ok) {
+    const text = await stocksRes.text();
+    throw new Error(`Strapi stocks read failed (${stocksRes.status}): ${text}`);
   }
 
-  return many('SELECT * FROM "Stock" ORDER BY "symbol" ASC');
+  const stocksJson = (await stocksRes.json()) as { data?: StrapiStock[] };
+  const stocks = (stocksJson.data ?? []).filter((stock) => stock.symbol);
+
+  for (const stock of stocks) {
+    const currentPrice = Number(stock.price ?? 0);
+    const changePercent = Math.random() * 0.1 - 0.05;
+    const newPrice = Math.max(0.01, currentPrice * (1 + changePercent));
+    const tickAtIso = new Date().toISOString();
+
+    await syncStrapiStockTick({
+      symbol: String(stock.symbol),
+      previousPrice: currentPrice,
+      price: newPrice,
+      timestampIso: tickAtIso,
+    });
+  }
+
+  const refreshedRes = await fetch(stocksUrl, { headers, cache: "no-store" });
+  if (!refreshedRes.ok) {
+    const text = await refreshedRes.text();
+    throw new Error(`Strapi stocks refresh failed (${refreshedRes.status}): ${text}`);
+  }
+  const refreshedJson = (await refreshedRes.json()) as { data?: StrapiStock[] };
+  return (refreshedJson.data ?? []).map((stock) => ({
+    id: stock.documentId ?? String(stock.id),
+    symbol: stock.symbol ?? "",
+    name: stock.name ?? "",
+    price: Number(stock.price ?? 0),
+    previousPrice: Number(stock.previousPrice ?? 0),
+    updatedAt: new Date().toISOString(),
+  }));
 }
 
 export async function upsertLegacyCharacterForUsername(
