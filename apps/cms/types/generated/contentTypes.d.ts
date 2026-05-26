@@ -572,6 +572,125 @@ export interface ApiGlobalSettingGlobalSetting extends Struct.SingleTypeSchema {
   };
 }
 
+export interface ApiLoanOperationLoanOperation
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'loan_operations';
+  info: {
+    displayName: 'Loan Operation';
+    pluralName: 'loan-operations';
+    singularName: 'loan-operation';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    idempotencyKey: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::loan-operation.loan-operation'
+    > &
+      Schema.Attribute.Private;
+    operationType: Schema.Attribute.Enumeration<['ISSUE', 'REPAY']> &
+      Schema.Attribute.Required;
+    profileIdentifier: Schema.Attribute.String & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    responseJson: Schema.Attribute.Text & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiLoanRepaymentLoanRepayment
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'loan_repayments';
+  info: {
+    displayName: 'Loan Repayment';
+    pluralName: 'loan-repayments';
+    singularName: 'loan-repayment';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    amountPaid: Schema.Attribute.Integer & Schema.Attribute.Required;
+    appliedFees: Schema.Attribute.Integer & Schema.Attribute.Required;
+    appliedInterest: Schema.Attribute.Integer & Schema.Attribute.Required;
+    appliedPrincipal: Schema.Attribute.Integer & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    loanState: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::loan-state.loan-state'
+    >;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::loan-repayment.loan-repayment'
+    > &
+      Schema.Attribute.Private;
+    paymentSource: Schema.Attribute.Enumeration<['MANUAL']> &
+      Schema.Attribute.DefaultTo<'MANUAL'>;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiLoanStateLoanState extends Struct.CollectionTypeSchema {
+  collectionName: 'loan_states';
+  info: {
+    displayName: 'Loan State';
+    pluralName: 'loan-states';
+    singularName: 'loan-state';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    aprBps: Schema.Attribute.Integer & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    dailyInterestBps: Schema.Attribute.Integer & Schema.Attribute.Required;
+    dueAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    issuedAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    lastInterestAccrualDateKey: Schema.Attribute.String &
+      Schema.Attribute.Required;
+    lateFeesAccrued: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::loan-state.loan-state'
+    > &
+      Schema.Attribute.Private;
+    missedPaymentDays: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    nextDueDateKey: Schema.Attribute.String & Schema.Attribute.Required;
+    playerProfile: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::player-profile.player-profile'
+    >;
+    principalOrigin: Schema.Attribute.Integer & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    remainingPrincipal: Schema.Attribute.Integer & Schema.Attribute.Required;
+    status: Schema.Attribute.Enumeration<
+      ['ACTIVE', 'DELINQUENT', 'PAID', 'DEFAULTED']
+    > &
+      Schema.Attribute.DefaultTo<'ACTIVE'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiPlayerProfilePlayerProfile
   extends Struct.CollectionTypeSchema {
   collectionName: 'player_profiles';
@@ -809,6 +928,89 @@ export interface ApiTownTown extends Struct.CollectionTypeSchema {
     townId: Schema.Attribute.Integer &
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiTreasuryDaySnapshotTreasuryDaySnapshot
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'treasury_day_snapshots';
+  info: {
+    displayName: 'Treasury Day Snapshot';
+    pluralName: 'treasury-day-snapshots';
+    singularName: 'treasury-day-snapshot';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    closingBalance: Schema.Attribute.Integer & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    dateKey: Schema.Attribute.String & Schema.Attribute.Required;
+    loanNetAmount: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::treasury-day-snapshot.treasury-day-snapshot'
+    > &
+      Schema.Attribute.Private;
+    openingBalance: Schema.Attribute.Integer & Schema.Attribute.Required;
+    otherNetAmount: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    publishedAt: Schema.Attribute.DateTime;
+    townId: Schema.Attribute.Integer & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    variationAmount: Schema.Attribute.Integer & Schema.Attribute.Required;
+  };
+}
+
+export interface ApiTreasuryLedgerEntryTreasuryLedgerEntry
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'treasury_ledger_entries';
+  info: {
+    displayName: 'Treasury Ledger Entry';
+    pluralName: 'treasury-ledger-entries';
+    singularName: 'treasury-ledger-entry';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    amount: Schema.Attribute.Integer & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    kind: Schema.Attribute.Enumeration<
+      [
+        'DAILY_VARIATION',
+        'LOAN_PRINCIPAL_OUTFLOW',
+        'LOAN_FEE_INFLOW',
+        'LOAN_REPAYMENT_PRINCIPAL_INFLOW',
+        'LOAN_INTEREST_INFLOW',
+        'BUILDING_SALE_INFLOW',
+      ]
+    > &
+      Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::treasury-ledger-entry.treasury-ledger-entry'
+    > &
+      Schema.Attribute.Private;
+    metadataJson: Schema.Attribute.Text;
+    publishedAt: Schema.Attribute.DateTime;
+    referenceId: Schema.Attribute.String & Schema.Attribute.Required;
+    referenceType: Schema.Attribute.String & Schema.Attribute.Required;
+    townId: Schema.Attribute.Integer & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1329,12 +1531,17 @@ declare module '@strapi/strapi' {
       'api::building-state.building-state': ApiBuildingStateBuildingState;
       'api::building.building': ApiBuildingBuilding;
       'api::global-setting.global-setting': ApiGlobalSettingGlobalSetting;
+      'api::loan-operation.loan-operation': ApiLoanOperationLoanOperation;
+      'api::loan-repayment.loan-repayment': ApiLoanRepaymentLoanRepayment;
+      'api::loan-state.loan-state': ApiLoanStateLoanState;
       'api::player-profile.player-profile': ApiPlayerProfilePlayerProfile;
       'api::portfolio-item.portfolio-item': ApiPortfolioItemPortfolioItem;
       'api::stock-history.stock-history': ApiStockHistoryStockHistory;
       'api::stock.stock': ApiStockStock;
       'api::town-news.town-news': ApiTownNewsTownNews;
       'api::town.town': ApiTownTown;
+      'api::treasury-day-snapshot.treasury-day-snapshot': ApiTreasuryDaySnapshotTreasuryDaySnapshot;
+      'api::treasury-ledger-entry.treasury-ledger-entry': ApiTreasuryLedgerEntryTreasuryLedgerEntry;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;

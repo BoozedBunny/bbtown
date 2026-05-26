@@ -1,5 +1,4 @@
 import { strapiFetchList } from "@/lib/cms/strapi";
-import { getCompanyProfile } from "@/lib/market/companyProfiles";
 
 type StrapiStock = {
   id: number;
@@ -35,17 +34,15 @@ function asNumber(value: unknown): number {
 }
 
 function enrichStockMetadata<T extends { symbol: string }>(stock: T) {
-  const fallback = getCompanyProfile(stock.symbol);
   return {
     ...stock,
-    sector: (stock as any).sector ?? fallback?.sector ?? "General",
-    exchange: (stock as any).exchange ?? fallback?.exchange ?? "BBX",
-    marketCapBand: (stock as any).marketCapBand ?? fallback?.marketCapBand ?? "MID",
-    volatilityClass: (stock as any).volatilityClass ?? fallback?.volatilityClass ?? "MEDIUM",
-    description:
-      (stock as any).description ?? fallback?.description ?? "Fictional listed company in the BBTown market.",
-    hqRegion: (stock as any).hqRegion ?? fallback?.hqRegion ?? "Central District",
-    displayOrder: Number((stock as any).displayOrder ?? fallback?.displayOrder ?? 999),
+    sector: (stock as any).sector ?? "General",
+    exchange: (stock as any).exchange ?? "BBX",
+    marketCapBand: (stock as any).marketCapBand ?? "MID",
+    volatilityClass: (stock as any).volatilityClass ?? "MEDIUM",
+    description: (stock as any).description ?? "Fictional listed company in the BBTown market.",
+    hqRegion: (stock as any).hqRegion ?? "Central District",
+    displayOrder: Number((stock as any).displayOrder ?? 999),
   };
 }
 

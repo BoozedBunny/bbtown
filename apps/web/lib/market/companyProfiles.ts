@@ -15,7 +15,7 @@ export type CompanyProfile = {
 
 export const EXCHANGE_CODE = "BBX";
 
-// Tunable source-of-truth list used by both seed + API metadata fallback.
+// Source list used for stock seeding/bootstrap.
 export const COMPANY_PROFILES: CompanyProfile[] = [
   {
     symbol: "BANA",
@@ -114,9 +114,3 @@ export const COMPANY_PROFILES: CompanyProfile[] = [
     displayOrder: 8,
   },
 ];
-
-const profileBySymbol = new Map(COMPANY_PROFILES.map((profile) => [profile.symbol, profile]));
-
-export function getCompanyProfile(symbol: string) {
-  return profileBySymbol.get(symbol);
-}
