@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { requireSessionUserWithCharacter, isUnauthorizedError } from "@/lib/auth";
 import { AUTH_COOKIE_NAME, incrementWallet } from "@/lib/strapiAuth";
-import { runLegacyCasinoSpin } from "@/lib/bff/casinoService";
 
 const SYMBOLS = ["Cherry", "Lemon", "Bell", "Seven", "Diamond"];
 const WEIGHTS = [40, 30, 15, 10, 5];
@@ -128,28 +127,20 @@ export async function POST(request: Request) {
 
     const cookieStore = await cookies();
     const strapiToken = cookieStore.get(AUTH_COOKIE_NAME)?.value;
+    if (!strapiToken) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     // Generate the 5x3 matrix
     const matrix = generateMatrix(3, 5);
     const { totalWin, winningLines } = evaluatePaylines(matrix, betAmount);
 
-    if (strapiToken) {
-      if (user.character.wallet < betAmount) {
-        throw new Error("Insufficient funds");
-      }
-
-      const netDelta = totalWin - betAmount;
-      const newBalance = await incrementWallet(strapiToken, Number(user.id), netDelta);
-
-      return NextResponse.json({
-        matrix,
-        winAmount: totalWin,
-        newBalance,
-        winningLines,
-      });
+    if (user.character.wallet < betAmount) {
+      throw new Error("Insufficient funds");
     }
 
-    const newBalance = await runLegacyCasinoSpin(user.character!.id, betAmount, totalWin);
+    const netDelta = totalWin - betAmount;
+    const newBalance = await incrementWallet(strapiToken, Number(user.id), netDelta);
 
     return NextResponse.json({
       matrix,
