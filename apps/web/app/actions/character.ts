@@ -1,8 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { ensureLegacyCharacterForSession, requireSessionUserWithCharacter } from "../../lib/auth";
-import { createLegacyCharacter, updateLegacyCharacterProfile } from "@/lib/bff/characterService";
+import { requireSessionUserWithCharacter } from "../../lib/auth";
 import { revalidatePath } from "next/cache";
 import { AUTH_COOKIE_NAME, updatePlayerProfile } from "../../lib/strapiAuth";
 
@@ -18,24 +17,17 @@ export async function createCharacter(formData: FormData) {
   const cookieStore = await cookies();
   const sessionToken = cookieStore.get(AUTH_COOKIE_NAME)?.value;
 
-  if (sessionToken) {
-    await updatePlayerProfile(sessionToken, Number(user.id), {
-      displayName: name,
-      appearanceColor,
-      avatar,
-    });
-    revalidatePath("/lobby");
-    return;
+  if (!sessionToken) {
+    throw new Error("Unauthorized");
   }
 
-  await createLegacyCharacter({
-    name,
+  await updatePlayerProfile(sessionToken, Number(user.id), {
+    displayName: name,
     appearanceColor,
     avatar,
-    userId: user.id,
   });
-
   revalidatePath("/lobby");
+  return;
 }
 
 export async function updateCharacter(formData: FormData) {
@@ -50,20 +42,15 @@ export async function updateCharacter(formData: FormData) {
   const cookieStore = await cookies();
   const sessionToken = cookieStore.get(AUTH_COOKIE_NAME)?.value;
 
-  if (sessionToken) {
-    await updatePlayerProfile(sessionToken, Number(user.id), {
-      displayName: name,
-      avatar,
-      description,
-    });
-  } else {
-    const legacyCharacterId = await ensureLegacyCharacterForSession(user);
-    await updateLegacyCharacterProfile(legacyCharacterId, {
-      name,
-      avatar,
-      description,
-    });
+  if (!sessionToken) {
+    throw new Error("Unauthorized");
   }
+
+  await updatePlayerProfile(sessionToken, Number(user.id), {
+    displayName: name,
+    avatar,
+    description,
+  });
 
   revalidatePath("/lobby");
   revalidatePath("/town/[townId]", "layout");

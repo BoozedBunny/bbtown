@@ -1,5 +1,3 @@
-import { randomUUID } from "crypto";
-import { many, oneOrNull, withTransaction } from "@/lib/db";
 
 const STRAPI_BASE_URL = process.env.STRAPI_URL ?? "http://127.0.0.1:1339";
 
@@ -283,16 +281,6 @@ type CompanyProfileSeed = {
   basePrice: number;
 };
 
-type LegacyCharacterProfileSync = {
-  wallet?: number;
-  name?: string;
-  avatar?: string;
-  description?: string | null;
-  appearanceColor?: string;
-  arenaMaxRounds?: number;
-  experience?: number;
-};
-
 export async function ensureCompanyStocksFromProfiles(profiles: CompanyProfileSeed[]) {
   const headers = getStrapiServiceHeaders();
   if (!headers) throw new Error("Missing STRAPI_API_TOKEN for stock seed");
@@ -374,81 +362,6 @@ export async function tickStocksAndReturnSorted() {
     previousPrice: Number(stock.previousPrice ?? 0),
     updatedAt: new Date().toISOString(),
   }));
-}
-
-export async function upsertLegacyCharacterForUsername(
-  username: string,
-  profile?: LegacyCharacterProfileSync,
-) {
-  const legacyUser = await oneOrNull<{ id: string }>(
-    'INSERT INTO "User" ("id", "username", "updatedAt") VALUES ($1, $2, NOW()) ON CONFLICT ("username") DO UPDATE SET "username" = EXCLUDED."username", "updatedAt" = NOW() RETURNING "id"',
-    [randomUUID(), username],
-  );
-  if (!legacyUser) throw new Error("Failed to upsert user");
-
-  const existingCharacter = await oneOrNull<any>('SELECT * FROM "Character" WHERE "userId" = $1 LIMIT 1', [legacyUser.id]);
-
-  if (existingCharacter) {
-    await oneOrNull(
-      'UPDATE "Character" SET "name" = $2, "avatar" = $3, "description" = $4, "appearanceColor" = $5, "wallet" = $6, "arenaMaxRounds" = $7, "experience" = $8 WHERE "id" = $1 RETURNING "id"',
-      [
-        existingCharacter.id,
-        profile?.name ?? existingCharacter.name,
-        profile?.avatar ?? existingCharacter.avatar,
-        profile?.description ?? existingCharacter.description,
-        profile?.appearanceColor ?? existingCharacter.appearanceColor,
-        profile?.wallet ?? existingCharacter.wallet,
-        profile?.arenaMaxRounds ?? existingCharacter.arenaMaxRounds,
-        profile?.experience ?? existingCharacter.experience,
-      ],
-    );
-    return existingCharacter.id;
-  }
-
-  const created = await oneOrNull<{ id: string }>(
-    'INSERT INTO "Character" ("id", "userId", "name", "appearanceColor", "avatar", "description", "wallet", "arenaMaxRounds", "experience") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING "id"',
-    [
-      randomUUID(),
-      legacyUser.id,
-      profile?.name ?? username,
-      profile?.appearanceColor ?? "#BD00FF",
-      profile?.avatar ?? "bunny",
-      profile?.description ?? null,
-      profile?.wallet ?? 1000,
-      profile?.arenaMaxRounds ?? 0,
-      profile?.experience ?? 0,
-    ],
-  );
-
-  if (!created) throw new Error("Failed to create character");
-  return created.id;
-}
-
-export async function getCharacterById(characterId: string) {
-  return oneOrNull('SELECT * FROM "Character" WHERE "id" = $1 LIMIT 1', [characterId]);
-}
-
-export async function getCharacterByUsername(username: string) {
-  return oneOrNull(
-    `SELECT c.*
-     FROM "Character" c
-     JOIN "User" u ON u."id" = c."userId"
-     WHERE u."username" = $1
-     LIMIT 1`,
-    [username],
-  );
-}
-
-export async function getAvatarForUsername(username: string) {
-  const user = await oneOrNull<{ avatar: string | null }>(
-    `SELECT c."avatar"
-     FROM "User" u
-     LEFT JOIN "Character" c ON c."userId" = u."id"
-     WHERE u."username" = $1
-     LIMIT 1`,
-    [username],
-  );
-  return user?.avatar ?? "bunny";
 }
 
 async function getStrapiStockPriceBySymbol(symbol: string): Promise<number> {
@@ -587,6 +500,28 @@ export async function sellStockForCharacter(input: {
   };
 }
 
+async function getStrapiProfileByUsername(username: string): Promise<any | null> {
+  const authUserId = await resolveStrapiNumericUserIdByUsername(username);
+  const profile = await getStrapiProfileByAuthUserId(authUserId);
+  return profile;
+}
+
+async function patchStrapiProfile(profileIdentifier: string, data: Record<string, unknown>) {
+  const headers = getStrapiServiceHeaders();
+  if (!headers) throw new Error("Missing STRAPI_API_TOKEN");
+
+  const res = await fetch(`${STRAPI_BASE_URL}/api/player-profiles/${encodeURIComponent(profileIdentifier)}`, {
+    method: "PUT",
+    headers,
+    cache: "no-store",
+    body: JSON.stringify({ data }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Profile update failed (${res.status}): ${text}`);
+  }
+}
+
 export async function applyArenaResult(input: {
   winner?: string;
   loser?: string;
@@ -596,22 +531,24 @@ export async function applyArenaResult(input: {
 }) {
   if (!input.isSolo) {
     if (input.winner) {
-      await oneOrNull(
-        `UPDATE "Character"
-         SET "experience" = "experience" + 50, "wallet" = "wallet" + $2
-         WHERE "userId" IN (SELECT "id" FROM "User" WHERE "username" = $1)
-         RETURNING "id"`,
-        [input.winner, input.reward],
-      );
+      const winner = await getStrapiProfileByUsername(input.winner);
+      if (winner) {
+        const id = winner.documentId ?? String(winner.id);
+        await patchStrapiProfile(id, {
+          experience: Number(winner.experience ?? 0) + 50,
+          wallet: Number(winner.wallet ?? 0) + input.reward,
+        });
+      }
     }
+
     if (input.loser) {
-      await oneOrNull(
-        `UPDATE "Character"
-         SET "experience" = "experience" + 10
-         WHERE "userId" IN (SELECT "id" FROM "User" WHERE "username" = $1)
-         RETURNING "id"`,
-        [input.loser],
-      );
+      const loser = await getStrapiProfileByUsername(input.loser);
+      if (loser) {
+        const id = loser.documentId ?? String(loser.id);
+        await patchStrapiProfile(id, {
+          experience: Number(loser.experience ?? 0) + 10,
+        });
+      }
     }
     return;
   }
@@ -619,24 +556,14 @@ export async function applyArenaResult(input: {
   const playerUsername = input.winner ?? input.loser;
   if (!playerUsername) return;
 
-  const character = await oneOrNull<any>(
-    `SELECT c.*
-     FROM "Character" c
-     JOIN "User" u ON u."id" = c."userId"
-     WHERE u."username" = $1
-     LIMIT 1`,
-    [playerUsername],
-  );
-  if (!character) return;
-
-  if (input.roundsReached > character.arenaMaxRounds) {
-    await oneOrNull('UPDATE "Character" SET "arenaMaxRounds" = $2 WHERE "id" = $1 RETURNING "id"', [character.id, input.roundsReached]);
-  }
+  const profile = await getStrapiProfileByUsername(playerUsername);
+  if (!profile) return;
 
   const now = new Date();
-  const lastSolo = character.lastSoloArenaAt ? new Date(character.lastSoloArenaAt) : null;
-  let shouldGrantSoloXP = false;
+  const currentArenaMaxRounds = Number(profile.arenaMaxRounds ?? 0);
+  const lastSolo = profile.lastSoloArenaAt ? new Date(profile.lastSoloArenaAt) : null;
 
+  let shouldGrantSoloXP = false;
   if (!lastSolo) {
     shouldGrantSoloXP = true;
   } else if (
@@ -647,10 +574,17 @@ export async function applyArenaResult(input: {
     shouldGrantSoloXP = true;
   }
 
+  const patch: Record<string, unknown> = {};
+  if (input.roundsReached > currentArenaMaxRounds) {
+    patch.arenaMaxRounds = input.roundsReached;
+  }
   if (shouldGrantSoloXP) {
-    await oneOrNull(
-      'UPDATE "Character" SET "experience" = "experience" + 10, "lastSoloArenaAt" = $2 WHERE "id" = $1 RETURNING "id"',
-      [character.id, now],
-    );
+    patch.experience = Number(profile.experience ?? 0) + 10;
+    patch.lastSoloArenaAt = now.toISOString();
+  }
+
+  if (Object.keys(patch).length > 0) {
+    const id = profile.documentId ?? String(profile.id);
+    await patchStrapiProfile(id, patch);
   }
 }
