@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Socket } from "socket.io-client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -97,6 +97,10 @@ export function CombinedMarketView({
   const [loanPrincipalInput, setLoanPrincipalInput] = useState(1000);
   const [repayAmountInput, setRepayAmountInput] = useState(100);
   const [loanBusy, setLoanBusy] = useState(false);
+  const buyQueueRef = useRef(0);
+  const sellQueueRef = useRef(0);
+  const processingBuyRef = useRef(false);
+  const processingSellRef = useRef(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -138,6 +142,17 @@ export function CombinedMarketView({
     const onPortfolioUpdated = ({ message, type }: { message?: string; type?: string }) => {
       fetch("/api/portfolio", { cache: "no-store" }).then((res) => res.json()).then(setPortfolio);
       fetch("/api/me", { cache: "no-store" }).then((res) => res.json()).then((data) => setWallet(data.wallet));
+
+      if (message?.startsWith("Bought ") || message?.startsWith("Insufficient funds")) {
+        processingBuyRef.current = false;
+        setTimeout(() => processBuyQueue(), 0);
+      }
+
+      if (message?.startsWith("Sold ") || message?.startsWith("Not enough shares")) {
+        processingSellRef.current = false;
+        setTimeout(() => processSellQueue(), 0);
+      }
+
       if (message) {
         if (type === "success") toast.success(message);
         else if (type === "error") toast.error(message);
@@ -201,8 +216,31 @@ export function CombinedMarketView({
     onIntentConsumed?.();
   }, [open, intent, stocks, onIntentConsumed]);
 
-  const buy = (symbol: string, quantity: number) => socket?.emit("buy_stock", { symbol, quantity });
-  const sell = (symbol: string, quantity: number) => socket?.emit("sell_stock", { symbol, quantity });
+  const processBuyQueue = () => {
+    if (processingBuyRef.current || !socket || !selectedStock) return;
+    if (buyQueueRef.current <= 0) return;
+    processingBuyRef.current = true;
+    buyQueueRef.current -= 1;
+    socket.emit("buy_stock", { symbol: selectedStock.symbol, quantity: 1 });
+  };
+
+  const processSellQueue = () => {
+    if (processingSellRef.current || !socket || !selectedStock) return;
+    if (sellQueueRef.current <= 0) return;
+    processingSellRef.current = true;
+    sellQueueRef.current -= 1;
+    socket.emit("sell_stock", { symbol: selectedStock.symbol, quantity: 1 });
+  };
+
+  const buy = () => {
+    buyQueueRef.current += 1;
+    processBuyQueue();
+  };
+
+  const sell = () => {
+    sellQueueRef.current += 1;
+    processSellQueue();
+  };
 
   const refreshFinance = async () => {
     const townId = townData?.id ?? 1;
@@ -449,13 +487,13 @@ export function CombinedMarketView({
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
-                    <button onClick={() => buy(selectedStock.symbol, 1)} className="group relative w-full">
+                    <button onClick={buy} className="group relative w-full">
                        <div className="absolute inset-0 bg-brand-secondary/20 blur group-hover:bg-brand-secondary/40 transition-all" />
                        <div className=" bg-brand-secondary px-4 py-4 relative transition-transform group-active:scale-95 text-center">
                           <span className="text-xs font-black uppercase tracking-[0.2em] text-black">Execute Buy Order</span>
                        </div>
                     </button>
-                    <button onClick={() => sell(selectedStock.symbol, 1)} disabled={currentHolding === 0} className="group relative w-full disabled:opacity-30">
+                    <button onClick={sell} disabled={currentHolding === 0} className="group relative w-full disabled:opacity-30">
                        <div className="absolute inset-0 bg-brand-tertiary/20 blur group-hover:bg-brand-tertiary/40 transition-all" />
                        <div className=" bg-brand-tertiary px-4 py-4 relative transition-transform group-active:scale-95 text-center">
                           <span className="text-xs font-black uppercase tracking-[0.2em] text-white">Execute Sell Order</span>
