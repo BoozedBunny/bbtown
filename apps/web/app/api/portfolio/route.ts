@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
-import { ensureLegacyCharacterForSession, isUnauthorizedError, requireSessionUserWithCharacter } from "@/lib/auth";
+import { isUnauthorizedError, requireSessionUserWithCharacter } from "@/lib/auth";
 import { getPortfolioForCharacter } from "@/lib/bff/gameReadService";
 
 export async function GET() {
   try {
     const user = await requireSessionUserWithCharacter();
 
-    const legacyCharacterId = await ensureLegacyCharacterForSession(user);
-
-    const portfolio = await getPortfolioForCharacter(legacyCharacterId, user.id, user.username);
+    const portfolio = await getPortfolioForCharacter(user.character.id, user.id, user.username);
 
     return NextResponse.json(portfolio, {
       headers: {
