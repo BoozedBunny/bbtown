@@ -138,11 +138,7 @@ async function syncStrapiPortfolioAndWallet(input: {
   const stockIdentifier = stock.documentId ?? String(stock.id);
 
   const itemUrl = new URL(`${STRAPI_BASE_URL}/api/portfolio-items`);
-  if (typeof input.authUserId === "number" && Number.isFinite(input.authUserId)) {
-    itemUrl.searchParams.set("filters[playerProfile][authUserId][$eq]", String(input.authUserId));
-  } else {
-    itemUrl.searchParams.set("filters[playerProfile][displayName][$eq]", input.username);
-  }
+  itemUrl.searchParams.set("filters[playerProfile][documentId][$eq]", profileIdentifier);
   itemUrl.searchParams.set("filters[stock][symbol][$eq]", input.symbol);
   itemUrl.searchParams.set("pagination[limit]", "1");
 
