@@ -309,7 +309,10 @@ async function backfillStrapiPortfolioFromLegacy(input: {
 export async function getPortfolioForCharacter(characterId: string, authUserId?: string, username?: string) {
   try {
     const portfolio = await getPortfolioFromStrapi(characterId, authUserId, username);
-    if (portfolio.length > 0) return portfolio;
+    if (portfolio.length > 0) {
+      console.info(`[portfolio-read] source=strapi authUserId=${authUserId ?? "n/a"} username=${username ?? "n/a"} count=${portfolio.length}`);
+      return portfolio;
+    }
     console.warn(`[portfolio-read] Strapi portfolio empty for authUserId=${authUserId ?? "n/a"}, falling back to DB.`);
   } catch (error) {
     console.error(
@@ -319,6 +322,7 @@ export async function getPortfolioForCharacter(characterId: string, authUserId?:
   }
 
   const legacyPortfolio = await getPortfolioFromDb(characterId);
+  console.info(`[portfolio-read] source=db authUserId=${authUserId ?? "n/a"} username=${username ?? "n/a"} count=${legacyPortfolio.length}`);
   try {
     await backfillStrapiPortfolioFromLegacy({ authUserId, username, portfolio: legacyPortfolio });
   } catch (error) {
