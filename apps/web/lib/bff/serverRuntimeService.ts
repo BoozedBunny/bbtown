@@ -43,6 +43,15 @@ async function syncStrapiPortfolioAndWallet(input: {
   walletAfterTrade: number;
 }) {
   const flags = getRuntimeFlags();
+  console.info("[market-sync] start", {
+    username: input.username,
+    authUserId: input.authUserId ?? null,
+    symbol: input.symbol,
+    quantityDelta: input.quantityDelta,
+    walletAfterTrade: input.walletAfterTrade,
+    strapiSotMode: flags.strapiSotMode,
+    strapiAdminOverrideWins: flags.strapiAdminOverrideWins,
+  });
 
   const headers = getStrapiServiceHeaders();
   if (!headers) {
@@ -63,6 +72,7 @@ async function syncStrapiPortfolioAndWallet(input: {
   profileUrl.searchParams.set("pagination[limit]", "1");
 
   const profileRes = await fetch(profileUrl, { headers, cache: "no-store" });
+  console.info("[market-sync] profile lookup", { status: profileRes.status, url: profileUrl.toString() });
   if (!profileRes.ok) throw new Error(`Strapi profile lookup failed (${profileRes.status})`);
   const profileJson = (await profileRes.json()) as { data?: StrapiPlayerProfile[] };
   const profile = profileJson.data?.[0];
@@ -73,6 +83,7 @@ async function syncStrapiPortfolioAndWallet(input: {
   stockUrl.searchParams.set("pagination[limit]", "1");
 
   const stockRes = await fetch(stockUrl, { headers, cache: "no-store" });
+  console.info("[market-sync] stock lookup", { status: stockRes.status, symbol: input.symbol });
   if (!stockRes.ok) throw new Error(`Strapi stock lookup failed (${stockRes.status})`);
   const stockJson = (await stockRes.json()) as { data?: StrapiStock[] };
   const stock = stockJson.data?.[0];
@@ -91,6 +102,7 @@ async function syncStrapiPortfolioAndWallet(input: {
   itemUrl.searchParams.set("pagination[limit]", "1");
 
   const itemRes = await fetch(itemUrl, { headers, cache: "no-store" });
+  console.info("[market-sync] portfolio lookup", { status: itemRes.status, symbol: input.symbol });
   if (!itemRes.ok) throw new Error(`Strapi portfolio lookup failed (${itemRes.status})`);
   const itemJson = (await itemRes.json()) as { data?: StrapiPortfolioItem[] };
   const existing = itemJson.data?.[0];
@@ -112,6 +124,7 @@ async function syncStrapiPortfolioAndWallet(input: {
       const text = await createRes.text();
       throw new Error(`Strapi portfolio create failed (${createRes.status}): ${text}`);
     }
+    console.info("[market-sync] portfolio create", { status: createRes.status, symbol: input.symbol, quantity: input.quantityDelta });
   }
 
   if (existing) {
@@ -127,6 +140,7 @@ async function syncStrapiPortfolioAndWallet(input: {
       const text = await updateRes.text();
       throw new Error(`Strapi portfolio update failed (${updateRes.status}): ${text}`);
     }
+    console.info("[market-sync] portfolio update", { status: updateRes.status, symbol: input.symbol, nextQuantity });
   }
 
   if (flags.strapiAdminOverrideWins) {
@@ -149,6 +163,7 @@ async function syncStrapiPortfolioAndWallet(input: {
     const text = await profileUpdateRes.text();
     throw new Error(`Strapi wallet update failed (${profileUpdateRes.status}): ${text}`);
   }
+  console.info("[market-sync] wallet update", { status: profileUpdateRes.status, walletAfterTrade: input.walletAfterTrade });
 }
 
 async function pruneStrapiStockHistory(stockIdentifier: string, headers: HeadersInit, keep = 1200, batch = 300) {
