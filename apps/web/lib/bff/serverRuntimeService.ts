@@ -25,6 +25,8 @@ type StrapiStock = {
   id: number;
   documentId?: string;
   symbol?: string;
+  price?: number;
+  previousPrice?: number;
 };
 
 type StrapiPortfolioItem = {
@@ -151,6 +153,55 @@ async function syncStrapiPortfolioAndWallet(input: {
   }
 }
 
+async function syncStrapiStockTick(input: { symbol: string; previousPrice: number; price: number; timestampIso: string }) {
+  const headers = getStrapiServiceHeaders();
+  if (!headers) return;
+
+  const stockUrl = new URL(`${STRAPI_BASE_URL}/api/stocks`);
+  stockUrl.searchParams.set("filters[symbol][$eq]", input.symbol);
+  stockUrl.searchParams.set("pagination[limit]", "1");
+
+  const stockRes = await fetch(stockUrl, { headers, cache: "no-store" });
+  if (!stockRes.ok) {
+    const text = await stockRes.text();
+    throw new Error(`Strapi stock lookup failed (${stockRes.status}): ${text}`);
+  }
+
+  const stockJson = (await stockRes.json()) as { data?: StrapiStock[] };
+  const stock = stockJson.data?.[0];
+  if (!stock) return;
+
+  const stockIdentifier = stock.documentId ?? String(stock.id);
+
+  const updateRes = await fetch(`${STRAPI_BASE_URL}/api/stocks/${stockIdentifier}`, {
+    method: "PUT",
+    headers,
+    cache: "no-store",
+    body: JSON.stringify({ data: { previousPrice: input.previousPrice, price: input.price } }),
+  });
+  if (!updateRes.ok) {
+    const text = await updateRes.text();
+    throw new Error(`Strapi stock update failed (${updateRes.status}): ${text}`);
+  }
+
+  const historyRes = await fetch(`${STRAPI_BASE_URL}/api/stock-histories`, {
+    method: "POST",
+    headers,
+    cache: "no-store",
+    body: JSON.stringify({
+      data: {
+        stock: stockIdentifier,
+        price: input.price,
+        timestamp: input.timestampIso,
+      },
+    }),
+  });
+  if (!historyRes.ok) {
+    const text = await historyRes.text();
+    throw new Error(`Strapi stock-history create failed (${historyRes.status}): ${text}`);
+  }
+}
+
 type CompanyProfileSeed = {
   symbol: string;
   name: string;
@@ -181,6 +232,7 @@ export async function tickStocksAndReturnSorted() {
   for (const stock of stocks) {
     const changePercent = Math.random() * 0.1 - 0.05;
     const newPrice = Math.max(0.01, stock.price * (1 + changePercent));
+    const tickAtIso = new Date().toISOString();
 
     await withTransaction(async (tx) => {
       await tx.query('UPDATE "Stock" SET "previousPrice" = $2, "price" = $3, "updatedAt" = NOW() WHERE "id" = $1', [stock.id, stock.price, newPrice]);
@@ -189,6 +241,17 @@ export async function tickStocksAndReturnSorted() {
         [randomUUID(), stock.id, newPrice],
       );
     });
+
+    try {
+      await syncStrapiStockTick({
+        symbol: stock.symbol,
+        previousPrice: stock.price,
+        price: newPrice,
+        timestampIso: tickAtIso,
+      });
+    } catch (error) {
+      console.error(`[market-write] Strapi tick sync failed for symbol=${stock.symbol}; legacy tick kept.`, error);
+    }
   }
 
   return many('SELECT * FROM "Stock" ORDER BY "symbol" ASC');

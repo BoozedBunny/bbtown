@@ -18,7 +18,7 @@ export function getRuntimeFlags() {
   return {
     strapiSotMode,
     legacyWriteEnabled: normalizeBool(process.env.LEGACY_WRITE_ENABLED, true),
-    strapiAdminOverrideWins: normalizeBool(process.env.STRAPI_ADMIN_OVERRIDE_WINS, true),
+    strapiAdminOverrideWins: normalizeBool(process.env.STRAPI_ADMIN_OVERRIDE_WINS, false),
   };
 }
 
