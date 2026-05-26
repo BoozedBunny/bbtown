@@ -7,7 +7,7 @@
     "dev": "PORT=3004 nodemon --watch server.ts --exec \"tsx server.ts\"",
     "build": "next build",
     "start": "PORT=3000 NODE_ENV=production tsx server.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "tsx --test tests/*.test.ts"
   },
   "repository": {
     "type": "git",

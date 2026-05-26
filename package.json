@@ -9,6 +9,7 @@
     "dev:web": "npm run dev --workspace web",
     "build:web": "npm run build --workspace web",
     "start:web": "npm run start --workspace web",
+    "test:web": "npm run test --workspace web",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "cms:up": "docker compose up -d cms",
