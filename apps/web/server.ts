@@ -367,12 +367,6 @@ app.prepare().then(async () => {
       }
     }
 
-    const syncStrapiProfileFromLegacyForCurrentSocketUser = async () => {
-      // Strapi ist Source-of-Truth; kein Legacy->Strapi Sync mehr nötig.
-      return;
-    };
-
-
     if (mockUser) {
       socket.join(`user:${mockUser}`);
       console.log(`Socket ${socket.id} joined room user:${mockUser}`);
@@ -963,7 +957,6 @@ app.prepare().then(async () => {
             roundsReached,
           });
 
-          await syncStrapiProfileFromLegacyForCurrentSocketUser();
         } catch (error) {
           console.error("Failed to finalize arena results:", error);
         }

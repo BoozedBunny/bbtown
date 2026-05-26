@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { strapiFetchList } from "@/lib/cms/strapi";
-import { getNewsFeedItems, NewsFeedItem } from "@/lib/news/newsFeed";
+import { NewsFeedItem } from "@/lib/news/newsFeed";
 
 type StrapiTownNewsAttributes = {
   title?: string;
@@ -68,7 +68,8 @@ export async function GET(request: Request) {
       .filter((item) => item.body.trim().length > 0);
 
     return NextResponse.json({ source: "strapi", items: mapped });
-  } catch (_error) {
-    return NextResponse.json({ source: "fallback", items: getNewsFeedItems() });
+  } catch (error) {
+    console.error("GET /api/cms/town-news failed", error);
+    return NextResponse.json({ error: "Failed to load town news from Strapi" }, { status: 502 });
   }
 }

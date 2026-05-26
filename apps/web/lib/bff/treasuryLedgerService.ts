@@ -211,7 +211,6 @@ export async function settleTreasuryDay(townId: number, dateKey: string) {
 }
 
 export async function runTreasuryDailySettlement(now = new Date()) {
-  if (!treasuryConfig.ffDailyVariation) return;
   const towns = await listAllTowns();
   const todayKey = toUtcDateKey(now);
 

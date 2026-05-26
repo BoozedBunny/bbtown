@@ -218,7 +218,6 @@ export async function createLoanQuote(characterId: string, requestedPrincipal: n
 }
 
 export async function issueLoan(characterId: string, quote: any, quoteHashValue: string, idempotencyKey: string) {
-  if (!treasuryConfig.ffLoansIssue) throw new Error("Loan issue disabled");
   const existing = await getOp(idempotencyKey);
   if (existing) return existing;
 
@@ -255,7 +254,6 @@ export async function issueLoan(characterId: string, quote: any, quoteHashValue:
 }
 
 export async function repayLoan(characterId: string, loanId: string, amount: number, idempotencyKey: string) {
-  if (!treasuryConfig.ffLoansRepay) throw new Error("Loan repay disabled");
   if (amount < treasuryConfig.repayMinAmount) return { error: LoanReasonCode.AMOUNT_TOO_SMALL };
 
   const existing = await getOp(idempotencyKey);
@@ -318,8 +316,6 @@ export async function repayLoan(characterId: string, loanId: string, amount: num
 }
 
 export async function runLoanDelinquencySweep(now = new Date()) {
-  if (!treasuryConfig.ffLoansDelinquency) return;
-
   const rows = await strapiList<LoanStateRow>("/api/loan-states", {
     "filters[status][$in][0]": "ACTIVE",
     "filters[status][$in][1]": "DELINQUENT",

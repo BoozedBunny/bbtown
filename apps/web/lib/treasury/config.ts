@@ -11,11 +11,6 @@ const parseIntNumber = (value: string | undefined, fallback: number) => {
 };
 
 export const treasuryConfig = {
-  ffDailyVariation: process.env.FF_TREASURY_DAILY_VARIATION !== "false",
-  ffLoansIssue: process.env.FF_LOANS_ISSUE !== "false",
-  ffLoansRepay: process.env.FF_LOANS_REPAY !== "false",
-  ffLoansDelinquency: process.env.FF_LOANS_DELINQUENCY !== "false",
-
   dailyVariationMinPct: parseNumber(process.env.TREASURY_DAILY_VARIATION_MIN_PCT, -1.5) / 100,
   dailyVariationMaxPct: parseNumber(process.env.TREASURY_DAILY_VARIATION_MAX_PCT, 1.2) / 100,
   dailyVariationFloorAbs: parseIntNumber(process.env.TREASURY_DAILY_VARIATION_FLOOR_ABS, -250),
