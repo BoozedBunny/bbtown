@@ -1,13 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { oneOrNull, withTransaction } from "@/lib/db";
-import { getRuntimeFlags } from "@/lib/config/runtimeFlags";
 
 function logTownWrite(action: string, details: Record<string, unknown> = {}) {
-  const flags = getRuntimeFlags();
-  const writeTarget = flags.strapiSotMode === "on" ? "strapi" : "legacy";
   console.info("[town-write]", {
     action,
-    write_target: writeTarget,
+    write_target: "legacy",
     source: "user_action",
     ...details,
   });

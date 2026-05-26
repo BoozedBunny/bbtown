@@ -1,6 +1,4 @@
-import { randomUUID } from "crypto";
 import { oneOrNull } from "@/lib/db";
-import { getRuntimeFlags } from "@/lib/config/runtimeFlags";
 
 export async function getLegacyUserByUsername(username: string) {
   return oneOrNull(
@@ -37,59 +35,16 @@ export async function ensureLegacyCharacterFromSessionShape(input: {
     lastSoloArenaAt?: Date | null;
   };
 }) {
-  const flags = getRuntimeFlags();
-
   if (looksLikeUuid(input.characterIdFromSession)) {
     const directCharacter = await oneOrNull<{ id: string }>('SELECT "id" FROM "Character" WHERE "id" = $1 LIMIT 1', [input.characterIdFromSession]);
     if (directCharacter) return directCharacter.id;
   }
 
-  if (!flags.legacyWriteEnabled || flags.strapiSotMode === "on") {
-    throw new Error("Legacy character missing while legacy writes are disabled (STRAPI_SOT_MODE=on)");
-  }
-
-  const legacyUser = await oneOrNull<{ id: string }>(
-    'INSERT INTO "User" ("id", "username", "updatedAt") VALUES ($1, $2, NOW()) ON CONFLICT ("username") DO UPDATE SET "username" = EXCLUDED."username", "updatedAt" = NOW() RETURNING "id"',
-    [randomUUID(), input.username],
+  const legacyByUsername = await oneOrNull<{ id: string }>(
+    'SELECT c."id" FROM "Character" c JOIN "User" u ON u."id" = c."userId" WHERE u."username" = $1 LIMIT 1',
+    [input.username],
   );
-  if (!legacyUser) throw new Error("Failed to upsert legacy user");
+  if (legacyByUsername) return legacyByUsername.id;
 
-  const existingByUser = await oneOrNull<{ id: string }>('SELECT "id" FROM "Character" WHERE "userId" = $1 LIMIT 1', [legacyUser.id]);
-  if (existingByUser) {
-    await oneOrNull(
-      'UPDATE "Character" SET "name" = $2, "appearanceColor" = $3, "avatar" = $4, "description" = $5, "wallet" = $6, "arenaMaxRounds" = $7, "experience" = $8 WHERE "id" = $1 RETURNING "id"',
-      [
-        existingByUser.id,
-        input.character.name,
-        input.character.appearanceColor ?? "#BD00FF",
-        input.character.avatar,
-        input.character.description,
-        input.character.wallet,
-        input.character.arenaMaxRounds,
-        input.character.experience,
-      ],
-    );
-    return existingByUser.id;
-  }
-
-  const created = await oneOrNull<{ id: string }>(
-    'INSERT INTO "Character" ("id", "userId", "name", "appearanceColor", "avatar", "description", "wallet", "arenaMaxRounds", "experience", "loanStatus", "loanLockedUntil", "lastSoloArenaAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING "id"',
-    [
-      randomUUID(),
-      legacyUser.id,
-      input.character.name,
-      input.character.appearanceColor ?? "#BD00FF",
-      input.character.avatar,
-      input.character.description,
-      input.character.wallet,
-      input.character.arenaMaxRounds,
-      input.character.experience,
-      input.character.loanStatus ?? "NONE",
-      input.character.loanLockedUntil ?? null,
-      input.character.lastSoloArenaAt ?? null,
-    ],
-  );
-
-  if (!created) throw new Error("Failed to create legacy character");
-  return created.id;
+  throw new Error("Legacy character missing. Runtime now requires Strapi-first identities; no legacy auto-create.");
 }

@@ -4,16 +4,13 @@ import { treasuryConfig } from "@/lib/treasury/config";
 import { addUtcDays, toUtcDateKey } from "@/lib/treasury/utils";
 import { createLedgerEntry } from "@/lib/bff/treasuryLedgerService";
 import { updatePlayerProfileByAuthUserId } from "@/lib/strapiAuth";
-import { getRuntimeFlags } from "@/lib/config/runtimeFlags";
 
 const LOAN_PAYMENT_SOURCE_MANUAL = "MANUAL" as const;
 
 function logLoanWrite(action: string, details: Record<string, unknown> = {}) {
-  const flags = getRuntimeFlags();
-  const writeTarget = flags.strapiSotMode === "on" ? "strapi" : "legacy";
   console.info("[loan-write]", {
     action,
-    write_target: writeTarget,
+    write_target: "legacy",
     source: "user_action",
     ...details,
   });

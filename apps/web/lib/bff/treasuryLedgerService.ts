@@ -3,7 +3,6 @@ import { type PoolClient } from "pg";
 import { many, oneOrNull, withTransaction } from "@/lib/db";
 import { treasuryConfig } from "@/lib/treasury/config";
 import { addUtcDays, clamp, seededPercent, toUtcDateKey, roundInt } from "@/lib/treasury/utils";
-import { getRuntimeFlags } from "@/lib/config/runtimeFlags";
 
 type TxClient = PoolClient | any;
 
@@ -18,11 +17,9 @@ type LedgerKind =
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function logTreasuryWrite(action: string, details: Record<string, unknown> = {}) {
-  const flags = getRuntimeFlags();
-  const writeTarget = flags.strapiSotMode === "on" ? "strapi" : "legacy";
   console.info("[treasury-write]", {
     action,
-    write_target: writeTarget,
+    write_target: "legacy",
     source: "system_tick",
     ...details,
   });
