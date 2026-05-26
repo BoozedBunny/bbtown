@@ -153,6 +153,39 @@ async function syncStrapiPortfolioAndWallet(input: {
   }
 }
 
+async function pruneStrapiStockHistory(stockIdentifier: string, headers: HeadersInit, keep = 1200, batch = 300) {
+  const listUrl = new URL(`${STRAPI_BASE_URL}/api/stock-histories`);
+  listUrl.searchParams.set("filters[stock][documentId][$eq]", stockIdentifier);
+  listUrl.searchParams.set("sort", "timestamp:desc");
+  listUrl.searchParams.set("pagination[start]", String(keep));
+  listUrl.searchParams.set("pagination[limit]", String(batch));
+
+  const listRes = await fetch(listUrl, { headers, cache: "no-store" });
+  if (!listRes.ok) {
+    const text = await listRes.text();
+    throw new Error(`Strapi stock-history prune lookup failed (${listRes.status}): ${text}`);
+  }
+
+  const listJson = (await listRes.json()) as { data?: Array<{ id: number; documentId?: string }> };
+  const stale = listJson.data ?? [];
+  for (const entry of stale) {
+    const id = entry.documentId ?? String(entry.id);
+    const delRes = await fetch(`${STRAPI_BASE_URL}/api/stock-histories/${id}`, {
+      method: "DELETE",
+      headers,
+      cache: "no-store",
+    });
+    if (!delRes.ok) {
+      const text = await delRes.text();
+      throw new Error(`Strapi stock-history delete failed (${delRes.status}): ${text}`);
+    }
+  }
+
+  if (stale.length > 0) {
+    console.info(`[market-write] pruned ${stale.length} stock-history rows for stock=${stockIdentifier}`);
+  }
+}
+
 async function syncStrapiStockTick(input: { symbol: string; previousPrice: number; price: number; timestampIso: string }) {
   const headers = getStrapiServiceHeaders();
   if (!headers) return;
@@ -200,6 +233,8 @@ async function syncStrapiStockTick(input: { symbol: string; previousPrice: numbe
     const text = await historyRes.text();
     throw new Error(`Strapi stock-history create failed (${historyRes.status}): ${text}`);
   }
+
+  await pruneStrapiStockHistory(stockIdentifier, headers, 1200, 300);
 }
 
 type CompanyProfileSeed = {
