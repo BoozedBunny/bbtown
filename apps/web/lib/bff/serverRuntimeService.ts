@@ -75,7 +75,44 @@ async function syncStrapiPortfolioAndWallet(input: {
   console.info("[market-sync] profile lookup", { status: profileRes.status, url: profileUrl.toString() });
   if (!profileRes.ok) throw new Error(`Strapi profile lookup failed (${profileRes.status})`);
   const profileJson = (await profileRes.json()) as { data?: StrapiPlayerProfile[] };
-  const profile = profileJson.data?.[0];
+  let profile = profileJson.data?.[0];
+  if (!profile) {
+    console.warn("[market-sync] profile missing, attempting auto-create", { username: input.username });
+    const userLookupUrl = new URL(`${STRAPI_BASE_URL}/api/users`);
+    userLookupUrl.searchParams.set("filters[username][$eq]", input.username);
+    userLookupUrl.searchParams.set("pagination[limit]", "1");
+    const userRes = await fetch(userLookupUrl, { headers, cache: "no-store" });
+    if (!userRes.ok) {
+      const text = await userRes.text();
+      throw new Error(`Strapi user lookup failed (${userRes.status}): ${text}`);
+    }
+    const users = (await userRes.json()) as Array<{ id: number; username?: string }>;
+    const authUser = users?.[0];
+    if (!authUser?.id) {
+      console.warn("[market-sync] user missing in Strapi; skip sync", { username: input.username });
+      return;
+    }
+
+    const createProfileRes = await fetch(`${STRAPI_BASE_URL}/api/player-profiles`, {
+      method: "POST",
+      headers,
+      cache: "no-store",
+      body: JSON.stringify({
+        data: {
+          authUserId: authUser.id,
+          displayName: input.username,
+          wallet: input.walletAfterTrade,
+        },
+      }),
+    });
+    if (!createProfileRes.ok) {
+      const text = await createProfileRes.text();
+      throw new Error(`Strapi profile create failed (${createProfileRes.status}): ${text}`);
+    }
+    const createdProfileJson = (await createProfileRes.json()) as { data?: StrapiPlayerProfile };
+    profile = createdProfileJson.data;
+    console.info("[market-sync] profile auto-created", { username: input.username, authUserId: authUser.id });
+  }
   if (!profile) return;
 
   const stockUrl = new URL(`${STRAPI_BASE_URL}/api/stocks`);
