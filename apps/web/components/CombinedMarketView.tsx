@@ -319,10 +319,16 @@ export function CombinedMarketView({
     }
   };
 
+  const getHoldingForSymbol = (symbol: string) => {
+    const target = symbol.toUpperCase();
+    return portfolio
+      .filter((p) => p.stock?.symbol?.toUpperCase() === target)
+      .reduce((sum, p) => sum + Number(p.quantity || 0), 0);
+  };
+
   const currentHolding = useMemo(() => {
     if (!selectedStock) return 0;
-    const selectedSymbol = selectedStock.symbol.toUpperCase();
-    return portfolio.find((p) => p.stock?.symbol?.toUpperCase() === selectedSymbol)?.quantity || 0;
+    return getHoldingForSymbol(selectedStock.symbol);
   }, [portfolio, selectedStock]);
 
   const lineStroke = (selectedStock?.price ?? 0) >= (selectedStock?.previousPrice ?? 0) ? CHART_STROKE_UP : CHART_STROKE_DOWN;
@@ -413,7 +419,7 @@ export function CombinedMarketView({
                     {stocks.map((stock) => {
                       const diff = stock.price - stock.previousPrice;
                       const isUp = diff >= 0;
-                      const owned = portfolio.find((p) => p.stock?.symbol?.toUpperCase() === stock.symbol.toUpperCase())?.quantity || 0;
+                      const owned = getHoldingForSymbol(stock.symbol);
                       return (
                         <button key={stock.id} onClick={() => setSelectedStock(stock)} className="flex justify-between items-center p-4 bg-black/40 border border-white/10 hover:border-brand-primary/50 hover:bg-brand-primary/5 transition-all group text-left relative overflow-hidden">
                           <div className={`absolute left-0 top-0 w-1 h-full ${isUp ? "bg-brand-secondary" : "bg-brand-tertiary"}`} />
