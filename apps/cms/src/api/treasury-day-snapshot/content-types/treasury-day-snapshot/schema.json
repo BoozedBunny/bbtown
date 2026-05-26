@@ -1,0 +1,15 @@
+{
+  "kind": "collectionType",
+  "collectionName": "treasury_day_snapshots",
+  "info": {"singularName": "treasury-day-snapshot", "pluralName": "treasury-day-snapshots", "displayName": "Treasury Day Snapshot"},
+  "options": {"draftAndPublish": false},
+  "attributes": {
+    "townId": {"type": "integer", "required": true},
+    "dateKey": {"type": "string", "required": true},
+    "openingBalance": {"type": "integer", "required": true},
+    "variationAmount": {"type": "integer", "required": true},
+    "loanNetAmount": {"type": "integer", "required": true, "default": 0},
+    "otherNetAmount": {"type": "integer", "required": true, "default": 0},
+    "closingBalance": {"type": "integer", "required": true}
+  }
+}

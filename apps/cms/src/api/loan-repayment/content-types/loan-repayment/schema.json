@@ -1,0 +1,14 @@
+{
+  "kind": "collectionType",
+  "collectionName": "loan_repayments",
+  "info": {"singularName": "loan-repayment", "pluralName": "loan-repayments", "displayName": "Loan Repayment"},
+  "options": {"draftAndPublish": false},
+  "attributes": {
+    "loanState": {"type": "relation", "relation": "manyToOne", "target": "api::loan-state.loan-state"},
+    "amountPaid": {"type": "integer", "required": true},
+    "appliedFees": {"type": "integer", "required": true},
+    "appliedInterest": {"type": "integer", "required": true},
+    "appliedPrincipal": {"type": "integer", "required": true},
+    "paymentSource": {"type": "enumeration", "enum": ["MANUAL"], "default": "MANUAL"}
+  }
+}

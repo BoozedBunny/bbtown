@@ -1,0 +1,14 @@
+{
+  "kind": "collectionType",
+  "collectionName": "treasury_ledger_entries",
+  "info": {"singularName": "treasury-ledger-entry", "pluralName": "treasury-ledger-entries", "displayName": "Treasury Ledger Entry"},
+  "options": {"draftAndPublish": false},
+  "attributes": {
+    "townId": {"type": "integer", "required": true},
+    "kind": {"type": "enumeration", "enum": ["DAILY_VARIATION", "LOAN_PRINCIPAL_OUTFLOW", "LOAN_FEE_INFLOW", "LOAN_REPAYMENT_PRINCIPAL_INFLOW", "LOAN_INTEREST_INFLOW", "BUILDING_SALE_INFLOW"], "required": true},
+    "amount": {"type": "integer", "required": true},
+    "referenceType": {"type": "string", "required": true},
+    "referenceId": {"type": "string", "required": true},
+    "metadataJson": {"type": "text"}
+  }
+}

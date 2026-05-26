@@ -1,0 +1,12 @@
+{
+  "kind": "collectionType",
+  "collectionName": "loan_operations",
+  "info": {"singularName": "loan-operation", "pluralName": "loan-operations", "displayName": "Loan Operation"},
+  "options": {"draftAndPublish": false},
+  "attributes": {
+    "idempotencyKey": {"type": "string", "required": true, "unique": true},
+    "profileIdentifier": {"type": "string", "required": true},
+    "operationType": {"type": "enumeration", "enum": ["ISSUE", "REPAY"], "required": true},
+    "responseJson": {"type": "text", "required": true}
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "kind": "collectionType",
+  "collectionName": "loan_states",
+  "info": {"singularName": "loan-state", "pluralName": "loan-states", "displayName": "Loan State"},
+  "options": {"draftAndPublish": false},
+  "attributes": {
+    "playerProfile": {"type": "relation", "relation": "manyToOne", "target": "api::player-profile.player-profile"},
+    "status": {"type": "enumeration", "enum": ["ACTIVE", "DELINQUENT", "PAID", "DEFAULTED"], "default": "ACTIVE"},
+    "principalOrigin": {"type": "integer", "required": true},
+    "remainingPrincipal": {"type": "integer", "required": true},
+    "aprBps": {"type": "integer", "required": true},
+    "dailyInterestBps": {"type": "integer", "required": true},
+    "dueAt": {"type": "datetime", "required": true},
+    "nextDueDateKey": {"type": "string", "required": true},
+    "lastInterestAccrualDateKey": {"type": "string", "required": true},
+    "lateFeesAccrued": {"type": "integer", "default": 0},
+    "missedPaymentDays": {"type": "integer", "default": 0},
+    "issuedAt": {"type": "datetime", "required": true}
+  }
+}

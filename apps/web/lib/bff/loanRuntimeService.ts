@@ -6,6 +6,75 @@ import { updatePlayerProfileByAuthUserId } from "@/lib/strapiAuth";
 const STRAPI_BASE_URL = process.env.STRAPI_URL ?? "http://127.0.0.1:1339";
 const STRAPI_TOKEN = process.env.STRAPI_API_TOKEN;
 
+function headers(): HeadersInit {
+  if (!STRAPI_TOKEN) throw new Error("Missing STRAPI_API_TOKEN");
+  return { "Content-Type": "application/json", Authorization: `Bearer ${STRAPI_TOKEN}` };
+}
+
+async function strapiList<T>(path: string, qs: Record<string, string>): Promise<T[]> {
+  const url = new URL(`${STRAPI_BASE_URL}${path}`);
+  for (const [k, v] of Object.entries(qs)) url.searchParams.set(k, v);
+  const res = await fetch(url, { headers: headers(), cache: "no-store" });
+  if (!res.ok) throw new Error(`${path} list failed: ${res.status} ${await res.text()}`);
+  const json = (await res.json()) as { data?: T[] };
+  return json.data ?? [];
+}
+
+async function strapiCreate<T>(path: string, data: Record<string, unknown>): Promise<T> {
+  const res = await fetch(`${STRAPI_BASE_URL}${path}`, {
+    method: "POST",
+    headers: headers(),
+    cache: "no-store",
+    body: JSON.stringify({ data }),
+  });
+  if (!res.ok) throw new Error(`${path} create failed: ${res.status} ${await res.text()}`);
+  const json = (await res.json()) as { data?: T };
+  if (!json.data) throw new Error(`${path} create returned empty`);
+  return json.data;
+}
+
+async function strapiUpdate<T>(path: string, identifier: string, data: Record<string, unknown>): Promise<T> {
+  const res = await fetch(`${STRAPI_BASE_URL}${path}/${encodeURIComponent(identifier)}`, {
+    method: "PUT",
+    headers: headers(),
+    cache: "no-store",
+    body: JSON.stringify({ data }),
+  });
+  if (!res.ok) throw new Error(`${path} update failed: ${res.status} ${await res.text()}`);
+  const json = (await res.json()) as { data?: T };
+  if (!json.data) throw new Error(`${path} update returned empty`);
+  return json.data;
+}
+
+type Profile = { id: number; documentId?: string; authUserId?: number; wallet?: number; loanStatus?: "NONE" | "ACTIVE" | "DELINQUENT"; loanLockedUntil?: string | null };
+type LoanStateRow = {
+  id: number;
+  documentId?: string;
+  status: "ACTIVE" | "DELINQUENT" | "PAID" | "DEFAULTED";
+  principalOrigin: number;
+  remainingPrincipal: number;
+  aprBps: number;
+  dailyInterestBps: number;
+  dueAt: string;
+  nextDueDateKey: string;
+  lastInterestAccrualDateKey: string;
+  lateFeesAccrued: number;
+  missedPaymentDays: number;
+  issuedAt: string;
+  updatedAt?: string;
+  playerProfile?: { id?: number; documentId?: string; authUserId?: number };
+};
+type LoanRepaymentRow = {
+  id: number;
+  documentId?: string;
+  amountPaid: number;
+  appliedFees: number;
+  appliedInterest: number;
+  appliedPrincipal: number;
+  paymentSource: "MANUAL";
+  createdAt?: string;
+};
+
 type LoanRecord = {
   id: string;
   profileId: string;
@@ -22,44 +91,86 @@ type LoanRecord = {
   missedPaymentDays: number;
   issuedAt: string;
   updatedAt: string;
-  repayments: Array<{
-    amountPaid: number;
-    appliedFees: number;
-    appliedInterest: number;
-    appliedPrincipal: number;
-    createdAt: string;
-    paymentSource: "MANUAL";
-  }>;
+  repayments: Array<{ amountPaid: number; appliedFees: number; appliedInterest: number; appliedPrincipal: number; createdAt: string; paymentSource: "MANUAL" }>;
 };
 
-const loanBook = new Map<string, LoanRecord>();
-const loanOps = new Map<string, any>();
-
-function requireStrapiToken() {
-  if (!STRAPI_TOKEN) throw new Error("Missing STRAPI_API_TOKEN");
-  return STRAPI_TOKEN;
-}
-
-async function fetchProfileById(profileId: string) {
-  const token = requireStrapiToken();
-  const res = await fetch(`${STRAPI_BASE_URL}/api/player-profiles/${encodeURIComponent(profileId)}`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`Profile fetch failed: ${res.status} ${txt}`);
-  }
-  const payload = (await res.json()) as { data?: any };
+async function fetchProfileById(profileId: string): Promise<{ id: number; identifier: string; authUserId: number; wallet: number; loanLockedUntil: Date | null }> {
+  const res = await fetch(`${STRAPI_BASE_URL}/api/player-profiles/${encodeURIComponent(profileId)}`, { headers: headers(), cache: "no-store" });
+  if (!res.ok) throw new Error(`Profile fetch failed: ${res.status} ${await res.text()}`);
+  const payload = (await res.json()) as { data?: Profile };
   const p = payload.data;
   if (!p) throw new Error("Profile not found");
   return {
-    id: p.documentId ?? String(p.id),
+    id: Number(p.id),
+    identifier: p.documentId ?? String(p.id),
     authUserId: Number(p.authUserId),
     wallet: Number(p.wallet ?? 0),
-    loanStatus: (p.loanStatus ?? "NONE") as "NONE" | "ACTIVE" | "DELINQUENT",
     loanLockedUntil: p.loanLockedUntil ? new Date(p.loanLockedUntil) : null,
   };
+}
+
+async function getActiveLoanRow(profileIdentifier: string): Promise<LoanStateRow | null> {
+  const rows = await strapiList<LoanStateRow>("/api/loan-states", {
+    "filters[playerProfile][documentId][$eq]": profileIdentifier,
+    "filters[status][$in][0]": "ACTIVE",
+    "filters[status][$in][1]": "DELINQUENT",
+    "sort[0]": "createdAt:desc",
+    "pagination[limit]": "1",
+  });
+  return rows[0] ?? null;
+}
+
+async function mapLoanRecord(profileIdentifier: string, row: LoanStateRow | null): Promise<LoanRecord | null> {
+  if (!row) return null;
+  const loanIdentifier = row.documentId ?? String(row.id);
+  const repayments = await strapiList<LoanRepaymentRow>("/api/loan-repayments", {
+    "filters[loanState][documentId][$eq]": loanIdentifier,
+    "sort[0]": "createdAt:desc",
+    "pagination[limit]": "10",
+  });
+  return {
+    id: loanIdentifier,
+    profileId: profileIdentifier,
+    authUserId: Number(row.playerProfile?.authUserId ?? 0),
+    status: row.status,
+    principalOrigin: Number(row.principalOrigin ?? 0),
+    remainingPrincipal: Number(row.remainingPrincipal ?? 0),
+    aprBps: Number(row.aprBps ?? 0),
+    dailyInterestBps: Number(row.dailyInterestBps ?? 0),
+    dueAt: row.dueAt,
+    nextDueDateKey: row.nextDueDateKey,
+    lastInterestAccrualDateKey: row.lastInterestAccrualDateKey,
+    lateFeesAccrued: Number(row.lateFeesAccrued ?? 0),
+    missedPaymentDays: Number(row.missedPaymentDays ?? 0),
+    issuedAt: row.issuedAt,
+    updatedAt: row.updatedAt ?? row.issuedAt,
+    repayments: repayments.map((r) => ({
+      amountPaid: Number(r.amountPaid ?? 0),
+      appliedFees: Number(r.appliedFees ?? 0),
+      appliedInterest: Number(r.appliedInterest ?? 0),
+      appliedPrincipal: Number(r.appliedPrincipal ?? 0),
+      createdAt: r.createdAt ?? new Date().toISOString(),
+      paymentSource: "MANUAL",
+    })),
+  };
+}
+
+async function getOp(idempotencyKey: string): Promise<any | null> {
+  const rows = await strapiList<{ responseJson?: string }>("/api/loan-operations", {
+    "filters[idempotencyKey][$eq]": idempotencyKey,
+    "pagination[limit]": "1",
+  });
+  if (!rows[0]?.responseJson) return null;
+  try { return JSON.parse(rows[0].responseJson); } catch { return null; }
+}
+
+async function putOp(idempotencyKey: string, profileIdentifier: string, operationType: "ISSUE" | "REPAY", payload: unknown) {
+  await strapiCreate("/api/loan-operations", {
+    idempotencyKey,
+    profileIdentifier,
+    operationType,
+    responseJson: JSON.stringify(payload),
+  });
 }
 
 export const LoanReasonCode = {
@@ -77,25 +188,22 @@ export function quoteHash(payload: string) {
 }
 
 export async function getLoanState(characterId: string) {
-  return loanBook.get(characterId) ?? null;
+  const profile = await fetchProfileById(characterId);
+  const row = await getActiveLoanRow(profile.identifier);
+  return mapLoanRecord(profile.identifier, row);
 }
 
 export async function createLoanQuote(characterId: string, requestedPrincipal: number) {
   const profile = await fetchProfileById(characterId);
-  const active = loanBook.get(characterId);
-  if (active && ["ACTIVE", "DELINQUENT"].includes(active.status)) {
-    return { eligible: false, reasonCode: LoanReasonCode.HAS_ACTIVE_LOAN };
-  }
-  if (profile.loanLockedUntil && profile.loanLockedUntil > new Date()) {
-    return { eligible: false, reasonCode: LoanReasonCode.COOLDOWN_ACTIVE };
-  }
+  const active = await getActiveLoanRow(profile.identifier);
+  if (active) return { eligible: false, reasonCode: LoanReasonCode.HAS_ACTIVE_LOAN };
+  if (profile.loanLockedUntil && profile.loanLockedUntil > new Date()) return { eligible: false, reasonCode: LoanReasonCode.COOLDOWN_ACTIVE };
 
   const maxByWallet = Math.floor(profile.wallet * treasuryConfig.loanMaxLtvOfWallet);
   const principal = Math.max(treasuryConfig.loanMinPrincipal, Math.min(requestedPrincipal, maxByWallet, treasuryConfig.loanHardCap));
   const now = new Date();
   const due = addUtcDays(now, treasuryConfig.loanTermDays);
   const expiresAt = new Date(now.getTime() + treasuryConfig.quoteTtlMs);
-
   const quote = {
     principal,
     fee: Math.round((principal * treasuryConfig.loanOriginationFeeBps) / 10_000),
@@ -111,29 +219,23 @@ export async function createLoanQuote(characterId: string, requestedPrincipal: n
 
 export async function issueLoan(characterId: string, quote: any, quoteHashValue: string, idempotencyKey: string) {
   if (!treasuryConfig.ffLoansIssue) throw new Error("Loan issue disabled");
-  const existing = loanOps.get(idempotencyKey);
+  const existing = await getOp(idempotencyKey);
   if (existing) return existing;
 
   const { hash: _ignoredHash, ...quoteWithoutHash } = quote;
   const expectedHash = quoteHash(JSON.stringify(quoteWithoutHash));
-  if (expectedHash !== quoteHashValue || new Date(quote.expiresAt) < new Date()) {
-    return { error: LoanReasonCode.QUOTE_EXPIRED };
-  }
+  if (expectedHash !== quoteHashValue || new Date(quote.expiresAt) < new Date()) return { error: LoanReasonCode.QUOTE_EXPIRED };
 
   const profile = await fetchProfileById(characterId);
-  const active = loanBook.get(characterId);
-  if (active && ["ACTIVE", "DELINQUENT"].includes(active.status)) {
-    return { error: LoanReasonCode.HAS_ACTIVE_LOAN };
-  }
+  const active = await getActiveLoanRow(profile.identifier);
+  if (active) return { error: LoanReasonCode.HAS_ACTIVE_LOAN };
 
   const nextWallet = profile.wallet + Number(quote.netDisbursement ?? 0);
   await updatePlayerProfileByAuthUserId(profile.authUserId, { wallet: nextWallet, loanStatus: "ACTIVE", loanLockedUntil: null });
 
   const now = new Date();
-  const loan: LoanRecord = {
-    id: crypto.randomUUID(),
-    profileId: characterId,
-    authUserId: profile.authUserId,
+  const created = await strapiCreate<LoanStateRow>("/api/loan-states", {
+    playerProfile: profile.id,
     status: "ACTIVE",
     principalOrigin: quote.principal,
     remainingPrincipal: quote.principal,
@@ -145,13 +247,10 @@ export async function issueLoan(characterId: string, quote: any, quoteHashValue:
     lateFeesAccrued: 0,
     missedPaymentDays: 0,
     issuedAt: now.toISOString(),
-    updatedAt: now.toISOString(),
-    repayments: [],
-  };
-  loanBook.set(characterId, loan);
+  });
 
-  const result = { loanId: loan.id, walletAfter: nextWallet, treasuryAfter: null };
-  loanOps.set(idempotencyKey, result);
+  const result = { loanId: created.documentId ?? String(created.id), walletAfter: nextWallet, treasuryAfter: null };
+  await putOp(idempotencyKey, profile.identifier, "ISSUE", result);
   return result;
 }
 
@@ -159,79 +258,76 @@ export async function repayLoan(characterId: string, loanId: string, amount: num
   if (!treasuryConfig.ffLoansRepay) throw new Error("Loan repay disabled");
   if (amount < treasuryConfig.repayMinAmount) return { error: LoanReasonCode.AMOUNT_TOO_SMALL };
 
-  const existing = loanOps.get(idempotencyKey);
+  const existing = await getOp(idempotencyKey);
   if (existing) return existing;
 
   const profile = await fetchProfileById(characterId);
   if (profile.wallet < amount) return { error: LoanReasonCode.INSUFFICIENT_FUNDS };
 
-  const loan = loanBook.get(characterId);
-  if (!loan || loan.id !== loanId || !["ACTIVE", "DELINQUENT"].includes(loan.status)) {
-    return { error: LoanReasonCode.LOAN_NOT_ACTIVE };
-  }
+  const active = await getActiveLoanRow(profile.identifier);
+  if (!active) return { error: LoanReasonCode.LOAN_NOT_ACTIVE };
+  const activeId = active.documentId ?? String(active.id);
+  if (activeId !== loanId) return { error: LoanReasonCode.LOAN_NOT_ACTIVE };
 
   const nowDateKey = toUtcDateKey(new Date());
-  const interestDue = nowDateKey > loan.lastInterestAccrualDateKey
-    ? Math.round((loan.remainingPrincipal * loan.dailyInterestBps) / 10_000)
-    : 0;
+  const interestDue = nowDateKey > active.lastInterestAccrualDateKey ? Math.round((Number(active.remainingPrincipal ?? 0) * Number(active.dailyInterestBps ?? 0)) / 10_000) : 0;
 
   let remainingPayment = amount;
-  const appliedFees = Math.min(loan.lateFeesAccrued, remainingPayment);
+  const appliedFees = Math.min(Number(active.lateFeesAccrued ?? 0), remainingPayment);
   remainingPayment -= appliedFees;
   const appliedInterest = Math.min(interestDue, remainingPayment);
   remainingPayment -= appliedInterest;
-  const appliedPrincipal = Math.min(loan.remainingPrincipal, remainingPayment);
+  const appliedPrincipal = Math.min(Number(active.remainingPrincipal ?? 0), remainingPayment);
 
-  loan.remainingPrincipal -= appliedPrincipal;
-  loan.lateFeesAccrued -= appliedFees;
-  loan.lastInterestAccrualDateKey = nowDateKey;
-  loan.updatedAt = new Date().toISOString();
-
-  const remainingPrincipal = loan.remainingPrincipal;
-  const remainingFees = loan.lateFeesAccrued;
+  const remainingPrincipal = Math.max(0, Number(active.remainingPrincipal ?? 0) - appliedPrincipal);
+  const remainingFees = Math.max(0, Number(active.lateFeesAccrued ?? 0) - appliedFees);
   const nextWallet = profile.wallet - amount;
-
   const loanClosed = remainingPrincipal <= 0 && remainingFees <= 0 && (interestDue - appliedInterest) <= 0;
-  if (loanClosed) {
-    loan.status = "PAID";
-    const lockUntil = addUtcDays(new Date(), treasuryConfig.loanCooldownDaysAfterClose).toISOString();
-    await updatePlayerProfileByAuthUserId(profile.authUserId, {
-      wallet: nextWallet,
-      loanStatus: "NONE",
-      loanLockedUntil: lockUntil,
-    });
-  } else {
-    await updatePlayerProfileByAuthUserId(profile.authUserId, {
-      wallet: nextWallet,
-      loanStatus: "ACTIVE",
-    });
-  }
 
-  loan.repayments.unshift({
+  await strapiUpdate("/api/loan-states", activeId, {
+    remainingPrincipal,
+    lateFeesAccrued: remainingFees,
+    lastInterestAccrualDateKey: nowDateKey,
+    status: loanClosed ? "PAID" : "ACTIVE",
+  });
+
+  await strapiCreate("/api/loan-repayments", {
+    loanState: active.id,
     amountPaid: amount,
     appliedFees,
     appliedInterest,
     appliedPrincipal,
-    createdAt: new Date().toISOString(),
     paymentSource: "MANUAL",
   });
-  loan.repayments = loan.repayments.slice(0, 10);
+
+  if (loanClosed) {
+    const lockUntil = addUtcDays(new Date(), treasuryConfig.loanCooldownDaysAfterClose).toISOString();
+    await updatePlayerProfileByAuthUserId(profile.authUserId, { wallet: nextWallet, loanStatus: "NONE", loanLockedUntil: lockUntil });
+  } else {
+    await updatePlayerProfileByAuthUserId(profile.authUserId, { wallet: nextWallet, loanStatus: "ACTIVE" });
+  }
 
   const result = {
     applied: { fees: appliedFees, interest: appliedInterest, principal: appliedPrincipal },
-    remaining: { principal: Math.max(0, remainingPrincipal), fees: Math.max(0, remainingFees) },
+    remaining: { principal: remainingPrincipal, fees: remainingFees },
     walletAfter: nextWallet,
     treasuryAfter: null,
   };
-  loanOps.set(idempotencyKey, result);
+  await putOp(idempotencyKey, profile.identifier, "REPAY", result);
   return result;
 }
 
 export async function runLoanDelinquencySweep(now = new Date()) {
   if (!treasuryConfig.ffLoansDelinquency) return;
 
-  for (const [profileId, loan] of loanBook.entries()) {
-    if (!["ACTIVE", "DELINQUENT"].includes(loan.status)) continue;
+  const rows = await strapiList<LoanStateRow>("/api/loan-states", {
+    "filters[status][$in][0]": "ACTIVE",
+    "filters[status][$in][1]": "DELINQUENT",
+    "populate[playerProfile][fields][0]": "authUserId",
+    "pagination[limit]": "500",
+  });
+
+  for (const loan of rows) {
     const today = toUtcDateKey(now);
     if (today <= loan.nextDueDateKey) continue;
 
@@ -241,15 +337,20 @@ export async function runLoanDelinquencySweep(now = new Date()) {
 
     const delinquentDays = daysLate - treasuryConfig.loanGraceDays;
     const shouldDefault = delinquentDays >= treasuryConfig.loanDefaultDays;
-    loan.lateFeesAccrued = delinquentDays * treasuryConfig.loanLateFeeFlat;
-    loan.missedPaymentDays = delinquentDays;
-    loan.status = shouldDefault ? "DEFAULTED" : "DELINQUENT";
+    const identifier = loan.documentId ?? String(loan.id);
 
-    await updatePlayerProfileByAuthUserId(loan.authUserId, {
-      loanStatus: "DELINQUENT",
-      loanLockedUntil: shouldDefault ? addUtcDays(now, treasuryConfig.loanDefaultLockDays).toISOString() : null,
+    await strapiUpdate("/api/loan-states", identifier, {
+      lateFeesAccrued: delinquentDays * treasuryConfig.loanLateFeeFlat,
+      missedPaymentDays: delinquentDays,
+      status: shouldDefault ? "DEFAULTED" : "DELINQUENT",
     });
 
-    loanBook.set(profileId, loan);
+    const authUserId = Number(loan.playerProfile?.authUserId ?? 0);
+    if (authUserId > 0) {
+      await updatePlayerProfileByAuthUserId(authUserId, {
+        loanStatus: "DELINQUENT",
+        loanLockedUntil: shouldDefault ? addUtcDays(now, treasuryConfig.loanDefaultLockDays).toISOString() : null,
+      });
+    }
   }
 }

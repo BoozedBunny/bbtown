@@ -35,9 +35,6 @@ type DaySnapshot = {
   closingBalance: number;
 };
 
-const ledgerStore: LedgerEntry[] = [];
-const daySnapshotStore = new Map<string, DaySnapshot>(); // key townId:dateKey
-
 function getHeaders(): HeadersInit {
   const token = process.env.STRAPI_API_TOKEN;
   if (!token) throw new Error("Missing STRAPI_API_TOKEN");
@@ -47,39 +44,49 @@ function getHeaders(): HeadersInit {
   };
 }
 
-async function getTownByTownId(townId: number) {
-  const headers = getHeaders();
-  const url = new URL(`${STRAPI_BASE_URL}/api/towns`);
-  url.searchParams.set("filters[townId][$eq]", String(townId));
-  url.searchParams.set("pagination[limit]", "1");
-  const res = await fetch(url, { headers, cache: "no-store" });
-  if (!res.ok) throw new Error(`Town fetch failed: ${res.status}`);
-  const payload = (await res.json()) as { data?: Array<{ id: number; documentId?: string; townId?: number | string; bankBalance?: number }> };
-  return payload.data?.[0] ?? null;
-}
-
-async function listAllTowns() {
-  const headers = getHeaders();
-  const url = new URL(`${STRAPI_BASE_URL}/api/towns`);
-  url.searchParams.set("pagination[limit]", "500");
-  const res = await fetch(url, { headers, cache: "no-store" });
-  if (!res.ok) throw new Error(`Town list failed: ${res.status}`);
-  const payload = (await res.json()) as { data?: Array<{ id: number; documentId?: string; townId?: number | string; bankBalance?: number }> };
+async function strapiList<T>(path: string, qs: Record<string, string>): Promise<T[]> {
+  const url = new URL(`${STRAPI_BASE_URL}${path}`);
+  for (const [k, v] of Object.entries(qs)) url.searchParams.set(k, v);
+  const res = await fetch(url, { headers: getHeaders(), cache: "no-store" });
+  if (!res.ok) throw new Error(`${path} list failed: ${res.status} ${await res.text()}`);
+  const payload = (await res.json()) as { data?: T[] };
   return payload.data ?? [];
 }
 
+async function strapiCreate(path: string, data: Record<string, unknown>) {
+  const res = await fetch(`${STRAPI_BASE_URL}${path}`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ data }),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`${path} create failed: ${res.status} ${await res.text()}`);
+  const payload = (await res.json()) as { data?: { id: number; documentId?: string } };
+  return payload.data;
+}
+
+async function getTownByTownId(townId: number) {
+  const rows = await strapiList<Array<{ id: number; documentId?: string; townId?: number | string; bankBalance?: number }>[number]>("/api/towns", {
+    "filters[townId][$eq]": String(townId),
+    "pagination[limit]": "1",
+  });
+  return rows[0] ?? null;
+}
+
+async function listAllTowns() {
+  return strapiList<Array<{ id: number; documentId?: string; townId?: number | string; bankBalance?: number }>[number]>("/api/towns", {
+    "pagination[limit]": "500",
+  });
+}
+
 async function updateTownBalance(townIdentifier: string, nextBalance: number) {
-  const headers = getHeaders();
   const res = await fetch(`${STRAPI_BASE_URL}/api/towns/${encodeURIComponent(townIdentifier)}`, {
     method: "PUT",
-    headers,
+    headers: getHeaders(),
     body: JSON.stringify({ data: { bankBalance: nextBalance } }),
     cache: "no-store",
   });
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`Town balance update failed: ${res.status} ${txt}`);
-  }
+  if (!res.ok) throw new Error(`Town balance update failed: ${res.status} ${await res.text()}`);
 }
 
 export async function createLedgerEntry(_tx: unknown, input: {
@@ -90,8 +97,17 @@ export async function createLedgerEntry(_tx: unknown, input: {
   referenceId: string;
   metadataJson?: string;
 }) {
-  const entry: LedgerEntry = {
-    id: randomUUID(),
+  const created = await strapiCreate("/api/treasury-ledger-entries", {
+    townId: input.townId,
+    kind: input.kind,
+    amount: input.amount,
+    referenceType: input.referenceType,
+    referenceId: input.referenceId,
+    metadataJson: input.metadataJson,
+  });
+
+  return {
+    id: created?.documentId ?? String(created?.id ?? randomUUID()),
     townId: input.townId,
     kind: input.kind,
     amount: input.amount,
@@ -99,14 +115,49 @@ export async function createLedgerEntry(_tx: unknown, input: {
     referenceId: input.referenceId,
     metadataJson: input.metadataJson,
     createdAt: new Date().toISOString(),
+  } satisfies LedgerEntry;
+}
+
+async function getSnapshot(townId: number, dateKey: string): Promise<DaySnapshot | null> {
+  const rows = await strapiList<any>("/api/treasury-day-snapshots", {
+    "filters[townId][$eq]": String(townId),
+    "filters[dateKey][$eq]": dateKey,
+    "pagination[limit]": "1",
+  });
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    id: row.documentId ?? String(row.id),
+    townId: Number(row.townId ?? townId),
+    dateKey: row.dateKey,
+    openingBalance: Number(row.openingBalance ?? 0),
+    variationAmount: Number(row.variationAmount ?? 0),
+    loanNetAmount: Number(row.loanNetAmount ?? 0),
+    otherNetAmount: Number(row.otherNetAmount ?? 0),
+    closingBalance: Number(row.closingBalance ?? 0),
   };
-  ledgerStore.push(entry);
-  return entry;
+}
+
+async function listSnapshotsByTown(townId: number, limit = 30): Promise<DaySnapshot[]> {
+  const rows = await strapiList<any>("/api/treasury-day-snapshots", {
+    "filters[townId][$eq]": String(townId),
+    "sort[0]": "dateKey:asc",
+    "pagination[limit]": String(limit),
+  });
+  return rows.map((row) => ({
+    id: row.documentId ?? String(row.id),
+    townId: Number(row.townId ?? townId),
+    dateKey: row.dateKey,
+    openingBalance: Number(row.openingBalance ?? 0),
+    variationAmount: Number(row.variationAmount ?? 0),
+    loanNetAmount: Number(row.loanNetAmount ?? 0),
+    otherNetAmount: Number(row.otherNetAmount ?? 0),
+    closingBalance: Number(row.closingBalance ?? 0),
+  }));
 }
 
 export async function settleTreasuryDay(townId: number, dateKey: string) {
-  const key = `${townId}:${dateKey}`;
-  const existing = daySnapshotStore.get(key);
+  const existing = await getSnapshot(townId, dateKey);
   if (existing) return existing;
 
   const town = await getTownByTownId(townId);
@@ -133,12 +184,11 @@ export async function settleTreasuryDay(townId: number, dateKey: string) {
     kind: "DAILY_VARIATION",
     amount: variationAmount,
     referenceType: "TreasuryDaySnapshot",
-    referenceId: key,
+    referenceId: `${townId}:${dateKey}`,
     metadataJson: JSON.stringify({ pct, clampedByFloor }),
   });
 
-  const snapshot: DaySnapshot = {
-    id: randomUUID(),
+  const created = await strapiCreate("/api/treasury-day-snapshots", {
     townId,
     dateKey,
     openingBalance,
@@ -146,9 +196,18 @@ export async function settleTreasuryDay(townId: number, dateKey: string) {
     loanNetAmount: 0,
     otherNetAmount: 0,
     closingBalance,
-  };
-  daySnapshotStore.set(key, snapshot);
-  return snapshot;
+  });
+
+  return {
+    id: created?.documentId ?? String(created?.id ?? randomUUID()),
+    townId,
+    dateKey,
+    openingBalance,
+    variationAmount,
+    loanNetAmount: 0,
+    otherNetAmount: 0,
+    closingBalance,
+  } satisfies DaySnapshot;
 }
 
 export async function runTreasuryDailySettlement(now = new Date()) {
@@ -160,10 +219,7 @@ export async function runTreasuryDailySettlement(now = new Date()) {
     const normalizedTownId = Number(town.townId ?? town.id);
     if (!Number.isFinite(normalizedTownId)) continue;
 
-    const existingForTown = Array.from(daySnapshotStore.values())
-      .filter((row) => row.townId === normalizedTownId)
-      .sort((a, b) => a.dateKey.localeCompare(b.dateKey));
-
+    const existingForTown = await listSnapshotsByTown(normalizedTownId, 365);
     const last = existingForTown[existingForTown.length - 1];
     const startDate = last ? addUtcDays(new Date(`${last.dateKey}T00:00:00.000Z`), 1) : now;
 
@@ -176,11 +232,8 @@ export async function runTreasuryDailySettlement(now = new Date()) {
 export async function getTreasurySummary(townId: number) {
   const town = await getTownByTownId(townId);
   const todayKey = toUtcDateKey(new Date());
-  const todaySnapshot = daySnapshotStore.get(`${townId}:${todayKey}`) ?? null;
-  const last7Days = Array.from(daySnapshotStore.values())
-    .filter((row) => row.townId === townId)
-    .sort((a, b) => a.dateKey.localeCompare(b.dateKey))
-    .slice(-7);
+  const todaySnapshot = await getSnapshot(townId, todayKey);
+  const last7Days = (await listSnapshotsByTown(townId, 60)).slice(-7);
 
   return {
     bankBalance: Number(town?.bankBalance ?? 0),
