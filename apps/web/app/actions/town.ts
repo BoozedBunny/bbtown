@@ -9,7 +9,7 @@ import {
   updateBuildingSettings as updateBuildingStateSettings,
 } from "@/lib/bff/townService";
 
-export async function buyBuilding(buildingId: string) {
+export async function buyBuilding(buildingId: string, townId?: string) {
   const user = await requireSessionUserWithCharacter();
 
   const characterId = user.character.id;
@@ -20,6 +20,7 @@ export async function buyBuilding(buildingId: string) {
   const result = await buyBuildingState({
     buildingId,
     characterId,
+    townId,
   });
 
   if (sessionToken && typeof result.walletAfter === "number") {
@@ -34,21 +35,30 @@ export async function buyBuilding(buildingId: string) {
   return { success: true };
 }
 
-export async function updateBuildingSettings(buildingId: string, title: string, price: number, forSale: boolean) {
+export async function updateBuildingSettings(
+  buildingId: string,
+  townId: string,
+  title: string,
+  price: number,
+  forSale: boolean,
+) {
   const user = await requireSessionUserWithCharacter();
 
   const characterId = user.character.id;
 
-  const building = await getBuildingById(buildingId);
+  const building = await getBuildingById(buildingId, townId);
 
   if (!building) throw new Error("Building not found");
-  if (building.ownerId !== characterId) throw new Error("Not the owner");
+  const isOwner =
+    building.ownerId === characterId ||
+    building.ownerId === String(user.id);
+  if (!isOwner) throw new Error("Not the owner");
   if (!Number.isFinite(price) || price < 0) throw new Error("Price must be a non-negative number");
 
   const normalizedTitle = title.trim();
   if (!normalizedTitle) throw new Error("Title cannot be empty");
 
-  await updateBuildingStateSettings(buildingId, {
+  await updateBuildingStateSettings(buildingId, townId, {
     title: normalizedTitle,
     price,
     forSale,

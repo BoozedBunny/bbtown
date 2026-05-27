@@ -95,18 +95,58 @@ type LoanRecord = {
 };
 
 async function fetchProfileById(profileId: string): Promise<{ id: number; identifier: string; authUserId: number; wallet: number; loanLockedUntil: Date | null }> {
-  const res = await fetch(`${STRAPI_BASE_URL}/api/player-profiles/${encodeURIComponent(profileId)}`, { headers: headers(), cache: "no-store" });
-  if (!res.ok) throw new Error(`Profile fetch failed: ${res.status} ${await res.text()}`);
-  const payload = (await res.json()) as { data?: Profile };
-  const p = payload.data;
-  if (!p) throw new Error("Profile not found");
-  return {
-    id: Number(p.id),
-    identifier: p.documentId ?? String(p.id),
-    authUserId: Number(p.authUserId),
-    wallet: Number(p.wallet ?? 0),
-    loanLockedUntil: p.loanLockedUntil ? new Date(p.loanLockedUntil) : null,
-  };
+  const direct = await fetch(`${STRAPI_BASE_URL}/api/player-profiles/${encodeURIComponent(profileId)}`, {
+    headers: headers(),
+    cache: "no-store",
+  });
+
+  if (direct.ok) {
+    const payload = (await direct.json()) as { data?: Profile };
+    const p = payload.data;
+    if (!p) throw new Error("Profile not found");
+    return {
+      id: Number(p.id),
+      identifier: p.documentId ?? String(p.id),
+      authUserId: Number(p.authUserId),
+      wallet: Number(p.wallet ?? 0),
+      loanLockedUntil: p.loanLockedUntil ? new Date(p.loanLockedUntil) : null,
+    };
+  }
+
+  const byDocumentId = await strapiList<Profile>("/api/player-profiles", {
+    "filters[documentId][$eq]": profileId,
+    "pagination[limit]": "1",
+  });
+  if (byDocumentId[0]) {
+    const p = byDocumentId[0];
+    return {
+      id: Number(p.id),
+      identifier: p.documentId ?? String(p.id),
+      authUserId: Number(p.authUserId),
+      wallet: Number(p.wallet ?? 0),
+      loanLockedUntil: p.loanLockedUntil ? new Date(p.loanLockedUntil) : null,
+    };
+  }
+
+  const numericId = Number(profileId);
+  if (Number.isFinite(numericId) && numericId > 0) {
+    const byNumericId = await strapiList<Profile>("/api/player-profiles", {
+      "filters[id][$eq]": String(numericId),
+      "pagination[limit]": "1",
+    });
+    const p = byNumericId[0];
+    if (p) {
+      return {
+        id: Number(p.id),
+        identifier: p.documentId ?? String(p.id),
+        authUserId: Number(p.authUserId),
+        wallet: Number(p.wallet ?? 0),
+        loanLockedUntil: p.loanLockedUntil ? new Date(p.loanLockedUntil) : null,
+      };
+    }
+  }
+
+  throw new Error(`Profile fetch failed: ${direct.status} ${await direct.text()}`);
 }
 
 async function getActiveLoanRow(profileIdentifier: string): Promise<LoanStateRow | null> {

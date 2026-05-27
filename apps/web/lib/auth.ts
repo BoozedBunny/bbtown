@@ -51,7 +51,7 @@ async function getSessionUserFromStrapi(token: string): Promise<SessionUser | nu
       id: String(me.id),
       username: me.username,
       character: {
-        id: String(profile.id),
+        id: profile.documentId ?? String(profile.id),
         name: profile.displayName ?? me.username,
         avatar: profile.avatar ?? "bunny",
         description: profile.description ?? null,

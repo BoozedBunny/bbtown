@@ -67,12 +67,18 @@ async function updateProfileWalletByIdOrDoc(profile: ProfileLite, wallet: number
   }
 }
 
-async function getBuildingRecord(buildingId: string): Promise<BuildingLite | null> {
+async function getBuildingRecord(buildingId: string, townId?: string): Promise<BuildingLite | null> {
   const headers = getHeaders();
   const url = new URL(`${STRAPI_BASE_URL}/api/building-states`);
-  url.searchParams.set("filters[stateId][$contains]", `:${buildingId}`);
+  if (townId && townId.trim()) {
+    url.searchParams.set("filters[stateId][$eq]", `${townId.trim()}:${buildingId}`);
+  } else {
+    // Fallback for legacy callers without town context.
+    url.searchParams.set("filters[stateId][$endsWith]", `:${buildingId}`);
+  }
   url.searchParams.set("pagination[limit]", "1");
   url.searchParams.set("populate[owner][fields][0]", "authUserId");
+  url.searchParams.set("populate[owner][fields][1]", "documentId");
   url.searchParams.set("populate[town][fields][0]", "townId");
 
   const res = await fetch(url, { headers, cache: "no-store" });
@@ -107,14 +113,18 @@ async function updateTownBankBalanceByTownId(townId: string | number, delta: num
 
 function normalizeOwnerId(owner: BuildingLite["owner"]): string | null {
   if (!owner) return null;
-  if (typeof owner.id === "number") return String(owner.id);
   if (owner.documentId) return owner.documentId;
+  if (typeof owner.id === "number") return String(owner.id);
+  if (typeof owner.authUserId === "number") return String(owner.authUserId);
   return null;
 }
 
-export async function buyBuildingState(input: { buildingId: string; characterId: string }) {
-  const { buildingId, characterId } = input;
-  const [building, buyer] = await Promise.all([getBuildingRecord(buildingId), fetchProfileByIdentifier(characterId)]);
+export async function buyBuildingState(input: { buildingId: string; characterId: string; townId?: string }) {
+  const { buildingId, characterId, townId } = input;
+  const [building, buyer] = await Promise.all([
+    getBuildingRecord(buildingId, townId),
+    fetchProfileByIdentifier(characterId),
+  ]);
 
   if (!building) throw new Error("Building not found");
   if (!building.forSale) throw new Error("Building is not for sale");
@@ -152,8 +162,8 @@ export async function buyBuildingState(input: { buildingId: string; characterId:
   return { walletAfter: buyerWallet - price };
 }
 
-export async function getBuildingById(buildingId: string) {
-  const building = await getBuildingRecord(buildingId);
+export async function getBuildingById(buildingId: string, townId?: string) {
+  const building = await getBuildingRecord(buildingId, townId);
   if (!building) return null;
   return {
     id: buildingId,
@@ -166,9 +176,10 @@ export async function getBuildingById(buildingId: string) {
 
 export async function updateBuildingSettings(
   buildingId: string,
+  townId: string | undefined,
   input: { title: string; price: number; forSale: boolean },
 ) {
-  const building = await getBuildingRecord(buildingId);
+  const building = await getBuildingRecord(buildingId, townId);
   if (!building) return null;
 
   const headers = getHeaders();

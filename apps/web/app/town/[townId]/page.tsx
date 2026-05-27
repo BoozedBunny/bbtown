@@ -1951,21 +1951,72 @@ export default function TownPage({
                         onClick={async () => {
                           setIsProcessing(true);
                           try {
+                            const nextTitle = editForm.title.trim();
+                            const nextPrice = editForm.price;
+                            const nextForSale = editForm.forSale;
+
                             await updateBuildingSettings(
                               selectedBuilding.id,
-                              editForm.title,
-                              editForm.price,
-                              editForm.forSale,
+                              String(townId),
+                              nextTitle,
+                              nextPrice,
+                              nextForSale,
                             );
+
+                            // Optimistic local update so the modal/UI reflects the change immediately
+                            setDbBuildingStates((prev) =>
+                              prev.map((row) =>
+                                row.id === selectedBuilding.id ||
+                                row.id === `${townId}_${selectedBuilding.id}`
+                                  ? {
+                                      ...row,
+                                      title: nextTitle,
+                                      price: nextPrice,
+                                      forSale: nextForSale,
+                                    }
+                                  : row,
+                              ),
+                            );
+                            setSelectedBuilding((prev) =>
+                              prev && prev.id === selectedBuilding.id
+                                ? {
+                                    ...prev,
+                                    title: nextTitle,
+                                    price: nextPrice,
+                                    forSale: nextForSale,
+                                  }
+                                : prev,
+                            );
+
                             const res = await fetch(
-                              `/api/town/${townId}/state`,
+                              `/api/town/${townId}/state?ts=${Date.now()}`,
                             );
                             if (res.ok) {
                               const data = await res.json();
                               setDbBuildingStates(data.buildings || []);
                               setTownData(data.town || null);
+
+                              const refreshedBuilding = (data.buildings || []).find(
+                                (row: DbBuildingState) =>
+                                  row.id === selectedBuilding.id ||
+                                  row.id === `${townId}_${selectedBuilding.id}`,
+                              );
+                              if (refreshedBuilding) {
+                                setSelectedBuilding((prev) =>
+                                  prev && prev.id === selectedBuilding.id
+                                    ? {
+                                        ...prev,
+                                        title:
+                                          refreshedBuilding.title ?? prev.title,
+                                        price:
+                                          refreshedBuilding.price ?? prev.price,
+                                        forSale:
+                                          refreshedBuilding.forSale ?? prev.forSale,
+                                      }
+                                    : prev,
+                                );
+                              }
                             }
-                            if (socket) socket.emit("buy_building", { townId }); // Piggyback on this event to refresh
                             toast.success("Property updated!");
                           } catch (e: any) {
                             toast.error(e.message);
@@ -2080,7 +2131,7 @@ export default function TownPage({
                           onClick={async () => {
                             setIsProcessing(true);
                             try {
-                              await buyBuilding(selectedBuilding.id);
+                              await buyBuilding(selectedBuilding.id, String(townId));
                               const u = await getCurrentUser();
                               setCurrentUser(u);
                               const res = await fetch(

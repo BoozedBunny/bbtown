@@ -23,6 +23,9 @@ type StrapiTown = {
 };
 
 type StrapiOwnerProfile = {
+  id?: number;
+  documentId?: string;
+  authUserId?: number;
   displayName?: string;
   avatar?: string;
 };
@@ -33,9 +36,17 @@ type StrapiBuildingState = {
   forSale?: boolean;
   price?: number;
   employees?: number;
-  owner?: StrapiRelation<StrapiOwnerProfile>;
-  town?: StrapiRelation<StrapiTown>;
+  owner?: StrapiRelation<StrapiOwnerProfile> | StrapiOwnerProfile | null;
+  town?: StrapiRelation<StrapiTown> | StrapiTown | null;
 };
+
+function unwrapRelation<T>(value: StrapiRelation<T> | T | null | undefined): T | null {
+  if (!value) return null;
+  if (typeof value === "object" && "data" in value) {
+    return (value as StrapiRelation<T>).data ?? null;
+  }
+  return value as T;
+}
 
 function normalizeTownId(value: unknown): string | null {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -50,19 +61,22 @@ function normalizeTownId(value: unknown): string | null {
 function mapStrapiBuildingState(row: StrapiBuildingState, townIdFromContext: string) {
   const stateId = row.stateId ?? "";
   const buildingId = stateId.includes(":") ? stateId.split(":")[1] : stateId;
+  const owner = unwrapRelation(row.owner);
+  const ownerId = owner?.documentId ?? (typeof owner?.id === "number" ? String(owner.id) : null);
+  const isForSale = typeof row.forSale === "boolean" ? row.forSale : !ownerId;
 
   return {
     id: buildingId || stateId,
     townId: townIdFromContext,
     title: row.title ?? "",
-    forSale: Boolean(row.forSale),
+    forSale: isForSale,
     price: Number(row.price ?? 0),
     employees: Number(row.employees ?? 0),
-    ownerId: null,
-    owner: row.owner?.data
+    ownerId,
+    owner: owner
       ? {
-          name: row.owner.data.displayName ?? null,
-          avatar: row.owner.data.avatar ?? null,
+          name: owner.displayName ?? null,
+          avatar: owner.avatar ?? null,
         }
       : null,
   };
@@ -72,9 +86,11 @@ async function getTownStateFromStrapi(townId: string) {
   const [townResponse, buildingStatesResponse] = await Promise.all([
     strapiFetchList<StrapiTown>(
       `/api/towns?filters[townId][$eq]=${encodeURIComponent(townId)}&pagination[limit]=1`,
+      { cache: "no-store" },
     ),
     strapiFetchList<StrapiBuildingState>(
-      `/api/building-states?filters[town][townId][$eq]=${encodeURIComponent(townId)}&populate[owner][fields][0]=displayName&populate[owner][fields][1]=avatar&pagination[limit]=500`,
+      `/api/building-states?filters[town][townId][$eq]=${encodeURIComponent(townId)}&populate[owner][fields][0]=displayName&populate[owner][fields][1]=avatar&populate[owner][fields][2]=documentId&populate[owner][fields][3]=authUserId&pagination[limit]=500`,
+      { cache: "no-store" },
     ),
   ]);
 
