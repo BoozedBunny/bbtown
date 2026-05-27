@@ -436,8 +436,24 @@ export async function sellStockForCharacter(input: {
     return { ok: false as const, reason: "NOT_ENOUGH_SHARES" as const };
   }
 
-  const price = await getStrapiStockPriceBySymbol(input.symbol);
-  const rawGain = price * input.quantity;
+  const headers = getStrapiServiceHeaders();
+  if (!headers) throw new Error("Missing STRAPI_API_TOKEN");
+
+  const stockUrl = new URL(`${STRAPI_BASE_URL}/api/stocks`);
+  stockUrl.searchParams.set("filters[symbol][$eq]", input.symbol);
+  stockUrl.searchParams.set("pagination[limit]", "1");
+
+  const stockRes = await fetch(stockUrl, { headers, cache: "no-store" });
+  if (!stockRes.ok) throw new Error(`Stock lookup failed (${stockRes.status})`);
+  const stockJson = (await stockRes.json()) as { data?: Array<{ price?: number | string; level?: number }> };
+  const stock = stockJson.data?.[0];
+  if (!stock) throw new Error("Stock not found");
+
+  const price = Number(stock.price ?? 0);
+  const stockLevel = Number(stock.level ?? 1);
+  const stockYield = Math.min(1.0, 0.5 + 0.1 * (stockLevel - 1));
+
+  const rawGain = price * input.quantity * stockYield;
   const gain = Math.max(0, Math.floor(rawGain));
 
   const currentWallet = Number(profile.wallet ?? 0);

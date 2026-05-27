@@ -152,7 +152,7 @@ function Scene({
   isFreePositionMode?: boolean;
   onTransform?: (id: string, position: [number, number, number]) => void;
 }) {
-  const controlsRef = useRef<OrbitControlsImpl | null>(null);
+  const [controls, setControls] = useState<OrbitControlsImpl | null>(null);
   const clampHitsRef = useRef(0);
   const panLastTargetXRef = useRef<number | null>(null);
 
@@ -207,7 +207,6 @@ function Scene({
   const applyPanClamp = useCallback(() => {
     if (!horizontalPanEnabled || cameraMode !== "game") return;
 
-    const controls = controlsRef.current;
     if (!controls) return;
 
     const halfWidth = getHorizontalFootprintHalfWidth(controls.object);
@@ -263,16 +262,14 @@ function Scene({
   }, [
     cameraMode,
     cityBounds,
+    controls,
     getHorizontalFootprintHalfWidth,
     getVerticalFootprintHalfHeight,
     horizontalPanEnabled,
   ]);
 
   useEffect(() => {
-    if (!horizontalPanEnabled || cameraMode !== "game") return;
-
-    const controls = controlsRef.current;
-    if (!controls) return;
+    if (!horizontalPanEnabled || cameraMode !== "game" || !controls) return;
 
     const onControlsChange = () => {
       applyPanClamp();
@@ -285,7 +282,7 @@ function Scene({
     return () => {
       controls.removeEventListener("change", onControlsChange);
     };
-  }, [applyPanClamp, cameraMode, horizontalPanEnabled]);
+  }, [applyPanClamp, cameraMode, horizontalPanEnabled, controls]);
 
   return (
     <>
@@ -373,7 +370,7 @@ function Scene({
 
       <OrbitControls
         makeDefault
-        ref={controlsRef}
+        ref={setControls}
         enablePan={
           cameraMode === "dev" ||
           (cameraMode === "game" && !!horizontalPanEnabled)

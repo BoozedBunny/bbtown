@@ -4,11 +4,10 @@ import { addUtcDays, toUtcDateKey } from "@/lib/treasury/utils";
 import { updatePlayerProfileByAuthUserId } from "@/lib/strapiAuth";
 
 const STRAPI_BASE_URL = process.env.STRAPI_URL ?? "http://127.0.0.1:1339";
-const STRAPI_TOKEN = process.env.STRAPI_API_TOKEN;
-
 function headers(): HeadersInit {
-  if (!STRAPI_TOKEN) throw new Error("Missing STRAPI_API_TOKEN");
-  return { "Content-Type": "application/json", Authorization: `Bearer ${STRAPI_TOKEN}` };
+  const token = process.env.STRAPI_API_TOKEN;
+  if (!token) throw new Error("Missing STRAPI_API_TOKEN");
+  return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 }
 
 async function strapiList<T>(path: string, qs: Record<string, string>): Promise<T[]> {

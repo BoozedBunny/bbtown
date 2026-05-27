@@ -27,6 +27,7 @@ interface ProfileData {
   description: string | null;
   experience: number;
   arenaMaxRounds: number;
+  ownedStockSymbol?: string;
 }
 
 export function PlayerProfileModal({
@@ -167,6 +168,11 @@ export function PlayerProfileModal({
                         ? `Level ${getLevelFromXP(profile.experience)} - ${profile.experience} / ${getNextLevelXP(profile.experience)} XP`
                         : `Level ${getLevelFromXP(profile.experience)}`}
                     </p>
+                    {profile.ownedStockSymbol && (
+                      <div className="mt-1.5 mb-1 text-[9px] font-black tracking-widest text-brand-secondary bg-brand-secondary/15 px-2 py-0.5 border border-brand-secondary/35 rounded-sm inline-block uppercase">
+                        👑 FOUNDER OF {profile.ownedStockSymbol}
+                      </div>
+                    )}
                     <p className="text-[10px] font-bold tracking-widest text-yellow-400 uppercase mt-0.5">
                       Arena Personal Best: {profile.arenaMaxRounds} Cycles
                     </p>

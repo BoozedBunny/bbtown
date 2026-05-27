@@ -10,6 +10,7 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YA
 import { ArrowDownCircle, ArrowLeft, ArrowUpCircle, ShoppingBag, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import type { CentralManagementIntent, CentralManagementTab } from "@/lib/ui/centralManagementIntent";
+import { getLevelFromXP } from "@/lib/leveling";
 
 type Stock = {
   id: string;
@@ -23,6 +24,8 @@ type Stock = {
   changeAbs?: number;
   changePct?: number;
   trend?: "UP" | "DOWN" | "FLAT";
+  level?: number;
+  owner?: { id: string; displayName: string } | null;
 };
 
 type PortfolioItem = {
@@ -90,6 +93,12 @@ export function CombinedMarketView({
   const [history, setHistory] = useState<any[]>([]);
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [wallet, setWallet] = useState(0);
+  const [experience, setExperience] = useState(0);
+  const [characterId, setCharacterId] = useState("");
+  const [foundSymbol, setFoundSymbol] = useState("");
+  const [foundName, setFoundName] = useState("");
+  const [foundLoading, setFoundLoading] = useState(false);
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [activeTab, setActiveTab] = useState<CentralManagementTab>("treasury");
   const [treasurySummary, setTreasurySummary] = useState<{ bankBalance: number; todaySnapshot?: TreasurySnapshot; last7Days: TreasurySnapshot[] } | null>(null);
@@ -145,6 +154,8 @@ export function CombinedMarketView({
       if (meRes.ok) {
         const me = await meRes.json();
         setWallet(me.wallet);
+        setExperience(me.experience ?? 0);
+        setCharacterId(me.characterId ?? "");
       }
       if (treasuryRes.ok) setTreasurySummary(await treasuryRes.json());
       if (loanRes.ok) {
@@ -180,7 +191,11 @@ export function CombinedMarketView({
         
       fetch(`/api/me?t=${t}`, { cache: "no-store" })
         .then((res) => res.json())
-        .then((data) => setWallet(data.wallet));
+        .then((data) => {
+          setWallet(data.wallet);
+          setExperience(data.experience ?? 0);
+          setCharacterId(data.characterId ?? "");
+        });
 
       setTimeout(() => {
         // Nutze die Refs, um garantiert die aktuelle Logik zu callen
@@ -272,11 +287,95 @@ export function CombinedMarketView({
     if (meRes.ok) {
       const me = await meRes.json();
       setWallet(me.wallet);
+      setExperience(me.experience ?? 0);
+      setCharacterId(me.characterId ?? "");
     }
     if (treasuryRes.ok) setTreasurySummary(await treasuryRes.json());
     if (loanRes.ok) {
       const data = await loanRes.json();
       setLoanState(data.loan ?? null);
+    }
+  };
+
+  const playerLevel = getLevelFromXP(experience);
+  const ownedStock = useMemo(() => {
+    if (!characterId) return null;
+    return stocks.find((s) => s.owner?.id === characterId);
+  }, [stocks, characterId]);
+
+  const processedStocks = useMemo(() => {
+    if (!characterId) return stocks;
+    return [...stocks].sort((a, b) => {
+      const aOwned = a.owner?.id === characterId;
+      const bOwned = b.owner?.id === characterId;
+      if (aOwned && !bOwned) return -1;
+      if (!aOwned && bOwned) return 1;
+      return 0;
+    });
+  }, [stocks, characterId]);
+
+  const handleFoundBrand = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!foundSymbol || !foundName) {
+      toast.error("Please enter both Symbol and Name");
+      return;
+    }
+    setFoundLoading(true);
+    try {
+      const res = await fetch("/api/stocks/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symbol: foundSymbol, name: foundName }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        toast.error(data.error);
+      } else {
+        toast.success(data.message || `Brand ${data.symbol} successfully founded!`);
+        setFoundSymbol("");
+        setFoundName("");
+        await refreshFinance();
+        const t = Date.now();
+        const sRes = await fetch(`/api/stocks?t=${t}`, { cache: "no-store" });
+        if (sRes.ok) setStocks(await sRes.json());
+        const pRes = await fetch(`/api/portfolio?t=${t}`, { cache: "no-store" });
+        if (pRes.ok) setPortfolio(await pRes.json());
+      }
+    } catch (err) {
+      toast.error("Failed to found brand");
+    } finally {
+      setFoundLoading(false);
+    }
+  };
+
+  const handleUpgradeBrand = async () => {
+    setUpgradeLoading(true);
+    try {
+      const res = await fetch("/api/stocks/upgrade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (data.error) {
+        toast.error(data.error);
+      } else {
+        toast.success(data.message || "Brand upgraded successfully!");
+        await refreshFinance();
+        const t = Date.now();
+        const sRes = await fetch(`/api/stocks?t=${t}`, { cache: "no-store" });
+        if (sRes.ok) {
+          const updatedStocks = await sRes.json();
+          setStocks(updatedStocks);
+          if (selectedStock) {
+            const updated = updatedStocks.find((s: any) => s.symbol.toUpperCase() === selectedStock.symbol.toUpperCase());
+            if (updated) setSelectedStock(updated);
+          }
+        }
+      }
+    } catch (err) {
+      toast.error("Failed to upgrade brand");
+    } finally {
+      setUpgradeLoading(false);
     }
   };
 
@@ -435,18 +534,71 @@ export function CombinedMarketView({
                     <div className="p-4 bg-white/5 rounded-xl border border-white/10 flex items-center gap-3"><ShoppingBag className="text-brand-primary" /><div><div className="text-[10px] text-gray-400 uppercase font-bold">Total Assets</div><div className="text-lg font-bold text-white">{portfolio.length} Companies</div></div></div>
                   </div>
 
+                  {/* Locked Banner for Level < 5 */}
+                  {playerLevel < 5 && (
+                    <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl flex items-center gap-3 text-yellow-400 mb-4 shadow-[0_0_15px_rgba(234,179,8,0.05)]">
+                      <span className="text-lg">🔒</span>
+                      <div className="text-xs">
+                        <span className="font-black uppercase tracking-wider block mb-0.5">Brand Founding Locked</span>
+                        Reach Player Level 5 to found and list your own brand on the Stock Exchange! (Current Level: {playerLevel})
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Brand Founding Form for Level 5+ without a stock */}
+                  {playerLevel >= 5 && !ownedStock && (
+                    <form onSubmit={handleFoundBrand} className="p-4 bg-brand-primary/10 border-2 border-brand-primary/30 rounded-xl space-y-3 mb-4 shadow-[0_0_15px_rgba(189,0,255,0.05)]">
+                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-secondary">Found Your Brand (Level 5+ Perk)</div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[9px] uppercase font-bold text-gray-400 block mb-1">Stock Symbol (3-5 Letters)</label>
+                          <input
+                            value={foundSymbol}
+                            onChange={(e) => setFoundSymbol(e.target.value.toUpperCase().replace(/[^A-Z]/g, ""))}
+                            maxLength={5}
+                            placeholder="e.g. BUNNY"
+                            className="w-full bg-black/50 border border-white/10 px-3 py-1.5 text-xs text-white uppercase focus:border-brand-primary focus:outline-none font-mono"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] uppercase font-bold text-gray-400 block mb-1">Company Name</label>
+                          <input
+                            value={foundName}
+                            onChange={(e) => setFoundName(e.target.value)}
+                            placeholder="e.g. Boozed Bunny Corp"
+                            className="w-full bg-black/50 border border-white/10 px-3 py-1.5 text-xs text-white focus:border-brand-primary focus:outline-none"
+                            required
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={foundLoading}
+                        className="w-full bg-brand-primary hover:bg-brand-primary/80 disabled:opacity-50 text-white py-2 text-[10px] font-black uppercase tracking-widest transition-all"
+                      >
+                        {foundLoading ? "REGISTERING BRAND..." : "🚀 FOUND BRAND"}
+                      </button>
+                    </form>
+                  )}
+
                   <div className="grid gap-3">
-                    {stocks.map((stock) => {
+                    {processedStocks.map((stock) => {
                       const diff = stock.price - stock.previousPrice;
                       const isUp = diff >= 0;
                       const owned = getHoldingForSymbol(stock.symbol);
+                      const isOwned = stock.owner?.id === characterId;
                       return (
                         <button key={stock.id} onClick={() => setSelectedStock(stock)} className="flex justify-between items-center p-4 bg-black/40 border border-white/10 hover:border-brand-primary/50 hover:bg-brand-primary/5 transition-all group text-left relative overflow-hidden">
                           <div className={`absolute left-0 top-0 w-1 h-full ${isUp ? "bg-brand-secondary" : "bg-brand-tertiary"}`} />
                           <div className="flex items-center gap-4">
                             <div className={`p-2 ${isUp ? "text-brand-secondary" : "text-brand-tertiary"}`}>{isUp ? <ArrowUpCircle /> : <ArrowDownCircle />}</div>
                             <div>
-                              <div className="font-black text-xl italic tracking-tighter group-hover:text-brand-primary transition-colors flex items-center gap-2">{stock.symbol}{owned > 0 && <span className="text-[8px] bg-brand-primary/20 text-brand-primary px-2 py-0.5 border border-brand-primary/30 font-black uppercase tracking-widest">{owned}_NODES</span>}</div>
+                              <div className="font-black text-xl italic tracking-tighter group-hover:text-brand-primary transition-colors flex items-center gap-2">
+                                {stock.symbol}
+                                {owned > 0 && <span className="text-[8px] bg-brand-primary/20 text-brand-primary px-2 py-0.5 border border-brand-primary/30 font-black uppercase tracking-widest">{owned}_NODES</span>}
+                                {isOwned && <span className="text-[8px] bg-brand-secondary/25 text-brand-secondary px-2 py-0.5 border border-brand-secondary/40 font-black uppercase tracking-widest">👑_BRAND (Lvl {stock.level ?? 1})</span>}
+                              </div>
                               <div className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">{stock.name} • {(stock.sector ?? "Sector_N/A")}</div>
                             </div>
                           </div>
@@ -501,6 +653,49 @@ export function CombinedMarketView({
                     <div className="text-xs text-gray-300">{snapshot?.profile.description ?? "Fictional listed company in BBTown market."}</div>
                     <div className="text-[11px] text-gray-400">HQ: {snapshot?.profile.hqRegion ?? "Central District"} • Cap: {snapshot?.profile.marketCapBand ?? "MID"} • Day range: {snapshot?.stats?.dayRangePct?.toFixed(2) ?? "0.00"}%</div>
                   </div>
+
+                  {/* Upgrade Brand section if owned by current user */}
+                  {selectedStock && selectedStock.owner?.id === characterId && (
+                    <div className="p-4 bg-brand-primary/10 border border-brand-primary/30 rounded-xl space-y-3 shadow-[0_0_15px_rgba(189,0,255,0.05)]">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-secondary">Your Owned Brand</div>
+                          <div className="text-lg font-black text-white font-heading">Level {selectedStock.level ?? 1} / 6</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[10px] text-gray-400 uppercase font-bold">Current Payout Yield</div>
+                          <div className="text-sm font-bold text-brand-secondary font-mono">
+                            {Math.min(100, (0.5 + 0.1 * (Number(selectedStock.level ?? 1) - 1)) * 100).toFixed(0)}%
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {Number(selectedStock.level ?? 1) < 6 ? (
+                        <div className="space-y-2">
+                          <div className="text-[9px] text-gray-400 uppercase tracking-widest font-mono">Next Level: {Number(selectedStock.level ?? 1) + 1} ({Math.min(100, (0.5 + 0.1 * Number(selectedStock.level ?? 1)) * 100).toFixed(0)}% Payout Yield)</div>
+                          <button
+                            onClick={handleUpgradeBrand}
+                            disabled={upgradeLoading}
+                            className="w-full bg-brand-primary hover:bg-brand-primary/80 disabled:opacity-50 text-white py-2 text-[10px] font-black uppercase tracking-widest transition-all"
+                          >
+                            {upgradeLoading ? "UPGRADING..." : `Upgrade Brand (Costs ${
+                              {
+                                1: "5,000",
+                                2: "10,000",
+                                3: "25,000",
+                                4: "50,000",
+                                5: "100,000"
+                              }[Number(selectedStock.level ?? 1)]
+                            } Credits)`}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-center text-[10px] font-mono text-brand-secondary uppercase tracking-widest py-2 border border-dashed border-brand-secondary/40 bg-brand-secondary/5">
+                          ✨ MAX LEVEL REACHED (100% YIELD) ✨
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <div className="text-[11px] uppercase tracking-widest text-gray-500 font-bold">Market News (BBX Desk)</div>
