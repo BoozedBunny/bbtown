@@ -31,11 +31,15 @@ type StrapiOwnerProfile = {
 };
 
 type StrapiBuildingState = {
+  id?: number;
+  documentId?: string;
   stateId?: string;
   title?: string;
   forSale?: boolean;
   price?: number;
   employees?: number;
+  buildingLevel?: number;
+  upgradeEndsAt?: string | null;
   owner?: StrapiRelation<StrapiOwnerProfile> | StrapiOwnerProfile | null;
   town?: StrapiRelation<StrapiTown> | StrapiTown | null;
 };
@@ -65,6 +69,36 @@ function mapStrapiBuildingState(row: StrapiBuildingState, townIdFromContext: str
   const ownerId = owner?.documentId ?? (typeof owner?.id === "number" ? String(owner.id) : null);
   const isForSale = typeof row.forSale === "boolean" ? row.forSale : !ownerId;
 
+  let level = Number(row.buildingLevel ?? 0);
+  let upgradeEndsAt = row.upgradeEndsAt ?? null;
+
+  // Lazy resolution
+  if (upgradeEndsAt) {
+    const endsAtTime = new Date(upgradeEndsAt).getTime();
+    if (Date.now() >= endsAtTime) {
+      level += 1;
+      upgradeEndsAt = null;
+
+      const documentId = row.documentId ?? (row.id ? String(row.id) : null);
+      if (documentId) {
+        // Fire and forget background update
+        const headers = getStrapiServiceHeaders();
+        if (headers) {
+          fetch(`${STRAPI_BASE_URL}/api/building-states/${encodeURIComponent(documentId)}`, {
+            method: "PUT",
+            headers,
+            body: JSON.stringify({
+              data: {
+                buildingLevel: level,
+                upgradeEndsAt: null,
+              },
+            }),
+          }).catch((err) => console.error("Lazy building upgrade update failed:", err));
+        }
+      }
+    }
+  }
+
   return {
     id: buildingId || stateId,
     townId: townIdFromContext,
@@ -72,6 +106,8 @@ function mapStrapiBuildingState(row: StrapiBuildingState, townIdFromContext: str
     forSale: isForSale,
     price: Number(row.price ?? 0),
     employees: Number(row.employees ?? 0),
+    buildingLevel: level,
+    upgradeEndsAt: upgradeEndsAt,
     ownerId,
     owner: owner
       ? {

@@ -23,6 +23,8 @@ export interface BuildingData {
   employees?: number;
   forSale?: boolean;
   price?: number;
+  buildingLevel?: number;
+  upgradeEndsAt?: string | null;
   iconPosition?: number;
   isTransformable?: boolean;
   onTransform?: (id: string, position: [number, number, number]) => void;
@@ -43,6 +45,8 @@ export interface DbBuildingState {
   title?: string;
   forSale?: boolean;
   employees?: number;
+  buildingLevel?: number;
+  upgradeEndsAt?: string | null;
 }
 
 export interface TownStateData {

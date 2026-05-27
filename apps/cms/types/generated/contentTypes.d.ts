@@ -454,6 +454,7 @@ export interface ApiBuildingStateBuildingState
   };
   attributes: {
     building: Schema.Attribute.Relation<'manyToOne', 'api::building.building'>;
+    buildingLevel: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -485,6 +486,7 @@ export interface ApiBuildingStateBuildingState
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    upgradeEndsAt: Schema.Attribute.DateTime;
   };
 }
 

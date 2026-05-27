@@ -14,6 +14,8 @@ type BuildingLite = {
   title?: string;
   price?: number;
   forSale?: boolean;
+  buildingLevel?: number;
+  upgradeEndsAt?: string | null;
   town?: { id?: number; documentId?: string; townId?: string | number } | null;
   owner?: { id?: number; documentId?: string; authUserId?: number } | null;
 };
@@ -171,6 +173,8 @@ export async function getBuildingById(buildingId: string, townId?: string) {
     title: building.title ?? "",
     price: Number(building.price ?? 0),
     forSale: Boolean(building.forSale),
+    buildingLevel: Number(building.buildingLevel ?? 0),
+    upgradeEndsAt: building.upgradeEndsAt ?? null,
   };
 }
 
@@ -196,4 +200,77 @@ export async function updateBuildingSettings(
   }
   const payload = (await res.json()) as { data?: BuildingLite };
   return payload.data ?? null;
+}
+
+export async function upgradeBuildingState(buildingId: string, characterId: string, townId?: string) {
+  const [building, buyer] = await Promise.all([
+    getBuildingRecord(buildingId, townId),
+    fetchProfileByIdentifier(characterId),
+  ]);
+
+  if (!building) throw new Error("Building not found");
+  
+  const ownerId = normalizeOwnerId(building.owner);
+  const buyerId = buyer.documentId ?? String(buyer.id);
+  const buyerAuthUserId = buyer.authUserId ? String(buyer.authUserId) : null;
+  
+  // Need to ensure the characterId passed in matches either the owner.documentId, owner.id, or owner.authUserId. 
+  // Normally characterId from session is the profile doc id or id.
+  const isOwner = ownerId === characterId || ownerId === buyerId || ownerId === buyerAuthUserId;
+  
+  if (!isOwner) throw new Error("Not the owner");
+  
+  if (building.upgradeEndsAt) {
+    const endsAt = new Date(building.upgradeEndsAt).getTime();
+    if (Date.now() < endsAt) {
+      throw new Error("Upgrade is already in progress");
+    }
+  }
+
+  const specialBuildingIds = ["21", "24", "25", "26"]; // Arena, Casino, Stock Exchange, Bank
+  if (specialBuildingIds.includes(buildingId)) {
+    throw new Error("Special buildings cannot be upgraded");
+  }
+
+  const currentLevel = Number(building.buildingLevel ?? 0);
+  if (currentLevel >= 3) {
+    throw new Error("Building is already at max level");
+  }
+
+  let cost = 0;
+  let durationMs = 0;
+  
+  if (currentLevel === 0) {
+    cost = 5000;
+    durationMs = 15 * 60 * 1000; // 15 mins
+  } else if (currentLevel === 1) {
+    cost = 50000;
+    durationMs = 24 * 60 * 60 * 1000; // 1 Day
+  } else if (currentLevel === 2) {
+    cost = 500000;
+    durationMs = 7 * 24 * 60 * 60 * 1000; // 7 Days
+  }
+
+  const buyerWallet = Number(buyer.wallet ?? 0);
+  if (buyerWallet < cost) throw new Error("Not enough funds to upgrade");
+
+  // Deduct cost
+  await updateProfileWalletByIdOrDoc(buyer, buyerWallet - cost);
+
+  const upgradeEndsAt = new Date(Date.now() + durationMs).toISOString();
+
+  const headers = getHeaders();
+  const buildingIdentifier = building.documentId ?? String(building.id);
+  const updateRes = await fetch(`${STRAPI_BASE_URL}/api/building-states/${encodeURIComponent(buildingIdentifier)}`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify({ data: { upgradeEndsAt } }),
+    cache: "no-store",
+  });
+  if (!updateRes.ok) {
+    const txt = await updateRes.text();
+    throw new Error(`Building upgrade update failed: ${updateRes.status} ${txt}`);
+  }
+
+  return { walletAfter: buyerWallet - cost };
 }

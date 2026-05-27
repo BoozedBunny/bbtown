@@ -50,7 +50,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "../../actions/user";
-import { buyBuilding, updateBuildingSettings } from "../../actions/town";
+import { buyBuilding, updateBuildingSettings, upgradeBuilding } from "../../actions/town";
 import {
   updateBuildingTransform,
   updateMultipleBuildingTransforms,
@@ -487,6 +487,7 @@ export default function TownPage({
   const [showCombinedView, setShowCombinedView] = useState(false);
   const [marketIntent, setMarketIntent] =
     useState<CentralManagementIntent | null>(null);
+  const [upgradeTimeRemaining, setUpgradeTimeRemaining] = useState<number | null>(null);
   const [showArenaModal, setShowArenaModal] = useState(false);
   const [showCasinoModal, setShowCasinoModal] = useState(false);
   const [matchmakingStatus, setMatchmakingStatus] = useState<
@@ -869,6 +870,21 @@ export default function TownPage({
   };
 
   useEffect(() => {
+    if (selectedBuilding?.upgradeEndsAt) {
+      const endsAt = new Date(selectedBuilding.upgradeEndsAt).getTime();
+      const tick = () => {
+        const remaining = Math.max(0, endsAt - Date.now());
+        setUpgradeTimeRemaining(remaining);
+      };
+      tick();
+      const interval = setInterval(tick, 1000);
+      return () => clearInterval(interval);
+    } else {
+      setUpgradeTimeRemaining(null);
+    }
+  }, [selectedBuilding]);
+
+  useEffect(() => {
     // Fetch dynamic building state
     const fetchUser = async () => {
       try {
@@ -955,6 +971,8 @@ export default function TownPage({
           title: dbState.title,
           forSale: dbState.forSale,
           employees: dbState.employees,
+          buildingLevel: dbState.buildingLevel,
+          upgradeEndsAt: dbState.upgradeEndsAt,
         };
       }
       return { ...b, position: pos, rotationY: rot };
@@ -1832,7 +1850,9 @@ export default function TownPage({
                 {selectedBuilding?.id === BANK_BUILDING_ID
                   ? "District Infrastructure // Asset node"
                   : selectedBuilding?.ownerId
-                    ? selectedBuilding?.name
+                    ? `${selectedBuilding?.name} ${
+                        (selectedBuilding.buildingLevel ?? 0) > 0 ? `// Level ${selectedBuilding.buildingLevel}` : "// Level 0"
+                      }`
                     : "Real Estate Registry // Property Data"}
               </DialogDescription>
             </DialogHeader>
@@ -2035,6 +2055,109 @@ export default function TownPage({
                           </span>
                         </div>
                       </button>
+
+                      {/* UPGRADE LOGIC */}
+                      {selectedBuilding && !["21", "24", "25", "26"].includes(selectedBuilding.id) && (
+                        <div className="pt-4 border-t border-white/10 mt-4">
+                          <h3 className="text-[10px] uppercase font-black text-brand-secondary tracking-[0.2em] mb-4">
+                            Asset Upgrades
+                          </h3>
+                          {upgradeTimeRemaining !== null && upgradeTimeRemaining > 0 ? (
+                            <div className="bg-brand-secondary/10 border border-brand-secondary/30 p-4">
+                              <p className="text-[10px] uppercase tracking-widest text-brand-secondary text-center mb-2 animate-pulse">
+                                Upgrading...
+                              </p>
+                              <div className="h-2 w-full bg-black/50 overflow-hidden">
+                                {(() => {
+                                  const level = selectedBuilding.buildingLevel || 0;
+                                  let durationMs = 15 * 60 * 1000;
+                                  if (level === 1) durationMs = 24 * 60 * 60 * 1000;
+                                  if (level === 2) durationMs = 7 * 24 * 60 * 60 * 1000;
+                                  const progress = Math.max(0, Math.min(100, ((durationMs - upgradeTimeRemaining) / durationMs) * 100));
+                                  return (
+                                    <div
+                                      className="h-full bg-brand-secondary transition-all"
+                                      style={{ width: `${progress}%` }}
+                                    />
+                                  );
+                                })()}
+                              </div>
+                              <p className="text-xs font-mono text-center text-white mt-2">
+                                {Math.floor(upgradeTimeRemaining / (1000 * 60 * 60 * 24)) > 0 && `${Math.floor(upgradeTimeRemaining / (1000 * 60 * 60 * 24))}d `}
+                                {Math.floor((upgradeTimeRemaining / (1000 * 60 * 60)) % 24)}h{" "}
+                                {Math.floor((upgradeTimeRemaining / 1000 / 60) % 60)}m{" "}
+                                {Math.floor((upgradeTimeRemaining / 1000) % 60)}s remaining
+                              </p>
+                            </div>
+                          ) : (selectedBuilding.buildingLevel || 0) < 3 ? (
+                            <button
+                              disabled={isProcessing}
+                              onClick={async () => {
+                                setIsProcessing(true);
+                                try {
+                                  await upgradeBuilding(selectedBuilding.id, String(townId));
+                                  
+                                  const u = await getCurrentUser();
+                                  setCurrentUser(u);
+
+                                  const res = await fetch(
+                                    `/api/town/${townId}/state?ts=${Date.now()}`
+                                  );
+                                  if (res.ok) {
+                                    const data = await res.json();
+                                    setDbBuildingStates(data.buildings || []);
+                                    setTownData(data.town || null);
+                                    
+                                    const refreshedBuilding = (data.buildings || []).find(
+                                      (row: DbBuildingState) =>
+                                        row.id === selectedBuilding.id ||
+                                        row.id === `${townId}_${selectedBuilding.id}`
+                                    );
+                                    if (refreshedBuilding) {
+                                      setSelectedBuilding((prev) =>
+                                        prev && prev.id === selectedBuilding.id
+                                          ? {
+                                              ...prev,
+                                              buildingLevel: refreshedBuilding.buildingLevel,
+                                              upgradeEndsAt: refreshedBuilding.upgradeEndsAt,
+                                            }
+                                          : prev
+                                      );
+                                    }
+                                  }
+
+                                  toast.success("Upgrade started successfully!");
+                                } catch (e: any) {
+                                  toast.error(e.message || "Failed to start upgrade");
+                                } finally {
+                                  setIsProcessing(false);
+                                }
+                              }}
+                              className="group relative w-full block disabled:opacity-50"
+                            >
+                              <div className="absolute inset-0 bg-brand-secondary/20 blur group-hover:bg-brand-secondary/40 transition-all" />
+                              <div className="bg-brand-secondary/10 border border-brand-secondary/50 px-4 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
+                                <span className="text-xs font-black uppercase tracking-[0.2em] text-brand-secondary">
+                                  {(() => {
+                                    const level = selectedBuilding.buildingLevel || 0;
+                                    let cost = 5000;
+                                    let time = "15m";
+                                    if (level === 1) { cost = 50000; time = "1d"; }
+                                    if (level === 2) { cost = 500000; time = "7d"; }
+                                    return isProcessing ? "Processing..." : `Upgrade to Level ${level + 1} // $${cost.toLocaleString()} (${time})`;
+                                  })()}
+                                </span>
+                              </div>
+                            </button>
+                          ) : (
+                            <div className="p-4 bg-white/5 border border-white/10 text-center">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-brand-secondary">
+                                Max Level Reached
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
