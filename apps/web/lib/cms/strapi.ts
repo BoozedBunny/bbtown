@@ -21,15 +21,23 @@ function getAuthHeaders(): HeadersInit {
   return { Authorization: `Bearer ${token}` };
 }
 
-export async function strapiFetchList<T>(path: string): Promise<StrapiListResponse<T>> {
+export async function strapiFetchList<T>(path: string, options?: RequestInit): Promise<StrapiListResponse<T>> {
   const baseUrl = getStrapiBaseUrl();
-  const response = await fetch(`${baseUrl}${path}`, {
+
+  const fetchOptions: RequestInit = {
+    ...options,
     headers: {
       "Content-Type": "application/json",
       ...getAuthHeaders(),
+      ...(options?.headers || {}),
     },
-    next: { revalidate: 30 },
-  });
+  };
+
+  if (!fetchOptions.cache && !fetchOptions.next) {
+    fetchOptions.next = { revalidate: 30 };
+  }
+
+  const response = await fetch(`${baseUrl}${path}`, fetchOptions);
 
   if (!response.ok) {
     throw new Error(`Strapi list request failed: ${response.status} ${response.statusText}`);
