@@ -108,7 +108,16 @@ export default function Sudoku() {
   if (!isClient || board.length === 0) return null;
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans selection:bg-brand-primary/30 flex flex-col">
+    <div
+      className="min-h-screen bg-black text-white font-sans selection:bg-brand-primary/30 flex flex-col"
+      style={{
+        backgroundImage: "url('/media/buildings/casino_pyramid_static.webp')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundBlendMode: "overlay",
+        backgroundColor: "rgba(0, 0, 0, 0.85)", // Darken the image heavily so the game remains playable
+      }}
+    >
       {/* Header */}
       <header className="p-6 flex items-center justify-between border-b border-white/10 bg-black/50 backdrop-blur-md z-10 sticky top-0">
         <div className="flex items-center gap-4">
