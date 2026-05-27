@@ -940,7 +940,9 @@ export default function TownPage({
           : positionOverrides[b.id] || b.position;
       const rot = rotationOverrides[b.id] ?? b.rotationY;
 
-      const dbState = dbBuildingStates.find((ds) => ds.id === b.id || ds.id === `${townId}_${b.id}`);
+      const dbState = dbBuildingStates.find(
+        (ds) => ds.id === b.id || ds.id === `${townId}_${b.id}`,
+      );
       if (dbState) {
         return {
           position: pos,
@@ -2258,6 +2260,11 @@ export default function TownPage({
               <Link href="/casino/slot-machine" className="w-full">
                 <Button className="w-full h-12 bg-brand-primary/20 hover:bg-brand-primary/40 text-brand-primary hover:text-white border border-brand-primary/50 shadow-[0_0_15px_rgba(189,0,255,0.3)] transition-all font-black uppercase tracking-widest text-sm">
                   Slot Machine
+                </Button>
+              </Link>
+              <Link href="/casino/sudoku" className="w-full">
+                <Button className="w-full h-12 bg-brand-primary/20 hover:bg-brand-primary/40 text-brand-primary hover:text-white border border-brand-primary/50 shadow-[0_0_15px_rgba(189,0,255,0.3)] transition-all font-black uppercase tracking-widest text-sm">
+                  Sudoku
                 </Button>
               </Link>
               <Button
