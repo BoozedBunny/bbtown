@@ -139,16 +139,16 @@ export function CombinedMarketView({
       }
     };
 
-    const onPortfolioUpdated = ({ message, type }: { message?: string; type?: string }) => {
+    const onPortfolioUpdated = ({ message, type, action }: { message?: string; type?: string; action?: "buy" | "sell" }) => {
       fetch("/api/portfolio", { cache: "no-store" }).then((res) => res.json()).then(setPortfolio);
       fetch("/api/me", { cache: "no-store" }).then((res) => res.json()).then((data) => setWallet(data.wallet));
 
-      if (message?.startsWith("Bought ") || message?.startsWith("Insufficient funds")) {
+      if (action === "buy" || message?.startsWith("Bought ") || message?.startsWith("Insufficient funds") || message?.startsWith("Failed to buy")) {
         processingBuyRef.current = false;
         setTimeout(() => processBuyQueue(), 0);
       }
 
-      if (message?.startsWith("Sold ") || message?.startsWith("Not enough shares")) {
+      if (action === "sell" || message?.startsWith("Sold ") || message?.startsWith("Not enough shares") || message?.startsWith("Failed to sell")) {
         processingSellRef.current = false;
         setTimeout(() => processSellQueue(), 0);
       }

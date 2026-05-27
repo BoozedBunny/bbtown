@@ -509,6 +509,7 @@ app.prepare().then(async () => {
           socket.emit("portfolio_updated", {
             message: "Quantity must be a positive whole number",
             type: "error",
+            action: "buy",
           });
           return;
         }
@@ -523,6 +524,7 @@ app.prepare().then(async () => {
           socket.emit("portfolio_updated", {
             message: `Insufficient funds to buy ${quantity} shares of ${symbol}`,
             type: "error",
+            action: "buy",
           });
           return;
         }
@@ -532,12 +534,14 @@ app.prepare().then(async () => {
         io.to(`user:${mockUser}`).emit("portfolio_updated", {
           message: `Bought ${quantity} shares of ${symbol} for $${cost.toFixed(2)}`,
           type: "success",
+          action: "buy",
         });
       } catch (error) {
         console.error("Error buying stock:", error);
         socket.emit("portfolio_updated", {
           message: `Failed to buy stock`,
           type: "error",
+          action: "buy",
         });
       }
     });
@@ -549,6 +553,7 @@ app.prepare().then(async () => {
           socket.emit("portfolio_updated", {
             message: "Quantity must be a positive whole number",
             type: "error",
+            action: "sell",
           });
           return;
         }
@@ -563,6 +568,7 @@ app.prepare().then(async () => {
           socket.emit("portfolio_updated", {
             message: `Not enough shares to sell`,
             type: "error",
+            action: "sell",
           });
           return;
         }
@@ -572,12 +578,14 @@ app.prepare().then(async () => {
         io.to(`user:${mockUser}`).emit("portfolio_updated", {
           message: `Sold ${quantity} shares of ${symbol} for $${gain.toFixed(2)}`,
           type: "success",
+          action: "sell",
         });
       } catch (error) {
         console.error("Error selling stock:", error);
         socket.emit("portfolio_updated", {
           message: `Failed to sell stock`,
           type: "error",
+          action: "sell",
         });
       }
     });
