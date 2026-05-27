@@ -836,12 +836,17 @@ export interface ApiStockStock extends Struct.CollectionTypeSchema {
     >;
     hqRegion: Schema.Attribute.String &
       Schema.Attribute.DefaultTo<'Central District'>;
+    level: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<1>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::stock.stock'> &
       Schema.Attribute.Private;
     marketCapBand: Schema.Attribute.Enumeration<['SMALL', 'MID', 'LARGE']> &
       Schema.Attribute.DefaultTo<'MID'>;
     name: Schema.Attribute.String & Schema.Attribute.Required;
+    owner: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::player-profile.player-profile'
+    >;
     portfolioItems: Schema.Attribute.Relation<
       'oneToMany',
       'api::portfolio-item.portfolio-item'

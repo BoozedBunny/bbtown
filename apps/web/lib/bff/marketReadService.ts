@@ -61,12 +61,17 @@ function mapStrapiStock(row: StrapiStock) {
     description: row.description,
     hqRegion: row.hqRegion,
     displayOrder: asNumber(row.displayOrder),
+    level: Number((row as any).level ?? 1),
+    owner: (row as any).owner ? {
+      id: (row as any).owner.documentId ?? String((row as any).owner.id),
+      displayName: (row as any).owner.displayName ?? "",
+    } : null,
   });
 }
 
 async function listStocksFromStrapi() {
   const response = await strapiFetchList<StrapiStock>(
-    "/api/stocks?pagination[limit]=500&sort=symbol:asc",
+    "/api/stocks?pagination[limit]=500&sort=symbol:asc&populate=owner",
   );
 
   return (response.data ?? []).map(mapStrapiStock).filter((stock) => stock.symbol);

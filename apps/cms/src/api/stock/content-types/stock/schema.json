@@ -70,6 +70,15 @@
       "relation": "oneToMany",
       "target": "api::portfolio-item.portfolio-item",
       "mappedBy": "stock"
+    },
+    "owner": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::player-profile.player-profile"
+    },
+    "level": {
+      "type": "integer",
+      "default": 1
     }
   }
 }
