@@ -67,7 +67,9 @@ CREATE TABLE IF NOT EXISTS "BuildingState" (
   "forSale" boolean NOT NULL DEFAULT true,
   "price" integer NOT NULL DEFAULT 0,
   "employees" integer NOT NULL DEFAULT 0,
-  "ownerId" uuid NULL REFERENCES "Character"("id") ON DELETE SET NULL
+  "ownerId" uuid NULL REFERENCES "Character"("id") ON DELETE SET NULL,
+  "buildingLevel" INTEGER DEFAULT 0,
+  "upgradeEndsAt" TIMESTAMP WITH TIME ZONE NULL
 );
 
 CREATE TABLE IF NOT EXISTS "TreasuryLedgerEntry" (

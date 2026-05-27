@@ -3,7 +3,7 @@ type Building = { id: number; documentId?: string; buildingId: string; name: str
 type BuildingState = { id: number; documentId?: string; stateId?: string };
 
 const baseUrl = process.env.STRAPI_URL ?? "http://127.0.0.1:1339";
-const token = process.env.STRAPI_API_TOKEN;
+const token = "da4f2944d4a663d1c8e238cf02e20431c591d671e4d70a6a0471f39a6bf7449f73651359e18de85bce8aed2772204ab04378091265f4cee24fdd36c7fadba1270248050df8b7424cfaf7a533959a162538f5bfa42d53e73b954213ad34b38405362534b8831b505873fb961b7039a8134186eea6d61f496c006a3e8deff42e21";
 
 if (!token) {
   console.error("Missing STRAPI_API_TOKEN env var.");

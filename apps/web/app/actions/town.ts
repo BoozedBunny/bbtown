@@ -7,6 +7,7 @@ import {
   buyBuildingState,
   getBuildingById,
   updateBuildingSettings as updateBuildingStateSettings,
+  upgradeBuildingState,
 } from "@/lib/bff/townService";
 
 export async function buyBuilding(buildingId: string, townId?: string) {
@@ -29,6 +30,26 @@ export async function buyBuilding(buildingId: string, townId?: string) {
       await updatePlayerProfile(sessionToken, me.id, { wallet: result.walletAfter });
     } catch (error) {
       console.error("Failed to sync Strapi wallet after buyBuilding", error);
+    }
+  }
+
+  return { success: true };
+}
+
+export async function upgradeBuilding(buildingId: string, townId?: string) {
+  const user = await requireSessionUserWithCharacter();
+
+  const characterId = user.character.id;
+  const sessionToken = (await cookies()).get(AUTH_COOKIE_NAME)?.value;
+
+  const result = await upgradeBuildingState(buildingId, characterId, townId);
+
+  if (sessionToken && typeof result.walletAfter === "number") {
+    try {
+      const me = await strapiMe(sessionToken);
+      await updatePlayerProfile(sessionToken, me.id, { wallet: result.walletAfter });
+    } catch (error) {
+      console.error("Failed to sync Strapi wallet after upgradeBuilding", error);
     }
   }
 
