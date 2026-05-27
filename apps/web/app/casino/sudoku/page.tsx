@@ -111,7 +111,7 @@ export default function Sudoku() {
     <div
       className="min-h-screen bg-black text-white font-sans selection:bg-brand-primary/30 flex flex-col"
       style={{
-        backgroundImage: "url('/media/buildings/casino_pyramid_static.webp')",
+        backgroundImage: "url('https://www.boozedbunnytown.com/media/buildings/casino_pyramid_static.webp')",
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundBlendMode: "overlay",
