@@ -97,20 +97,48 @@ export function CombinedMarketView({
   const [loanPrincipalInput, setLoanPrincipalInput] = useState(1000);
   const [repayAmountInput, setRepayAmountInput] = useState(100);
   const [loanBusy, setLoanBusy] = useState(false);
+  
   const buyQueueRef = useRef(0);
   const sellQueueRef = useRef(0);
   const processingBuyRef = useRef(false);
   const processingSellRef = useRef(false);
+  const selectedStockRef = useRef<Stock | null>(null);
+
+  // NEU: Queue-Funktionen als Refs, um Stale Closures im Socket-Listener zu verhindern
+  const processBuyQueueRef = useRef<() => void>(() => {});
+  const processSellQueueRef = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    selectedStockRef.current = selectedStock;
+  }, [selectedStock]);
+
+  // Wir weisen die aktuelle Logik bei jedem Render dem Ref zu
+  processBuyQueueRef.current = () => {
+    if (processingBuyRef.current || !socket || !selectedStockRef.current) return;
+    if (buyQueueRef.current <= 0) return;
+    processingBuyRef.current = true;
+    buyQueueRef.current -= 1;
+    socket.emit("buy_stock", { symbol: selectedStockRef.current.symbol, quantity: 1 });
+  };
+
+  processSellQueueRef.current = () => {
+    if (processingSellRef.current || !socket || !selectedStockRef.current) return;
+    if (sellQueueRef.current <= 0) return;
+    processingSellRef.current = true;
+    sellQueueRef.current -= 1;
+    socket.emit("sell_stock", { symbol: selectedStockRef.current.symbol, quantity: 1 });
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       const townId = townData?.id ?? 1;
+      const t = Date.now(); // Cache Buster für den initialen Load
       const [pRes, sRes, meRes, treasuryRes, loanRes] = await Promise.all([
-        fetch("/api/portfolio", { cache: "no-store" }),
-        fetch("/api/stocks", { cache: "no-store" }),
-        fetch("/api/me", { cache: "no-store" }),
-        fetch(`/api/treasury/${townId}`, { cache: "no-store" }),
-        fetch("/api/loans/me", { cache: "no-store" }),
+        fetch(`/api/portfolio?t=${t}`, { cache: "no-store" }),
+        fetch(`/api/stocks?t=${t}`, { cache: "no-store" }),
+        fetch(`/api/me?t=${t}`, { cache: "no-store" }),
+        fetch(`/api/treasury/${townId}?t=${t}`, { cache: "no-store" }),
+        fetch(`/api/loans/me?t=${t}`, { cache: "no-store" }),
       ]);
       if (pRes.ok) setPortfolio(await pRes.json());
       if (sRes.ok) setStocks(await sRes.json());
@@ -125,33 +153,40 @@ export function CombinedMarketView({
       }
     };
     if (open) fetchData();
-  }, [open]);
+  }, [open, townData?.id]);
 
   useEffect(() => {
     if (!socket) return;
 
     const onStocksUpdated = (updatedStocks: Stock[]) => {
       setStocks(updatedStocks);
-      if (selectedStock) {
-        const selectedSymbol = selectedStock.symbol.toUpperCase();
-        const updated = updatedStocks.find((s) => s.symbol.toUpperCase() === selectedSymbol);
-        if (updated) setSelectedStock(updated);
-      }
+      setSelectedStock((prev) => {
+        if (!prev) return null;
+        const updated = updatedStocks.find((s) => s.symbol.toUpperCase() === prev.symbol.toUpperCase());
+        return updated || prev;
+      });
     };
 
-    const onPortfolioUpdated = ({ message, type }: { message?: string; type?: string }) => {
-      fetch("/api/portfolio", { cache: "no-store" }).then((res) => res.json()).then(setPortfolio);
-      fetch("/api/me", { cache: "no-store" }).then((res) => res.json()).then((data) => setWallet(data.wallet));
+    const onPortfolioUpdated = ({ message, type, action }: { message?: string; type?: string; action?: "buy" | "sell" }) => {
+      processingBuyRef.current = false;
+      processingSellRef.current = false;
 
-      if (message?.startsWith("Bought ") || message?.startsWith("Insufficient funds")) {
-        processingBuyRef.current = false;
-        setTimeout(() => processBuyQueue(), 0);
-      }
+      // MAGISCHER CACHE-BUSTER: Zwingt Next.js JEDES MAL eine frische Anfrage zu machen
+      const t = Date.now();
+      
+      fetch(`/api/portfolio?t=${t}`, { cache: "no-store" })
+        .then((res) => res.json())
+        .then(setPortfolio);
+        
+      fetch(`/api/me?t=${t}`, { cache: "no-store" })
+        .then((res) => res.json())
+        .then((data) => setWallet(data.wallet));
 
-      if (message?.startsWith("Sold ") || message?.startsWith("Not enough shares")) {
-        processingSellRef.current = false;
-        setTimeout(() => processSellQueue(), 0);
-      }
+      setTimeout(() => {
+        // Nutze die Refs, um garantiert die aktuelle Logik zu callen
+        processBuyQueueRef.current?.();
+        processSellQueueRef.current?.();
+      }, 0);
 
       if (message) {
         if (type === "success") toast.success(message);
@@ -162,11 +197,12 @@ export function CombinedMarketView({
 
     socket.on("stocks_updated", onStocksUpdated);
     socket.on("portfolio_updated", onPortfolioUpdated);
+    
     return () => {
       socket.off("stocks_updated", onStocksUpdated);
       socket.off("portfolio_updated", onPortfolioUpdated);
     };
-  }, [socket, selectedStock]);
+  }, [socket]);
 
   useEffect(() => {
     if (!selectedStock) return;
@@ -216,30 +252,14 @@ export function CombinedMarketView({
     onIntentConsumed?.();
   }, [open, intent, stocks, onIntentConsumed]);
 
-  const processBuyQueue = () => {
-    if (processingBuyRef.current || !socket || !selectedStock) return;
-    if (buyQueueRef.current <= 0) return;
-    processingBuyRef.current = true;
-    buyQueueRef.current -= 1;
-    socket.emit("buy_stock", { symbol: selectedStock.symbol, quantity: 1 });
-  };
-
-  const processSellQueue = () => {
-    if (processingSellRef.current || !socket || !selectedStock) return;
-    if (sellQueueRef.current <= 0) return;
-    processingSellRef.current = true;
-    sellQueueRef.current -= 1;
-    socket.emit("sell_stock", { symbol: selectedStock.symbol, quantity: 1 });
-  };
-
   const buy = () => {
     buyQueueRef.current += 1;
-    processBuyQueue();
+    processBuyQueueRef.current?.();
   };
 
   const sell = () => {
     sellQueueRef.current += 1;
-    processSellQueue();
+    processSellQueueRef.current?.();
   };
 
   const refreshFinance = async () => {

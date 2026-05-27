@@ -159,6 +159,7 @@ async function getPortfolioFromStrapi(characterId: string, authUserId?: string, 
 
   const response = await strapiFetchList<StrapiPortfolioItem>(
     `/api/portfolio-items?filters[playerProfile][documentId][$eq]=${encodeURIComponent(profileIdentifier)}&populate[stock][fields][0]=symbol&populate[stock][fields][1]=name&populate[stock][fields][2]=price&populate[stock][fields][3]=previousPrice&populate[stock][fields][4]=updatedAt&pagination[limit]=500`,
+    { cache: "no-store" }
   );
 
   return (response.data ?? [])
