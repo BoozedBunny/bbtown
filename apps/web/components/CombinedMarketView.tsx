@@ -557,8 +557,24 @@ export function CombinedMarketView({
               {!selectedStock ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div className="p-4 bg-white/5 rounded-xl border border-white/10 flex items-center gap-3"><Wallet className="text-brand-secondary" /><div><div className="text-[10px] text-gray-400 uppercase font-bold">Available Cash</div><div className="text-lg font-bold text-white">${wallet.toLocaleString()}</div></div></div>
-                    <div className="p-4 bg-white/5 rounded-xl border border-white/10 flex items-center gap-3"><ShoppingBag className="text-brand-primary" /><div><div className="text-[10px] text-gray-400 uppercase font-bold">Total Assets</div><div className="text-lg font-bold text-white">{portfolio.length} Companies</div></div></div>
+                    <div className="p-4 bg-slate-900/40 rounded-xl border border-white/10 flex items-center gap-3 shadow-md backdrop-blur-sm">
+                      <div className="p-2 bg-brand-secondary/10 rounded-lg text-brand-secondary">
+                        <Wallet className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="text-[9px] text-slate-400 uppercase font-black tracking-wider">Available Cash</div>
+                        <div className="text-lg font-mono font-black text-white">${wallet.toLocaleString()}</div>
+                      </div>
+                    </div>
+                    <div className="p-4 bg-slate-900/40 rounded-xl border border-white/10 flex items-center gap-3 shadow-md backdrop-blur-sm">
+                      <div className="p-2 bg-brand-primary/10 rounded-lg text-brand-primary">
+                        <ShoppingBag className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="text-[9px] text-slate-400 uppercase font-black tracking-wider">Total Assets</div>
+                        <div className="text-lg font-black text-white">{portfolio.length} Companies</div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Locked Banner for Level < 5 */}
@@ -616,22 +632,47 @@ export function CombinedMarketView({
                       const owned = getHoldingForSymbol(stock.symbol);
                       const isOwned = stock.owner?.id === characterId;
                       return (
-                        <button key={stock.id} onClick={() => setSelectedStock(stock)} className="flex justify-between items-center p-4 bg-black/40 border border-white/10 hover:border-brand-primary/50 hover:bg-brand-primary/5 transition-all group text-left relative overflow-hidden">
-                          <div className={`absolute left-0 top-0 w-1 h-full ${isUp ? "bg-brand-secondary" : "bg-brand-tertiary"}`} />
+                        <button
+                          key={stock.id}
+                          onClick={() => setSelectedStock(stock)}
+                          className={`flex justify-between items-center p-4 bg-slate-950/70 border ${
+                            isUp
+                              ? "border-emerald-500/20 hover:border-emerald-500/50 hover:shadow-[0_0_25px_rgba(16,185,129,0.15)]"
+                              : "border-rose-500/20 hover:border-rose-500/50 hover:shadow-[0_0_25px_rgba(244,63,94,0.15)]"
+                          } transition-all duration-300 group text-left relative overflow-hidden backdrop-blur-md rounded-xl shadow-lg`}
+                        >
+                          <div className={`absolute left-0 top-0 w-1.5 h-full ${isUp ? "bg-emerald-500" : "bg-rose-500"}`} />
                           <div className="flex items-center gap-4">
-                            <div className={`p-2 ${isUp ? "text-brand-secondary" : "text-brand-tertiary"}`}>{isUp ? <ArrowUpCircle /> : <ArrowDownCircle />}</div>
+                            <div className={`p-2 rounded-lg bg-white/5 ${isUp ? "text-emerald-400" : "text-rose-400"} group-hover:scale-110 transition-transform duration-300`}>
+                              {isUp ? <ArrowUpCircle className="w-6 h-6" /> : <ArrowDownCircle className="w-6 h-6" />}
+                            </div>
                             <div>
                               <div className="font-black text-xl italic tracking-tighter group-hover:text-brand-primary transition-colors flex items-center gap-2">
-                                {stock.symbol}
-                                {owned > 0 && <span className="text-[8px] bg-brand-primary/20 text-brand-primary px-2 py-0.5 border border-brand-primary/30 font-black uppercase tracking-widest">{owned}_NODES</span>}
-                                {isOwned && <span className="text-[8px] bg-brand-secondary/25 text-brand-secondary px-2 py-0.5 border border-brand-secondary/40 font-black uppercase tracking-widest">👑_BRAND (Lvl {stock.level ?? 1})</span>}
+                                <span className="font-mono tracking-tight text-white">{stock.symbol}</span>
+                                {owned > 0 && (
+                                  <span className="text-[8px] bg-brand-primary/15 text-brand-primary px-2.5 py-0.5 border border-brand-primary/30 font-black uppercase tracking-wider rounded">
+                                    {owned} SHARES
+                                  </span>
+                                )}
+                                {isOwned && (
+                                  <span className="text-[8px] bg-brand-secondary/20 text-brand-secondary px-2.5 py-0.5 border border-brand-secondary/30 font-black uppercase tracking-wider rounded">
+                                    👑 BRAND (Lvl {stock.level ?? 1})
+                                  </span>
+                                )}
                               </div>
-                              <div className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">{stock.name} • {(stock.sector ?? "Sector_N/A")}</div>
+                              <div className="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-0.5">{stock.name}</div>
                             </div>
                           </div>
-                          <div className="text-right">
+                          <div className="text-right flex flex-col justify-center items-end">
                             <div className="font-mono text-2xl font-black text-white tracking-tighter">${stock.price.toFixed(2)}</div>
-                            <div className={`text-[10px] font-black tracking-widest ${isUp ? "text-brand-secondary" : "text-brand-tertiary"}`}>{isUp ? "INDEX_UP" : "INDEX_DOWN"} {Math.abs(diff).toFixed(2)}</div>
+                            <div className={`mt-1.5 flex items-center gap-1.5 px-2 py-0.5 text-[9px] font-black tracking-wider rounded-md border ${
+                              isUp
+                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                            }`}>
+                              <span className="font-mono uppercase">{isUp ? "UP" : "DOWN"}</span>
+                              <span className="font-mono">{Math.abs(diff).toFixed(2)}</span>
+                            </div>
                           </div>
                         </button>
                       );
