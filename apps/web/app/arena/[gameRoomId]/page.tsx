@@ -475,7 +475,7 @@ const OBSTACLE_PRESETS: ObstaclePreset[] = [
     width: 9,
     height: 2.2,
     centerX: Math.random() * 24 - 12,
-    phaseOffsetMs: 2200,
+    phaseOffsetMs: 3300,
   },
 ];
 
