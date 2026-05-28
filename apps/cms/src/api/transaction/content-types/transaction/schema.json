@@ -1,0 +1,35 @@
+{
+  "kind": "collectionType",
+  "collectionName": "transactions",
+  "info": {
+    "singularName": "transaction",
+    "pluralName": "transactions",
+    "displayName": "Transaction",
+    "description": "Financial ledger transactions for player profiles"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "amount": {
+      "type": "integer",
+      "required": true
+    },
+    "category": {
+      "type": "enumeration",
+      "enum": ["TRADING", "QUESTS", "REWARDS", "FEES", "MAINTENANCE", "PARTY", "TRADE_P2P", "OTHER"],
+      "default": "OTHER",
+      "required": true
+    },
+    "description": {
+      "type": "string",
+      "required": true
+    },
+    "playerProfile": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::player-profile.player-profile",
+      "inversedBy": "transactions"
+    }
+  }
+}

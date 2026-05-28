@@ -1,0 +1,36 @@
+{
+  "kind": "collectionType",
+  "collectionName": "inventory_items",
+  "info": {
+    "singularName": "inventory-item",
+    "pluralName": "inventory-items",
+    "displayName": "Inventory Item",
+    "description": "Stacked item holdings in player bag slots"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "quantity": {
+      "type": "integer",
+      "required": true,
+      "default": 1
+    },
+    "slotIndex": {
+      "type": "integer",
+      "required": true,
+      "default": 0
+    },
+    "playerProfile": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::player-profile.player-profile",
+      "inversedBy": "inventoryItems"
+    },
+    "item": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::item.item"
+    }
+  }
+}

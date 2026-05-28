@@ -1,4 +1,4 @@
-export type CentralManagementTab = "treasury" | "market" | "news";
+export type CentralManagementTab = "treasury" | "market" | "news" | "inventory" | "wholesale" | "p2p";
 
 export type CentralManagementIntentSource = "ticker" | "bank" | "query" | "manual" | "news";
 

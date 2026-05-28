@@ -30,7 +30,7 @@ import { io, Socket } from "socket.io-client";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Swords, Trophy, Loader2, X, Menu, Dices } from "lucide-react";
+import { Swords, Trophy, Loader2, X, Menu, Dices, Mail } from "lucide-react";
 import { ImageBuilding } from "@/components/ImageBuilding";
 import { ModelX } from "@/components/ModelX";
 import { TexturedGround } from "@/components/TexturedGround";
@@ -40,6 +40,7 @@ import { CombinedMarketView } from "@/components/CombinedMarketView";
 import { MarketTickerTape } from "@/components/MarketTickerTape";
 import { TownChatPanel } from "@/components/TownChatPanel";
 import { PlayerProfileModal } from "@/components/PlayerProfileModal";
+import { MailboxModal } from "@/components/MailboxModal";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -87,6 +88,7 @@ type WalletSummaryViewModel = {
   currencyCode: string;
   categories: WalletSummaryCategory[];
   lastUpdatedAt: string | null;
+  recentTransactions?: any[];
 };
 
 const WALLET_CATEGORY_DEFAULTS: Array<{ key: string; label: string }> = [
@@ -492,6 +494,12 @@ export default function TownPage({
   >("idle");
   const [isTopNavMenuOpen, setIsTopNavMenuOpen] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [walletSummaryData, setWalletSummaryData] = useState<any>(null);
+  const [isLoadingWalletSummary, setIsLoadingWalletSummary] = useState(false);
+  const [maintenanceData, setMaintenanceData] = useState<any>(null);
+  const [isLoadingMaintenance, setIsLoadingMaintenance] = useState(false);
+  const [isMailModalOpen, setIsMailModalOpen] = useState(false);
+  const [unreadMailCount, setUnreadMailCount] = useState(0);
   const burgerButtonRef = useRef<HTMLButtonElement | null>(null);
   const walletButtonRef = useRef<HTMLButtonElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -701,6 +709,17 @@ export default function TownPage({
 
   const walletSummary = useMemo<WalletSummaryViewModel>(() => {
     const wallet = currentUser?.character?.wallet ?? null;
+    if (walletSummaryData) {
+      return {
+        totalBalance: wallet ?? walletSummaryData.totalBalance,
+        income: walletSummaryData.income,
+        expenses: walletSummaryData.expenses,
+        currencyCode: walletSummaryData.currencyCode || "USD",
+        categories: walletSummaryData.categories || [],
+        lastUpdatedAt: new Date().toISOString(),
+        recentTransactions: walletSummaryData.recentTransactions || [],
+      };
+    }
     return {
       totalBalance: wallet,
       income: null,
@@ -712,8 +731,9 @@ export default function TownPage({
         enabled: true,
       })),
       lastUpdatedAt: null,
+      recentTransactions: [],
     };
-  }, [currentUser]);
+  }, [currentUser, walletSummaryData]);
 
   const getNavAnalyticsContext = useCallback(() => {
     const viewport =
@@ -881,6 +901,71 @@ export default function TownPage({
     }
   }, [selectedBuilding]);
 
+  const refreshWalletSummary = useCallback(async () => {
+    setIsLoadingWalletSummary(true);
+    try {
+      const res = await fetch("/api/transactions/summary");
+      if (res.ok) {
+        const data = await res.json();
+        setWalletSummaryData(data);
+      } else {
+        console.error("Failed to fetch wallet summary", res.status);
+      }
+    } catch (err) {
+      console.error("Error fetching wallet summary", err);
+    } finally {
+      setIsLoadingWalletSummary(false);
+    }
+  }, []);
+
+  const walletBalance = currentUser?.character?.wallet ?? null;
+
+  useEffect(() => {
+    if (isWalletModalOpen) {
+      refreshWalletSummary();
+    }
+  }, [isWalletModalOpen, walletBalance, refreshWalletSummary]);
+
+  useEffect(() => {
+    if (selectedBuilding && !["21", "24", "25", "26"].includes(selectedBuilding.id)) {
+      const fetchMaintenance = async () => {
+        setIsLoadingMaintenance(true);
+        try {
+          const res = await fetch(`/api/town/building/${selectedBuilding.id}/maintenance?townId=${townId}`);
+          if (res.ok) {
+            const data = await res.json();
+            setMaintenanceData(data);
+          }
+        } catch (e) {
+          console.error("Failed to fetch maintenance checklist", e);
+        } finally {
+          setIsLoadingMaintenance(false);
+        }
+      };
+      fetchMaintenance();
+    } else {
+      setMaintenanceData(null);
+    }
+  }, [selectedBuilding, townId, walletBalance]);
+
+  const refreshUnreadMailCount = useCallback(async () => {
+    try {
+      const res = await fetch("/api/mail/inbox");
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadMailCount(data.unreadCount || 0);
+      }
+    } catch (err) {
+      console.error("Failed to fetch unread mail count", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentUser) {
+      refreshUnreadMailCount();
+    }
+  }, [currentUser, refreshUnreadMailCount]);
+
   useEffect(() => {
     // Fetch dynamic building state
     const fetchUser = async () => {
@@ -926,6 +1011,11 @@ export default function TownPage({
     socketInstance.on("portfolio_updated", () => {
       // Re-fetch user data to update wallet in header
       fetchUser();
+      refreshUnreadMailCount();
+    });
+
+    socketInstance.on("mail_updated", () => {
+      refreshUnreadMailCount();
     });
 
     socketInstance.on("match_found", ({ gameRoomId }) => {
@@ -1024,7 +1114,23 @@ export default function TownPage({
                 </div>
               </h1>
               {!isWalletPositionV2Enabled && currentUser?.character && (
-                <div className="mt-2">
+                <div className="mt-2 flex items-center gap-3">
+                  <button
+                    onClick={() => setIsMailModalOpen(true)}
+                    className="group relative min-h-11 inline-block"
+                    aria-label="Open mailbox inbox"
+                  >
+                    <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all animate-pulse" />
+                    <div className="bg-brand-primary/20 border border-brand-primary/50 px-3.5 py-2.5 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 flex items-center gap-1.5 text-brand-primary">
+                      <Mail className="h-4 w-4" />
+                      {unreadMailCount > 0 && (
+                        <span className="bg-brand-tertiary text-white font-mono text-[8px] font-black px-1 py-0.5 rounded animate-pulse">
+                          {unreadMailCount}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+
                   <button
                     ref={walletButtonRef}
                     type="button"
@@ -1118,25 +1224,43 @@ export default function TownPage({
                   {connected ? "Live System" : "Offline"}
                 </div>
                 {isWalletPositionV2Enabled && (
-                  <button
-                    ref={walletButtonRef}
-                    type="button"
-                    aria-label="Open wallet summary"
-                    onClick={() => {
-                      if (!isWalletModalEnabled) return;
-                      setIsWalletModalOpen(true);
-                    }}
-                    className="group relative min-h-11 inline-block"
-                  >
-                    <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
-                    <div className=" bg-brand-primary/20 border border-brand-primary/50 px-4 py-2 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1">
-                      <span className="text-sm font-black uppercase tracking-[0.2em] text-brand-secondary">
-                        {currentUser?.character
-                          ? `💰 ${formatCurrencyAmount(walletSummary.totalBalance, walletSummary.currencyCode)}`
-                          : "Wallet"}
-                      </span>
-                    </div>
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setIsMailModalOpen(true)}
+                      className="group relative min-h-11 inline-block"
+                      aria-label="Open mailbox inbox"
+                    >
+                      <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all animate-pulse" />
+                      <div className="bg-brand-primary/20 border border-brand-primary/50 px-3.5 py-2.5 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 flex items-center justify-center gap-2 text-brand-primary">
+                        <Mail className="h-4 w-4" />
+                        {unreadMailCount > 0 && (
+                          <span className="bg-brand-tertiary text-white font-mono text-[8px] font-black px-1.5 py-0.5 rounded animate-pulse">
+                            {unreadMailCount}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+
+                    <button
+                      ref={walletButtonRef}
+                      type="button"
+                      aria-label="Open wallet summary"
+                      onClick={() => {
+                        if (!isWalletModalEnabled) return;
+                        setIsWalletModalOpen(true);
+                      }}
+                      className="group relative min-h-11 inline-block"
+                    >
+                      <div className="absolute inset-0 bg-brand-primary/20 blur group-hover:bg-brand-primary/40 transition-all" />
+                      <div className=" bg-brand-primary/20 border border-brand-primary/50 px-4 py-2 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1">
+                        <span className="text-sm font-black uppercase tracking-[0.2em] text-brand-secondary">
+                          {currentUser?.character
+                            ? `💰 ${formatCurrencyAmount(walletSummary.totalBalance, walletSummary.currencyCode)}`
+                            : "Wallet"}
+                        </span>
+                      </div>
+                    </button>
+                  </div>
                 )}
                 <button
                   ref={burgerButtonRef}
@@ -1728,7 +1852,7 @@ export default function TownPage({
           }
         }}
       >
-        <DialogContent className="sm:max-w-[480px] cyber-panel text-white border-t-4 border-t-brand-secondary rounded-none shadow-[0_0_50px_rgba(255,184,0,0.15)] p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-[480px] cyber-panel text-white border-t-4 border-t-brand-secondary rounded-none shadow-[0_0_50px_rgba(255,184,0,0.15)] p-0 overflow-y-auto max-h-[95vh]">
           <div className="p-8 space-y-6">
             <DialogHeader>
               <DialogTitle
@@ -1737,8 +1861,11 @@ export default function TownPage({
               >
                 YOUR WALLET
               </DialogTitle>
-              <DialogDescription className="text-gray-500 font-mono text-[10px] uppercase tracking-[0.3em]">
-                Financial Summary // Authorization Confirmed
+              <DialogDescription className="text-gray-500 font-mono text-[10px] uppercase tracking-[0.3em] flex items-center justify-between">
+                <span>Financial Summary // Authorization Confirmed</span>
+                {isLoadingWalletSummary && (
+                  <span className="text-brand-secondary animate-pulse text-[8px]">SYNCING...</span>
+                )}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4">
@@ -1785,7 +1912,7 @@ export default function TownPage({
                     Activity Breakdown
                   </p>
                   <p className="text-[8px] uppercase tracking-[0.2em] text-gray-600 font-black">
-                    Recent Transactions
+                    Total Flow
                   </p>
                 </div>
                 <ul className="grid gap-2">
@@ -1809,6 +1936,56 @@ export default function TownPage({
                     ))}
                 </ul>
               </div>
+
+              {walletSummary.recentTransactions && walletSummary.recentTransactions.length > 0 ? (
+                <div className="space-y-3 mt-2">
+                  <div className="flex items-center justify-between px-2">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-brand-primary font-black">
+                      Ledger Logs
+                    </p>
+                    <p className="text-[8px] uppercase tracking-[0.2em] text-gray-600 font-black">
+                      Last 5 Actions
+                    </p>
+                  </div>
+                  <ul className="grid gap-2">
+                    {walletSummary.recentTransactions.map((tx) => {
+                      const isIncome = tx.amount > 0;
+                      const formattedTime = new Date(tx.createdAt).toLocaleTimeString(undefined, {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      });
+                      return (
+                        <li
+                          key={tx.id}
+                          className="flex flex-col bg-white/5 border border-white/5 px-4 py-2 hover:bg-brand-primary/5 hover:border-brand-primary/30 transition-all font-mono"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[9px] uppercase tracking-wider text-gray-400 font-black truncate max-w-[240px]">
+                              {tx.description}
+                            </span>
+                            <span className={`text-xs font-bold ${isIncome ? "text-green-400" : "text-brand-tertiary"}`}>
+                              {isIncome ? "+" : ""}
+                              {formatCurrencyAmount(tx.amount, walletSummary.currencyCode)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between mt-1 text-[8px] text-gray-500">
+                            <span className="uppercase tracking-widest text-brand-secondary/80 bg-white/5 px-1 rounded text-[7px] font-bold">
+                              {tx.category}
+                            </span>
+                            <span>{formattedTime}</span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ) : (
+                walletSummaryData && (
+                  <div className="text-center py-4 bg-white/5 border border-white/5 font-mono text-[9px] text-gray-500 uppercase tracking-widest">
+                    No recent transactions recorded
+                  </div>
+                )
+              )}
             </div>
             <Button
               onClick={() => setIsWalletModalOpen(false)}
@@ -2052,6 +2229,85 @@ export default function TownPage({
                           </span>
                         </div>
                       </button>
+
+                      {/* MAINTENANCE PORTAL */}
+                      {maintenanceData && (
+                        <div className="pt-4 border-t border-white/10 mt-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-[10px] uppercase font-black text-brand-primary tracking-[0.2em]">
+                              Property Maintenance
+                            </h3>
+                            <span className="text-[8px] font-mono text-gray-500 uppercase tracking-widest">
+                              Last swept: {maintenanceData.lastSweptDateKey || "Never"}
+                            </span>
+                          </div>
+
+                          {maintenanceData.level === 0 ? (
+                            <div className="p-3 bg-white/5 border border-white/5 text-[9px] font-mono text-gray-400 uppercase tracking-wider text-center">
+                              Level 0 properties are inactive. Upgrade this asset below to activate daily party hosting and generate income!
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              <div className="p-3 bg-black/40 border border-white/5 space-y-2">
+                                <div className="flex items-center justify-between text-[8px] uppercase tracking-widest font-mono text-gray-500">
+                                  <span>Required Goods</span>
+                                  <span>Status</span>
+                                </div>
+                                <ul className="space-y-1">
+                                  {maintenanceData.checklist.map((item: any) => (
+                                    <li
+                                      key={item.key}
+                                      className="flex items-center justify-between text-[10px] font-mono p-1 border-b border-white/5 last:border-b-0"
+                                    >
+                                      <span className="uppercase text-gray-300">
+                                        {item.key} <span className="text-gray-500">(x{item.required})</span>
+                                      </span>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[8px] text-gray-500">Stock: {item.inStock}</span>
+                                        {item.satisfied ? (
+                                          <span className="text-green-400 font-bold">✓</span>
+                                        ) : (
+                                          <span className="text-brand-tertiary font-bold animate-pulse">✗</span>
+                                        )}
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+
+                              {/* Yield Payout Status */}
+                              {(() => {
+                                const allSatisfied = maintenanceData.checklist.every((item: any) => item.satisfied);
+                                const standardIncome = maintenanceData.income;
+                                const penaltyIncome = Math.round(standardIncome * 0.1);
+                                return (
+                                  <div className={`p-4 border ${allSatisfied ? "border-green-500/20 bg-green-500/5 text-green-400" : "border-brand-tertiary/20 bg-brand-tertiary/5 text-brand-tertiary"} space-y-1`}>
+                                    <div className="flex justify-between items-center text-[10px] uppercase tracking-[0.15em] font-black">
+                                      <span>Daily Party Yield</span>
+                                      <span>
+                                        {allSatisfied ? "Standard Rate" : "Delinquent Penalty"}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between items-baseline">
+                                      <span className="text-2xl font-black italic tracking-tighter">
+                                        ${allSatisfied ? standardIncome.toLocaleString() : penaltyIncome.toLocaleString()}
+                                      </span>
+                                      <span className="text-[8px] font-mono text-gray-500 uppercase tracking-widest">
+                                        / Daily Sweep
+                                      </span>
+                                    </div>
+                                    {!allSatisfied && (
+                                      <div className="text-[8px] font-mono uppercase tracking-wider text-brand-tertiary/80 mt-1 leading-normal">
+                                        ⚠️ Missing inventory goods! 90% revenue deduction active. Buy imports in wholesale harbour to recover full profits.
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       {/* UPGRADE LOGIC */}
                       {selectedBuilding && !["21", "24", "25", "26"].includes(selectedBuilding.id) && (
@@ -2351,6 +2607,12 @@ export default function TownPage({
         onClose={() => setProfileModalOpen(false)}
         characterId={profileModalCharacterId || ""}
         currentUserId={currentUser?.character?.id}
+      />
+
+      <MailboxModal
+        isOpen={isMailModalOpen}
+        onClose={() => setIsMailModalOpen(false)}
+        onMailChanged={refreshUnreadMailCount}
       />
 
       <Dialog

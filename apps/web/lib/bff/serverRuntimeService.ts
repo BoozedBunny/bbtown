@@ -1,5 +1,8 @@
 
+import { logTransaction } from "./ledgerService";
+
 const STRAPI_BASE_URL = process.env.STRAPI_URL ?? "http://127.0.0.1:1339";
+
 
 function getStrapiServiceHeaders(): HeadersInit | null {
   const token = process.env.STRAPI_API_TOKEN;
@@ -410,12 +413,20 @@ export async function buyStockForCharacter(input: {
     walletAfterTrade: newWallet,
   });
 
+  await logTransaction(
+    profile.documentId ?? String(profile.id),
+    -cost,
+    "TRADING",
+    `Bought ${input.quantity}x ${input.symbol} Stock`
+  );
+
   return {
     ok: true as const,
     cost,
     newWallet,
   };
 }
+
 
 export async function sellStockForCharacter(input: {
   username: string;
@@ -467,12 +478,20 @@ export async function sellStockForCharacter(input: {
     walletAfterTrade: newWallet,
   });
 
+  await logTransaction(
+    profile.documentId ?? String(profile.id),
+    gain,
+    "TRADING",
+    `Sold ${input.quantity}x ${input.symbol} Stock`
+  );
+
   return {
     ok: true as const,
     gain,
     newWallet,
   };
 }
+
 
 async function getStrapiProfileByUsername(username: string): Promise<any | null> {
   const authUserId = await resolveStrapiNumericUserIdByUsername(username);
@@ -512,7 +531,9 @@ export async function applyArenaResult(input: {
           experience: Number(winner.experience ?? 0) + 50,
           wallet: Number(winner.wallet ?? 0) + input.reward,
         });
+        await logTransaction(id, input.reward, "REWARDS", "Arena Match Victory Reward");
       }
+
     }
 
     if (input.loser) {

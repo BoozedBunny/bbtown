@@ -464,6 +464,7 @@ export interface ApiBuildingStateBuildingState
     forSale: Schema.Attribute.Boolean &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<true>;
+    lastSweptDateKey: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -567,6 +568,85 @@ export interface ApiGlobalSettingGlobalSetting extends Struct.SingleTypeSchema {
     maintenanceMode: Schema.Attribute.Boolean &
       Schema.Attribute.DefaultTo<false>;
     newsTicker: Schema.Attribute.Text;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiInventoryItemInventoryItem
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'inventory_items';
+  info: {
+    description: 'Stacked item holdings in player bag slots';
+    displayName: 'Inventory Item';
+    pluralName: 'inventory-items';
+    singularName: 'inventory-item';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    item: Schema.Attribute.Relation<'manyToOne', 'api::item.item'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::inventory-item.inventory-item'
+    > &
+      Schema.Attribute.Private;
+    playerProfile: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::player-profile.player-profile'
+    >;
+    publishedAt: Schema.Attribute.DateTime;
+    quantity: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<1>;
+    slotIndex: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiItemItem extends Struct.CollectionTypeSchema {
+  collectionName: 'items';
+  info: {
+    description: 'Static database of game items and consumables';
+    displayName: 'Item';
+    pluralName: 'items';
+    singularName: 'item';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    baseValue: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    category: Schema.Attribute.Enumeration<
+      ['CONSUMABLE', 'EQUIPMENT', 'MATERIAL', 'OTHER']
+    > &
+      Schema.Attribute.DefaultTo<'MATERIAL'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    displayName: Schema.Attribute.String & Schema.Attribute.Required;
+    key: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::item.item'> &
+      Schema.Attribute.Private;
+    maxStackSize: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<99>;
     publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -693,6 +773,51 @@ export interface ApiLoanStateLoanState extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiMailMessageMailMessage extends Struct.CollectionTypeSchema {
+  collectionName: 'mail_messages';
+  info: {
+    description: 'User notifications, system messages, and trade requests';
+    displayName: 'Mail Message';
+    pluralName: 'mail-messages';
+    singularName: 'mail-message';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    body: Schema.Attribute.Text & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    isRead: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<false>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::mail-message.mail-message'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    recipient: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::player-profile.player-profile'
+    > &
+      Schema.Attribute.Required;
+    sender: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::player-profile.player-profile'
+    >;
+    subject: Schema.Attribute.String & Schema.Attribute.Required;
+    type: Schema.Attribute.Enumeration<['SYSTEM', 'TRADE_PROPOSAL']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'SYSTEM'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiPlayerProfilePlayerProfile
   extends Struct.CollectionTypeSchema {
   collectionName: 'player_profiles';
@@ -719,6 +844,10 @@ export interface ApiPlayerProfilePlayerProfile
     description: Schema.Attribute.Text;
     displayName: Schema.Attribute.String & Schema.Attribute.Required;
     experience: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    inventoryItems: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::inventory-item.inventory-item'
+    >;
     lastSoloArenaAt: Schema.Attribute.DateTime;
     loanLockedUntil: Schema.Attribute.DateTime;
     loanStatus: Schema.Attribute.Enumeration<['NONE', 'ACTIVE', 'DELINQUENT']> &
@@ -734,6 +863,10 @@ export interface ApiPlayerProfilePlayerProfile
       'api::portfolio-item.portfolio-item'
     >;
     publishedAt: Schema.Attribute.DateTime;
+    transactions: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::transaction.transaction'
+    >;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -935,6 +1068,106 @@ export interface ApiTownTown extends Struct.CollectionTypeSchema {
     townId: Schema.Attribute.Integer &
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiTradeProposalTradeProposal
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'trade_proposals';
+  info: {
+    description: 'P2P Trade negotiations with locked escrow';
+    displayName: 'Trade Proposal';
+    pluralName: 'trade-proposals';
+    singularName: 'trade-proposal';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::trade-proposal.trade-proposal'
+    > &
+      Schema.Attribute.Private;
+    offeredCredits: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    offeredItems: Schema.Attribute.JSON;
+    proposer: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::player-profile.player-profile'
+    > &
+      Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    receiver: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::player-profile.player-profile'
+    > &
+      Schema.Attribute.Required;
+    requestedCredits: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    requestedItems: Schema.Attribute.JSON;
+    status: Schema.Attribute.Enumeration<
+      ['PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'PENDING'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiTransactionTransaction extends Struct.CollectionTypeSchema {
+  collectionName: 'transactions';
+  info: {
+    description: 'Financial ledger transactions for player profiles';
+    displayName: 'Transaction';
+    pluralName: 'transactions';
+    singularName: 'transaction';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    amount: Schema.Attribute.Integer & Schema.Attribute.Required;
+    category: Schema.Attribute.Enumeration<
+      [
+        'TRADING',
+        'QUESTS',
+        'REWARDS',
+        'FEES',
+        'MAINTENANCE',
+        'PARTY',
+        'TRADE_P2P',
+        'OTHER',
+      ]
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'OTHER'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.String & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::transaction.transaction'
+    > &
+      Schema.Attribute.Private;
+    playerProfile: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::player-profile.player-profile'
+    >;
+    publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1538,15 +1771,20 @@ declare module '@strapi/strapi' {
       'api::building-state.building-state': ApiBuildingStateBuildingState;
       'api::building.building': ApiBuildingBuilding;
       'api::global-setting.global-setting': ApiGlobalSettingGlobalSetting;
+      'api::inventory-item.inventory-item': ApiInventoryItemInventoryItem;
+      'api::item.item': ApiItemItem;
       'api::loan-operation.loan-operation': ApiLoanOperationLoanOperation;
       'api::loan-repayment.loan-repayment': ApiLoanRepaymentLoanRepayment;
       'api::loan-state.loan-state': ApiLoanStateLoanState;
+      'api::mail-message.mail-message': ApiMailMessageMailMessage;
       'api::player-profile.player-profile': ApiPlayerProfilePlayerProfile;
       'api::portfolio-item.portfolio-item': ApiPortfolioItemPortfolioItem;
       'api::stock-history.stock-history': ApiStockHistoryStockHistory;
       'api::stock.stock': ApiStockStock;
       'api::town-news.town-news': ApiTownNewsTownNews;
       'api::town.town': ApiTownTown;
+      'api::trade-proposal.trade-proposal': ApiTradeProposalTradeProposal;
+      'api::transaction.transaction': ApiTransactionTransaction;
       'api::treasury-day-snapshot.treasury-day-snapshot': ApiTreasuryDaySnapshotTreasuryDaySnapshot;
       'api::treasury-ledger-entry.treasury-ledger-entry': ApiTreasuryLedgerEntryTreasuryLedgerEntry;
       'plugin::content-releases.release': PluginContentReleasesRelease;
