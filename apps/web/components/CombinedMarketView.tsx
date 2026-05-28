@@ -323,14 +323,14 @@ export function CombinedMarketView({
   const playerLevel = getLevelFromXP(experience);
   const ownedStock = useMemo(() => {
     if (!characterId) return null;
-    return stocks.find((s) => s.owner?.id === characterId);
+    return stocks.find((s) => s.owner && (String(s.owner.id) === String(characterId) || s.owner.documentId === characterId));
   }, [stocks, characterId]);
 
   const processedStocks = useMemo(() => {
     if (!characterId) return stocks;
     return [...stocks].sort((a, b) => {
-      const aOwned = a.owner?.id === characterId;
-      const bOwned = b.owner?.id === characterId;
+      const aOwned = a.owner && (String(a.owner.id) === String(characterId) || a.owner.documentId === characterId);
+      const bOwned = b.owner && (String(b.owner.id) === String(characterId) || b.owner.documentId === characterId);
       if (aOwned && !bOwned) return -1;
       if (!aOwned && bOwned) return 1;
       return 0;
@@ -630,7 +630,7 @@ export function CombinedMarketView({
                       const diff = stock.price - stock.previousPrice;
                       const isUp = diff >= 0;
                       const owned = getHoldingForSymbol(stock.symbol);
-                      const isOwned = stock.owner?.id === characterId;
+                      const isOwned = stock.owner && (String(stock.owner.id) === String(characterId) || stock.owner.documentId === characterId);
                       return (
                         <button
                           key={stock.id}
@@ -723,7 +723,7 @@ export function CombinedMarketView({
                   </div>
 
                   {/* Upgrade Brand section if owned by current user */}
-                  {selectedStock && selectedStock.owner?.id === characterId && (
+                  {selectedStock && selectedStock.owner && (String(selectedStock.owner.id) === String(characterId) || selectedStock.owner.documentId === characterId) && (
                     <div className="p-4 bg-brand-primary/10 border border-brand-primary/30 rounded-xl space-y-3 shadow-[0_0_15px_rgba(189,0,255,0.05)]">
                       <div className="flex justify-between items-center">
                         <div>
