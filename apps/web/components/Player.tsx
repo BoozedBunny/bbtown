@@ -48,6 +48,13 @@ type GLTFResult = GLTF & {
   animations: GLTFAction[];
 };
 
+const AVATAR_SCALES: Record<string, number> = {
+  bunny: 0.85,
+  cowie: 0.82,
+  nutty: 1.05,
+  skunky: 1.0,
+};
+
 export function Model({ currentAction = "Idle_1", avatar = "bunny", ...props }: any) {
   const group = React.useRef<THREE.Group>(null);
   const { scene, animations } = useGLTF(`https://www.boozedbunnytown.com/media/models/player_${avatar}.glb`);
@@ -69,19 +76,23 @@ export function Model({ currentAction = "Idle_1", avatar = "bunny", ...props }: 
     }
   }, [currentAction, actions]);
 
+  const scaleFactor = AVATAR_SCALES[avatar] ?? 1.0;
+
   return (
     <group ref={group} {...props} dispose={null}>
-      <group name="Scene">
-        <group name="Armature" scale={0.01}>
-          <primitive object={nodes.Hips} />
+      <group scale={[scaleFactor, scaleFactor, scaleFactor]}>
+        <group name="Scene">
+          <group name="Armature" scale={0.01}>
+            <primitive object={nodes.Hips} />
+          </group>
+          <skinnedMesh
+            name="char1"
+            geometry={nodes.char1.geometry}
+            material={materials.Material_1}
+            skeleton={nodes.char1.skeleton}
+            scale={0.01}
+          />
         </group>
-        <skinnedMesh
-          name="char1"
-          geometry={nodes.char1.geometry}
-          material={materials.Material_1}
-          skeleton={nodes.char1.skeleton}
-          scale={0.01}
-        />
       </group>
     </group>
   );
