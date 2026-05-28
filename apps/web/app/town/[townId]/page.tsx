@@ -492,6 +492,7 @@ export default function TownPage({
   const [matchmakingStatus, setMatchmakingStatus] = useState<
     "idle" | "searching" | "matched"
   >("idle");
+  const [opponentAvatar, setOpponentAvatar] = useState<string | null>(null);
   const [isTopNavMenuOpen, setIsTopNavMenuOpen] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [walletSummaryData, setWalletSummaryData] = useState<any>(null);
@@ -1018,8 +1019,13 @@ export default function TownPage({
       refreshUnreadMailCount();
     });
 
-    socketInstance.on("match_found", ({ gameRoomId }) => {
+    socketInstance.on("match_found", ({ gameRoomId, opponentAvatar }) => {
       setMatchmakingStatus("matched");
+      if (opponentAvatar) {
+        setOpponentAvatar(opponentAvatar);
+      } else {
+        setOpponentAvatar(null);
+      }
       router.push(`/arena/${gameRoomId}`);
     });
 
@@ -2727,6 +2733,7 @@ export default function TownPage({
 
                   <button
                     onClick={() => {
+                      setOpponentAvatar(null);
                       setMatchmakingStatus("matched");
                       socket?.emit("join_singleplayer_arena");
                     }}
@@ -2758,6 +2765,7 @@ export default function TownPage({
 
                   <button
                     onClick={() => {
+                      setOpponentAvatar(null);
                       setMatchmakingStatus("searching");
                       socket?.emit("join_arena");
                     }}
@@ -2810,6 +2818,7 @@ export default function TownPage({
                   </div>
                   <button
                     onClick={() => {
+                      setOpponentAvatar(null);
                       socket?.emit("leave_arena");
                       setMatchmakingStatus("idle");
                     }}
@@ -2824,20 +2833,36 @@ export default function TownPage({
                 <div className="flex flex-col items-center justify-center py-4 space-y-8 animate-in zoom-in-95 duration-500">
                   <div className="flex items-center gap-12">
                     <div className="flex flex-col items-center gap-3">
-                      <div className="w-20 h-20 bg-brand-primary border-2 border-white/20 flex items-center justify-center shadow-[0_0_30px_rgba(189,0,255,0.4)] ">
-                        <span className="text-white font-black italic text-2xl">
-                          YOU
-                        </span>
+                      <div className="w-20 h-20 bg-brand-primary border-2 border-white/20 flex items-center justify-center shadow-[0_0_30px_rgba(189,0,255,0.4)] overflow-hidden">
+                        {currentUser?.character?.avatar ? (
+                          <img
+                            src={`https://www.boozedbunnytown.com/media/avatars/${currentUser.character.avatar}_avatar.webp`}
+                            alt="You"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-white font-black italic text-2xl">
+                            YOU
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="text-4xl font-black italic text-brand-secondary tracking-tighter animate-pulse">
                       VS
                     </div>
                     <div className="flex flex-col items-center gap-3">
-                      <div className="w-20 h-20 bg-brand-secondary border-2 border-white/20 flex items-center justify-center shadow-[0_0_30px_rgba(255,184,0,0.4)] ">
-                        <span className="text-black font-black italic text-2xl">
-                          OPP
-                        </span>
+                      <div className="w-20 h-20 bg-brand-secondary border-2 border-white/20 flex items-center justify-center shadow-[0_0_30px_rgba(255,184,0,0.4)] overflow-hidden">
+                        {opponentAvatar ? (
+                          <img
+                            src={`https://www.boozedbunnytown.com/media/avatars/${opponentAvatar}_avatar.webp`}
+                            alt="Opponent"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-black font-black italic text-2xl">
+                            OPP
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

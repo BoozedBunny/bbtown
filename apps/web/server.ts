@@ -48,7 +48,7 @@ app.prepare().then(async () => {
   (global as any).io = io;
 
   // Arena Matchmaking Queue
-  const matchmakingQueue: { socketId: string; username: string }[] = [];
+  const matchmakingQueue: { socketId: string; username: string; avatar: string }[] = [];
   const chatSubscriptionsBySocket = new Map<string, Set<string>>();
   const chatSocketsByUser = new Map<string, Set<string>>();
   const chatMessageHistory = new Map<
@@ -762,7 +762,7 @@ app.prepare().then(async () => {
     });
 
     // Arena Matchmaking & Game Logic
-    socket.on("join_arena", () => {
+    socket.on("join_arena", async () => {
       if (!mockUser) return;
 
       // Check if already in queue
@@ -770,7 +770,18 @@ app.prepare().then(async () => {
         return;
       }
 
-      matchmakingQueue.push({ socketId: socket.id, username: mockUser });
+      let avatar = "bunny";
+      if (sessionToken) {
+        try {
+          const me = await strapiMe(sessionToken);
+          const profile = await getPlayerProfile(sessionToken, me.id);
+          avatar = profile?.avatar ?? "bunny";
+        } catch (e) {
+          console.error("Failed to fetch avatar for matchmaking", e);
+        }
+      }
+
+      matchmakingQueue.push({ socketId: socket.id, username: mockUser, avatar });
       console.log(
         `User ${mockUser} joined arena queue. Queue size: ${matchmakingQueue.length}`,
       );
@@ -794,8 +805,16 @@ app.prepare().then(async () => {
           `Match found! ${player1.username} vs ${player2.username}. Room: ${gameRoomId}`,
         );
 
-        io.to(player1.socketId).emit("match_found", { gameRoomId });
-        io.to(player2.socketId).emit("match_found", { gameRoomId });
+        io.to(player1.socketId).emit("match_found", {
+          gameRoomId,
+          opponentUsername: player2.username,
+          opponentAvatar: player2.avatar,
+        });
+        io.to(player2.socketId).emit("match_found", {
+          gameRoomId,
+          opponentUsername: player1.username,
+          opponentAvatar: player1.avatar,
+        });
       }
     });
 
