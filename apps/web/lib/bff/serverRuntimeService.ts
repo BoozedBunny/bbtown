@@ -523,6 +523,9 @@ export async function applyArenaResult(input: {
   roundsReached: number;
 }) {
   if (!input.isSolo) {
+    if (input.roundsReached < 2) {
+      return;
+    }
     if (input.winner) {
       const winner = await getStrapiProfileByUsername(input.winner);
       if (winner) {

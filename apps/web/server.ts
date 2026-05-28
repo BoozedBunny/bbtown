@@ -928,7 +928,6 @@ app.prepare().then(async () => {
         );
         const winner = winnerPlayer?.username;
         const isSolo = roomId.startsWith("solo-");
-        const reward = isSolo ? 0 : 1000;
         const endedAt = Date.now();
         const elapsedSeconds = Math.max(
           0,
@@ -941,6 +940,7 @@ app.prepare().then(async () => {
             Math.floor(elapsedSeconds / ROUND_DURATION_SECONDS) + 1,
           ),
         );
+        const reward = (isSolo || (!isSolo && roundsReached < 2)) ? 0 : 1000;
 
         const toplistPayload: PostMatchEntry[] = Object.values(
           game.players,
