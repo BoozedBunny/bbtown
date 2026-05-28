@@ -13,6 +13,7 @@ import {
   RoundedBox,
   Sparkles,
   Box,
+  Html,
 } from "@react-three/drei";
 import { io, Socket } from "socket.io-client";
 import { Loader2, Swords, Trophy, Users } from "lucide-react";
@@ -758,7 +759,48 @@ function ArenaScene({
             />
           ))}
 
-        {isDevMode && <OrbitControls makeDefault />}
+        {isDevMode && (
+          <>
+            <OrbitControls makeDefault />
+            
+            {/* Display all four player avatars side-by-side to compare sizes */}
+            <group position={[-4, 1.4, 0]}>
+              <Player currentAction="Idle_1" avatar="bunny" />
+              <Html distanceFactor={12} position={[0, 1.8, 0]} center>
+                <div className="bg-black/90 text-white font-mono text-[10px] font-bold px-2.5 py-1 rounded border border-brand-primary whitespace-nowrap uppercase tracking-wider shadow-lg">
+                  🐰 Bunny
+                </div>
+              </Html>
+            </group>
+
+            <group position={[-1.3, 1.4, 0]}>
+              <Player currentAction="Idle_1" avatar="cowie" />
+              <Html distanceFactor={12} position={[0, 1.8, 0]} center>
+                <div className="bg-black/90 text-white font-mono text-[10px] font-bold px-2.5 py-1 rounded border border-brand-primary whitespace-nowrap uppercase tracking-wider shadow-lg">
+                  🐮 Cowie
+                </div>
+              </Html>
+            </group>
+
+            <group position={[1.3, 1.4, 0]}>
+              <Player currentAction="Idle_1" avatar="nutty" />
+              <Html distanceFactor={12} position={[0, 1.8, 0]} center>
+                <div className="bg-black/90 text-white font-mono text-[10px] font-bold px-2.5 py-1 rounded border border-brand-primary whitespace-nowrap uppercase tracking-wider shadow-lg">
+                  🐿️ Nutty
+                </div>
+              </Html>
+            </group>
+
+            <group position={[4, 1.4, 0]}>
+              <Player currentAction="Idle_1" avatar="skunky" />
+              <Html distanceFactor={12} position={[0, 1.8, 0]} center>
+                <div className="bg-black/90 text-white font-mono text-[10px] font-bold px-2.5 py-1 rounded border border-brand-primary whitespace-nowrap uppercase tracking-wider shadow-lg">
+                  🦨 Skunky
+                </div>
+              </Html>
+            </group>
+          </>
+        )}
         {status === "playing" && !isDevMode && (
           <LocalPlayer
             onMove={onMove}
