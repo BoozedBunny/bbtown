@@ -1,4 +1,7 @@
+import { logTransaction } from "./ledgerService";
+
 const STRAPI_BASE_URL = process.env.STRAPI_URL ?? "http://127.0.0.1:1339";
+
 
 type ProfileLite = {
   id: number;
@@ -140,12 +143,26 @@ export async function buyBuildingState(input: { buildingId: string; characterId:
     const ownerIdentifier = owner.documentId ?? String(owner.id);
     const sellerProfile = await fetchProfileByIdentifier(ownerIdentifier);
     await updateProfileWalletByIdOrDoc(sellerProfile, Number(sellerProfile.wallet ?? 0) + price);
+    await logTransaction(
+      sellerProfile.documentId ?? String(sellerProfile.id),
+      price,
+      "TRADING",
+      `Sold building: ${building.title || "Property"}`
+    );
   } else {
     const townId = building.town?.townId ?? "1";
     await updateTownBankBalanceByTownId(townId, price);
   }
 
   await updateProfileWalletByIdOrDoc(buyer, buyerWallet - price);
+
+  await logTransaction(
+    buyer.documentId ?? String(buyer.id),
+    -price,
+    "FEES",
+    `Purchased building: ${building.title || "Property"}`
+  );
+
 
   const headers = getHeaders();
   const buildingIdentifier = building.documentId ?? String(building.id);
@@ -256,6 +273,14 @@ export async function upgradeBuildingState(buildingId: string, characterId: stri
 
   // Deduct cost
   await updateProfileWalletByIdOrDoc(buyer, buyerWallet - cost);
+
+  await logTransaction(
+    buyer.documentId ?? String(buyer.id),
+    -cost,
+    "FEES",
+    `Upgraded building: ${building.title || "Property"} to Level ${currentLevel + 1}`
+  );
+
 
   const upgradeEndsAt = new Date(Date.now() + durationMs).toISOString();
 

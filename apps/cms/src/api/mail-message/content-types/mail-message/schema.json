@@ -1,0 +1,48 @@
+{
+  "kind": "collectionType",
+  "collectionName": "mail_messages",
+  "info": {
+    "singularName": "mail-message",
+    "pluralName": "mail-messages",
+    "displayName": "Mail Message",
+    "description": "User notifications, system messages, and trade requests"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "sender": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::player-profile.player-profile"
+    },
+    "recipient": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::player-profile.player-profile",
+      "required": true
+    },
+    "subject": {
+      "type": "string",
+      "required": true
+    },
+    "body": {
+      "type": "text",
+      "required": true
+    },
+    "isRead": {
+      "type": "boolean",
+      "default": false,
+      "required": true
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "SYSTEM",
+        "TRADE_PROPOSAL"
+      ],
+      "default": "SYSTEM",
+      "required": true
+    }
+  }
+}

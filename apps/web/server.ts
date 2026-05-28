@@ -5,6 +5,7 @@ import { Server } from "socket.io";
 import express from "express";
 import { runTreasuryDailySettlement } from "./lib/treasury/treasuryService";
 import { runLoanDelinquencySweep } from "./lib/treasury/loanService";
+import { runBuildingMaintenanceAndPartyIncomeSweep } from "./lib/bff/maintenanceService";
 import { PostMatchEntry, setGlobalToplist } from "./lib/arena/toplist";
 import {
   DEFAULT_ROUND_TRANSITION_CONFIG,
@@ -44,6 +45,7 @@ app.prepare().then(async () => {
   const server = express();
   const httpServer = createServer(server);
   const io = new Server(httpServer);
+  (global as any).io = io;
 
   // Arena Matchmaking Queue
   const matchmakingQueue: { socketId: string; username: string }[] = [];
@@ -309,6 +311,11 @@ app.prepare().then(async () => {
     try {
       await runTreasuryDailySettlement();
       await runLoanDelinquencySweep();
+      const sweptAny = await runBuildingMaintenanceAndPartyIncomeSweep();
+      if (sweptAny) {
+        io.emit("portfolio_updated");
+        io.emit("building_updated");
+      }
     } catch (error) {
       console.error("Treasury/loan settlement failed", error);
     }

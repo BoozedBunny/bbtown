@@ -59,6 +59,19 @@
       "relation": "oneToMany",
       "target": "api::portfolio-item.portfolio-item",
       "mappedBy": "playerProfile"
+    },
+    "inventoryItems": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::inventory-item.inventory-item",
+      "mappedBy": "playerProfile"
+    },
+    "transactions": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::transaction.transaction",
+      "mappedBy": "playerProfile"
     }
+
   }
 }

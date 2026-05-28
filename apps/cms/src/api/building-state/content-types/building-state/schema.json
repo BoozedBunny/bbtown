@@ -58,6 +58,9 @@
     },
     "upgradeEndsAt": {
       "type": "datetime"
+    },
+    "lastSweptDateKey": {
+      "type": "string"
     }
   }
 }

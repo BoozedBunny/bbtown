@@ -1,0 +1,54 @@
+{
+  "kind": "collectionType",
+  "collectionName": "trade_proposals",
+  "info": {
+    "singularName": "trade-proposal",
+    "pluralName": "trade-proposals",
+    "displayName": "Trade Proposal",
+    "description": "P2P Trade negotiations with locked escrow"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "proposer": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::player-profile.player-profile",
+      "required": true
+    },
+    "receiver": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::player-profile.player-profile",
+      "required": true
+    },
+    "offeredCredits": {
+      "type": "integer",
+      "default": 0,
+      "required": true
+    },
+    "requestedCredits": {
+      "type": "integer",
+      "default": 0,
+      "required": true
+    },
+    "offeredItems": {
+      "type": "json"
+    },
+    "requestedItems": {
+      "type": "json"
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": [
+        "PENDING",
+        "ACCEPTED",
+        "REJECTED",
+        "CANCELLED"
+      ],
+      "default": "PENDING",
+      "required": true
+    }
+  }
+}

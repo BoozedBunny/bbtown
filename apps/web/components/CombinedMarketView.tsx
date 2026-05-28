@@ -11,6 +11,10 @@ import { ArrowDownCircle, ArrowLeft, ArrowUpCircle, ShoppingBag, Wallet } from "
 import { toast } from "sonner";
 import type { CentralManagementIntent, CentralManagementTab } from "@/lib/ui/centralManagementIntent";
 import { getLevelFromXP } from "@/lib/leveling";
+import { InventoryGrid } from "./InventoryGrid";
+import { WholesaleMarket } from "./WholesaleMarket";
+import { P2PTradePanel } from "./P2PTradePanel";
+
 
 type Stock = {
   id: string;
@@ -106,6 +110,23 @@ export function CombinedMarketView({
   const [loanPrincipalInput, setLoanPrincipalInput] = useState(1000);
   const [repayAmountInput, setRepayAmountInput] = useState(100);
   const [loanBusy, setLoanBusy] = useState(false);
+  const [inventory, setInventory] = useState<any | null>(null);
+
+  const refreshInventory = async () => {
+    try {
+      const res = await fetch("/api/inventory/me", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        setInventory(data);
+        if (data.wallet !== undefined) {
+          setWallet(data.wallet);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to refresh inventory", err);
+    }
+  };
+
   
   const buyQueueRef = useRef(0);
   const sellQueueRef = useRef(0);
@@ -162,9 +183,11 @@ export function CombinedMarketView({
         const loanData = await loanRes.json();
         setLoanState(loanData.loan ?? null);
       }
+      await refreshInventory();
     };
     if (open) fetchData();
   }, [open, townData?.id]);
+
 
   useEffect(() => {
     if (!socket) return;
@@ -465,7 +488,11 @@ export function CombinedMarketView({
               <TabsTrigger value="treasury" className="data-[state=active]:bg-brand-primary data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest">Treasury</TabsTrigger>
               <TabsTrigger value="market" className="data-[state=active]:bg-brand-primary data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest">Market</TabsTrigger>
               <TabsTrigger value="news" className="data-[state=active]:bg-brand-primary data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest">News</TabsTrigger>
+              <TabsTrigger value="inventory" className="data-[state=active]:bg-brand-primary data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest">Bag</TabsTrigger>
+              <TabsTrigger value="wholesale" className="data-[state=active]:bg-brand-primary data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest">Imports</TabsTrigger>
+              <TabsTrigger value="p2p" className="data-[state=active]:bg-brand-primary data-[state=active]:text-white uppercase text-[10px] font-black tracking-widest">P2P Trade</TabsTrigger>
             </TabsList>
+
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto overflow-x-clip p-6">
@@ -728,6 +755,33 @@ export function CombinedMarketView({
             <TabsContent value="news" className="mt-0 h-full">
               <NewsFeedSurface mode="modal" townId={townId} />
             </TabsContent>
+
+            <TabsContent value="inventory" className="mt-0">
+              <InventoryGrid
+                slots={inventory?.slots ?? []}
+                capacity={inventory?.capacity ?? 16}
+                wallet={inventory?.wallet ?? wallet}
+                level={inventory?.level ?? 1}
+                onRefresh={refreshInventory}
+              />
+            </TabsContent>
+
+            <TabsContent value="wholesale" className="mt-0">
+              <WholesaleMarket
+                wallet={inventory?.wallet ?? wallet}
+                onPurchaseComplete={refreshInventory}
+              />
+            </TabsContent>
+
+            <TabsContent value="p2p" className="mt-0">
+              <P2PTradePanel
+                slots={inventory?.slots ?? []}
+                capacity={inventory?.capacity ?? 16}
+                wallet={inventory?.wallet ?? wallet}
+                onRefresh={refreshInventory}
+              />
+            </TabsContent>
+
           </div>
         </Tabs>
       </DialogContent>

@@ -1,0 +1,39 @@
+{
+  "kind": "collectionType",
+  "collectionName": "items",
+  "info": {
+    "singularName": "item",
+    "pluralName": "items",
+    "displayName": "Item",
+    "description": "Static database of game items and consumables"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "key": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "displayName": {
+      "type": "string",
+      "required": true
+    },
+    "category": {
+      "type": "enumeration",
+      "enum": ["CONSUMABLE", "EQUIPMENT", "MATERIAL", "OTHER"],
+      "default": "MATERIAL"
+    },
+    "baseValue": {
+      "type": "integer",
+      "required": true,
+      "default": 0
+    },
+    "maxStackSize": {
+      "type": "integer",
+      "required": true,
+      "default": 99
+    }
+  }
+}

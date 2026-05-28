@@ -1,4 +1,6 @@
 import crypto from "crypto";
+import { logTransaction } from "./ledgerService";
+
 import { treasuryConfig } from "@/lib/treasury/config";
 import { addUtcDays, toUtcDateKey } from "@/lib/treasury/utils";
 import { updatePlayerProfileByAuthUserId } from "@/lib/strapiAuth";
@@ -271,6 +273,14 @@ export async function issueLoan(characterId: string, quote: any, quoteHashValue:
   const nextWallet = profile.wallet + Number(quote.netDisbursement ?? 0);
   await updatePlayerProfileByAuthUserId(profile.authUserId, { wallet: nextWallet, loanStatus: "ACTIVE", loanLockedUntil: null });
 
+  await logTransaction(
+    characterId,
+    Number(quote.netDisbursement ?? 0),
+    "QUESTS",
+    `Credit line disbursed (Principal: ${quote.principal})`
+  );
+
+
   const now = new Date();
   const created = await strapiCreate<LoanStateRow>("/api/loan-states", {
     playerProfile: profile.id,
@@ -343,6 +353,14 @@ export async function repayLoan(characterId: string, loanId: string, amount: num
   } else {
     await updatePlayerProfileByAuthUserId(profile.authUserId, { wallet: nextWallet, loanStatus: "ACTIVE" });
   }
+
+  await logTransaction(
+    characterId,
+    -amount,
+    "FEES",
+    `Credit repayment executed (Paid: ${amount})`
+  );
+
 
   const result = {
     applied: { fees: appliedFees, interest: appliedInterest, principal: appliedPrincipal },
