@@ -778,8 +778,8 @@ app.prepare().then(async () => {
         errorCode: null,
       });
 
-      // Trigger AI NPC (Grumpy Bartender) asynchronously in the background for global chat
-      if (mockUser !== "grumpy_bartender" && roomId === "global") {
+      // Trigger AI NPC (Grumpy Bartender) asynchronously in the background for global or town chat
+      if (mockUser !== "grumpy_bartender" && (roomId === "global" || roomId.startsWith("town:"))) {
         (async () => {
           try {
             // Wait a tiny bit to make the response feel natural
