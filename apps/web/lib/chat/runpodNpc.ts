@@ -1,7 +1,7 @@
-const RUNPOD_ENDPOINT_URL = "https://api.runpod.ai/v2/j4tzv3jckwjp99";
+const RUNPOD_ENDPOINT_URL = "https://api.runpod.ai/v2/3n3lyfjnhcbz2p";
 
 /**
- * Sends a prompt to the RunPod serverless vLLM Gemma instance and polls until the job is completed.
+ * Sends a prompt to the RunPod serverless Gemma instance and polls until the job is completed.
  */
 export async function askRunPodBartender(userMessage: string): Promise<string> {
   const apiKey = process.env.RUNPOD_API_KEY;
@@ -13,6 +13,9 @@ export async function askRunPodBartender(userMessage: string): Promise<string> {
   try {
     // 1. Trigger the RunPod Serverless Job
     const runUrl = `${RUNPOD_ENDPOINT_URL}/run`;
+    const systemInstructions = "You are a grumpy, cynical bartender in a 3D browser game called BBTown. You are very easily annoyed. Keep your responses short, snappy, and irritated.";
+    const prompt = `<start_of_turn>user\n${systemInstructions}\n\nRespond to the following message from a customer:\n"${userMessage}"<end_of_turn>\n<start_of_turn>model\n`;
+
     const runResponse = await fetch(runUrl, {
       method: "POST",
       headers: {
@@ -21,18 +24,8 @@ export async function askRunPodBartender(userMessage: string): Promise<string> {
       },
       body: JSON.stringify({
         input: {
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are a grumpy, cynical bartender in a 3D browser game called BBTown. You are very easily annoyed. Keep your responses short, snappy, and irritated.",
-            },
-            {
-              role: "user",
-              content: userMessage,
-            },
-          ],
-          max_tokens: 120,
+          prompt,
+          max_new_tokens: 120,
           temperature: 0.8,
         },
       }),
