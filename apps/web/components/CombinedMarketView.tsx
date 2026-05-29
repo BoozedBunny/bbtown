@@ -29,7 +29,7 @@ type Stock = {
   changePct?: number;
   trend?: "UP" | "DOWN" | "FLAT";
   level?: number;
-  owner?: { id: string; displayName: string } | null;
+  owner?: { id: string; displayName: string; documentId?: string } | null;
 };
 
 type PortfolioItem = {
