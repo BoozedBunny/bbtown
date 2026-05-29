@@ -12,6 +12,7 @@ import {
   getRoundPhaseStateAt,
 } from "./lib/arena/roundPhases";
 import { GLOBAL_CHANNEL_KEY } from "./lib/chat/channel";
+import { askRunPodBartender } from "./lib/chat/runpodNpc";
 import type {
   ChatHistoryRequestPayload,
   ChatMessage,
@@ -506,6 +507,38 @@ app.prepare().then(async () => {
           serverMessageId: message.messageId,
           sentAt: message.sentAt,
         });
+
+        // Trigger AI NPC (Grumpy Bartender) asynchronously in the background
+        if (mockUser !== "grumpy_bartender") {
+          (async () => {
+            try {
+              // Wait a tiny bit to make the response feel natural
+              await new Promise((resolve) => setTimeout(resolve, 500));
+
+              const reply = await askRunPodBartender(body);
+
+              const npcMessage = {
+                messageId: `m_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`,
+                channel,
+                senderUserId: "grumpy_bartender",
+                senderName: "Grumpy Bartender",
+                body: reply,
+                mentions: [mockUser],
+                sentAt: new Date().toISOString(),
+              };
+
+              appendChatHistory(channel, npcMessage);
+
+              for (const entry of Array.from(chatSubscriptionsBySocket.entries())) {
+                const [targetSocketId, channels] = entry;
+                if (!channels.has(channel)) continue;
+                io.to(targetSocketId).emit("chat.message", npcMessage);
+              }
+            } catch (err) {
+              console.error("AI NPC reply generation failed:", err);
+            }
+          })();
+        }
       },
     );
 
