@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import type { Socket } from "socket.io-client";
 import { buildWhisperChannelKey } from "@/lib/chat/channel";
 import type { ChatMessage, ChatSendAckPayload } from "@/lib/chat/chatTypes";
@@ -28,7 +28,9 @@ export function TownChatPanel({
   const [recipientIndex, setRecipientIndex] = useState(0);
   const [compositionActive, setCompositionActive] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [activeChannel, setActiveChannel] = useState<"town" | "global">("town");
 
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const townRoomId = `town:${townId}`;
 
   useEffect(() => {
@@ -61,8 +63,9 @@ export function TownChatPanel({
       const msg = payload?.message;
       if (!msg) return;
       const isTown = msg.roomId === townRoomId;
+      const isGlobal = msg.roomId === "global";
       const isWhisper = msg.roomId.startsWith("whisper:");
-      if (!isTown && !isWhisper) return;
+      if (!isTown && !isGlobal && !isWhisper) return;
       upsertKnownUser(msg.senderId, msg.senderName);
       setMessages((prev) => [...prev.filter((existing) => existing.id !== msg.id), msg].slice(-120));
     };
@@ -82,7 +85,10 @@ export function TownChatPanel({
     socket.on("chat:history", onHistory);
     socket.on("chat:message", onMessage);
     socket.on("chat:send:ack", onAck);
+    
+    // Join and pull history for both Town and Global rooms
     socket.emit("chat:history:request", { roomId: townRoomId, limit: 80 });
+    socket.emit("chat:history:request", { roomId: "global", limit: 80 });
 
     return () => {
       socket.off("chat:history", onHistory);
@@ -90,6 +96,13 @@ export function TownChatPanel({
       socket.off("chat:send:ack", onAck);
     };
   }, [socket, townRoomId, currentUsername]);
+
+  // Auto-scroll to bottom of chat panel whenever new messages arrive or user switches channel
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages, activeChannel]);
 
   const commandToken = useMemo(() => {
     if (!inputValue.startsWith("/")) return "";
@@ -116,6 +129,18 @@ export function TownChatPanel({
     [recipientPool, recipientPrefix, currentUsername],
   );
 
+  const displayedMessages = useMemo(() => {
+    return messages.filter((msg) => {
+      const isWhisper = msg.roomId.startsWith("whisper:");
+      if (isWhisper) return true;
+      if (activeChannel === "global") {
+        return msg.roomId === "global";
+      } else {
+        return msg.roomId === townRoomId;
+      }
+    });
+  }, [messages, activeChannel, townRoomId]);
+
   const commandMenuOpen = inputValue.startsWith("/") && !recipientMode;
   const recipientMenuOpen = recipientMode;
   const selectedCommand = commandItems[Math.max(0, Math.min(commandIndex, commandItems.length - 1))];
@@ -129,8 +154,22 @@ export function TownChatPanel({
       return;
     }
     if (selectedCommand.command === "/help") {
-      setInlineError("Usage: /w <name> <message>");
+      const helpMessage: ChatMessage = {
+        id: `system_help_${Date.now()}`,
+        roomId: activeChannel === "global" ? "global" : townRoomId,
+        senderId: "system",
+        senderName: "SYSTEM",
+        body: `=== BBTOWN CHAT HELP ===
+• /help : Show this command list
+• /w <name> <msg> : Private whisper to a player
+• Channel Tabs: Switch between Town and Global chat rooms at the top of the panel
+• Bartender NPC: Send a message in Town or Global chat to talk to the Grumpy Bartender!`,
+        createdAtMs: Date.now(),
+        kind: "system"
+      };
+      setMessages((prev) => [...prev, helpMessage]);
       setInputValue("");
+      setInlineError(null);
     }
   };
 
@@ -145,6 +184,26 @@ export function TownChatPanel({
     if (!socket || !currentUsername) return;
     const parsed = parseChatInput(inputValue);
 
+    if (parsed.kind === "command" && parsed.command === "/help") {
+      const helpMessage: ChatMessage = {
+        id: `system_help_${Date.now()}`,
+        roomId: activeChannel === "global" ? "global" : townRoomId,
+        senderId: "system",
+        senderName: "SYSTEM",
+        body: `=== BBTOWN CHAT HELP ===
+• /help : Show this command list
+• /w <name> <msg> : Private whisper to a player
+• Channel Tabs: Switch between Town and Global chat rooms at the top of the panel
+• Bartender NPC: Send a message in Town or Global chat to talk to the Grumpy Bartender!`,
+        createdAtMs: Date.now(),
+        kind: "system"
+      };
+      setMessages((prev) => [...prev, helpMessage]);
+      setInputValue("");
+      setInlineError(null);
+      return;
+    }
+
     if (parsed.kind === "command") {
       commitCommand();
       return;
@@ -154,7 +213,7 @@ export function TownChatPanel({
       return;
     }
 
-    let roomId = townRoomId;
+    let roomId = activeChannel === "global" ? "global" : townRoomId;
     let body = parsed.kind === "plain" ? parsed.body.trim() : parsed.body.trim();
 
     if (parsed.kind === "whisper") {
@@ -201,23 +260,69 @@ export function TownChatPanel({
 
       {!isMinimized && (
         <>
-          <div className="mb-3 max-h-40 overflow-y-auto border border-white/5 bg-black/40 p-2 text-[11px] font-mono scrollbar-hide">
-        {messages.length === 0 ? <p className="text-gray-600 uppercase tracking-widest text-[9px]">Initializing feed...</p> : (
-          <ul className="space-y-1.5">
-            {messages.map((message) => {
-              const isWhisper = message.roomId.startsWith("whisper:");
-              return (
-                <li key={message.id} className="leading-relaxed">
-                  <span className="text-gray-600 text-[9px] mr-1">[{new Date(message.createdAtMs).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })}]</span>
-                  <span className={`font-black uppercase tracking-tighter ${isWhisper ? "text-brand-secondary" : "text-brand-primary"}`}>{message.senderName}</span>
-                  <span className="text-gray-500 mx-1">»</span>
-                  <span className={isWhisper ? "text-brand-secondary/90 italic" : "text-gray-300"}>{message.body}</span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
+          {/* Channel Selector Tabs */}
+          <div className="flex border-b border-white/10 mb-2">
+            <button
+              onClick={() => setActiveChannel("town")}
+              className={`flex-1 py-1.5 text-[9px] font-black uppercase tracking-wider text-center border-b-2 transition-all ${
+                activeChannel === "town"
+                  ? "border-brand-primary text-brand-primary bg-brand-primary/5"
+                  : "border-transparent text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              Town Chat
+            </button>
+            <button
+              onClick={() => setActiveChannel("global")}
+              className={`flex-1 py-1.5 text-[9px] font-black uppercase tracking-wider text-center border-b-2 transition-all ${
+                activeChannel === "global"
+                  ? "border-brand-primary text-brand-primary bg-brand-primary/5"
+                  : "border-transparent text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              Global Chat
+            </button>
+          </div>
+
+          <div
+            ref={chatContainerRef}
+            className="mb-3 max-h-40 overflow-y-auto border border-white/5 bg-black/40 p-2 text-[11px] font-mono scrollbar-hide"
+          >
+            {displayedMessages.length === 0 ? (
+              <p className="text-gray-600 uppercase tracking-widest text-[9px]">Initializing feed...</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {displayedMessages.map((message) => {
+                  const isWhisper = message.roomId.startsWith("whisper:");
+                  const isSystem = message.senderId === "system" || message.kind === "system";
+                  return (
+                    <li key={message.id} className="leading-relaxed whitespace-pre-wrap">
+                      <span className="text-gray-600 text-[9px] mr-1">
+                        [{new Date(message.createdAtMs).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })}]
+                      </span>
+                      {isSystem ? (
+                        <>
+                          <span className="font-black uppercase tracking-tighter text-emerald-400">{message.senderName}</span>
+                          <span className="text-gray-500 mx-1">»</span>
+                          <span className="text-emerald-300 font-semibold">{message.body}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className={`font-black uppercase tracking-tighter ${isWhisper ? "text-brand-secondary" : "text-brand-primary"}`}>
+                            {message.senderName}
+                          </span>
+                          <span className="text-gray-500 mx-1">»</span>
+                          <span className={isWhisper ? "text-brand-secondary/90 italic" : "text-gray-300"}>
+                            {message.body}
+                          </span>
+                        </>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
 
       <div className="relative">
         <input

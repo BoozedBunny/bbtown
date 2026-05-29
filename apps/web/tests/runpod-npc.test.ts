@@ -91,3 +91,65 @@ test("askRunPodBartender - successfully triggers and polls runpod serverless job
     global.fetch = originalFetch;
   }
 });
+
+test("askRunPodBartender - sanitizes HTML, outer quotes, and Gemma markup", async () => {
+  const originalApiKey = process.env.RUNPOD_API_KEY;
+  process.env.RUNPOD_API_KEY = "mocked-runpod-key";
+
+  const originalFetch = global.fetch;
+
+  const messyOutputs = [
+    {
+      raw: `</start_of_turn> <p>Milkshake? Look, I don't have time to listen to your questions. Just'elling it. </p> </p> </p> </p> </p> </p> </p> </p> </p> </p> </p> </p> </p> </p> </p> </p> </p>`,
+      expected: "Milkshake? Look, I don't have time to listen to your questions. Just'elling it."
+    },
+    {
+      raw: `"Ugh, yeah. Now quit wasting my time & just order something already!"`,
+      expected: "Ugh, yeah. Now quit wasting my time & just order something already!"
+    },
+    {
+      raw: `Bartender: "Ugh, scram!"`,
+      expected: "Ugh, scram!"
+    },
+    {
+      raw: `<start_of_turn>model\nUgh, be quiet.<end_of_turn>`,
+      expected: "Ugh, be quiet."
+    }
+  ];
+
+  for (const scenario of messyOutputs) {
+    global.fetch = async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/run")) {
+        return new Response(JSON.stringify({ id: "job_messy", status: "IN_QUEUE" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+      if (url.includes("/status/job_messy")) {
+        return new Response(JSON.stringify({
+          id: "job_messy",
+          status: "COMPLETED",
+          output: scenario.raw
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+      return new Response(JSON.stringify({ error: "Not found" }), { status: 404 });
+    };
+
+    try {
+      const result = await askRunPodBartender("Hello");
+      assert.equal(result, scenario.expected, `Messy output [${scenario.raw}] should be correctly sanitized`);
+    } catch (e) {
+      process.env.RUNPOD_API_KEY = originalApiKey;
+      global.fetch = originalFetch;
+      throw e;
+    }
+  }
+
+  process.env.RUNPOD_API_KEY = originalApiKey;
+  global.fetch = originalFetch;
+});
+
