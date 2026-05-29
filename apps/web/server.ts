@@ -777,6 +777,36 @@ app.prepare().then(async () => {
         accepted: true,
         errorCode: null,
       });
+
+      // Trigger AI NPC (Grumpy Bartender) asynchronously in the background for global chat
+      if (mockUser !== "grumpy_bartender" && roomId === "global") {
+        (async () => {
+          try {
+            // Wait a tiny bit to make the response feel natural
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+
+            const reply = await askRunPodBartender(body);
+
+            const npcMessage: ChatMessage = {
+              id: `msg_${Math.random().toString(36).slice(2, 11)}`,
+              roomId,
+              senderId: "grumpy_bartender",
+              senderName: "Grumpy Bartender",
+              body: reply,
+              createdAtMs: Date.now(),
+              clientNonce: `nonce_${Math.random().toString(36).slice(2, 11)}`,
+              kind: "user",
+            };
+
+            room.messages.push(npcMessage);
+            room.messages = sortChatMessages(room.messages).slice(-CHAT_MAX_HISTORY);
+
+            io.to(roomId).emit("chat:message", { message: npcMessage });
+          } catch (err) {
+            console.error("AI NPC reply generation failed in chat:send:", err);
+          }
+        })();
+      }
     });
 
     socket.on("chat:read:upsert", (payload: ChatReadUpsertPayload) => {
