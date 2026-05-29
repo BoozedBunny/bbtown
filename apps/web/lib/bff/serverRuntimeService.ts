@@ -298,13 +298,26 @@ export async function tickStocksAndReturnSorted() {
   for (const stock of stocks) {
     const currentPrice = Number(stock.price ?? 0);
     const changePercent = Math.random() * 0.1 - 0.05;
-    const newPrice = Math.max(0.01, currentPrice * (1 + changePercent));
+    const newPrice = currentPrice * (1 + changePercent);
+
+    // Round both to 2 decimal places to match the database numeric(10,2) constraint
+    const currentRounded = Math.round(currentPrice * 100) / 100;
+    let newRounded = Math.round(newPrice * 100) / 100;
+
+    // If the change rounds to zero (e.g. for low-priced stocks), force a minimum movement of ±$0.01
+    if (newRounded === currentRounded) {
+      const direction = changePercent >= 0 ? 1 : -1;
+      newRounded = Math.max(0.01, currentRounded + direction * 0.01);
+    } else {
+      newRounded = Math.max(0.01, newRounded);
+    }
+
     const tickAtIso = new Date().toISOString();
 
     await syncStrapiStockTick({
       symbol: String(stock.symbol),
       previousPrice: currentPrice,
-      price: newPrice,
+      price: newRounded,
       timestampIso: tickAtIso,
     });
   }
