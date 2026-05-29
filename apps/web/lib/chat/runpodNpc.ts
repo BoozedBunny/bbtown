@@ -99,16 +99,30 @@ export async function askRunPodBartender(userMessage: string): Promise<string> {
         }
 
         // Clean up any turn markup or prompt echo
-        if (replyText.includes("<start_of_turn>") || replyText.includes("<end_of_turn>")) {
-          const parts = replyText.split(/<start_of_turn>model|<start_of_turn>assistant|<start_of_turn>|<end_of_turn>|thought/);
+        // 1. Strip all HTML/XML-like tags (e.g. <p>, </p>, </start_of_turn>, etc.)
+        replyText = replyText.replace(/<\/?[^>]+(>|$)/g, "").trim();
+
+        // 2. Clean up any leftover turn markup or prompt echo
+        if (replyText.toLowerCase().includes("start_of_turn") || replyText.toLowerCase().includes("end_of_turn")) {
+          const parts = replyText.split(/start_of_turn|end_of_turn|model|assistant|user|thought/i);
           const cleanPart = parts.map(p => p.trim()).filter(p => p && !p.startsWith("0") && p.length > 2).pop();
           if (cleanPart) {
             replyText = cleanPart;
           }
         }
         
-        // Remove trailing thought blocks or echo of "Bartender:"
-        replyText = replyText.replace(/^(Bartender|thought|model|assistant|system)\b[\s*:\n]*/i, "").trim();
+        // 3. Remove leading/trailing quotes (single or double) if they wrap the entire response
+        if ((replyText.startsWith('"') && replyText.endsWith('"')) || (replyText.startsWith("'") && replyText.endsWith("'"))) {
+          replyText = replyText.slice(1, -1).trim();
+        }
+
+        // 4. Remove trailing thought blocks or echo of "Bartender:"
+        replyText = replyText.replace(/^(Grumpy Bartender|Bartender|thought|model|assistant|system)\b[\s*:\n]*/i, "").trim();
+
+        // 5. Final check to strip wrapping quotes if they were inside extra spaces
+        if ((replyText.startsWith('"') && replyText.endsWith('"')) || (replyText.startsWith("'") && replyText.endsWith("'"))) {
+          replyText = replyText.slice(1, -1).trim();
+        }
 
         return replyText || "Hmph. I've got nothing to say.";
       }
