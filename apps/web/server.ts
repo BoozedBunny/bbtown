@@ -12,7 +12,7 @@ import {
   getRoundPhaseStateAt,
 } from "./lib/arena/roundPhases";
 import { GLOBAL_CHANNEL_KEY } from "./lib/chat/channel";
-import { askRunPodBartender } from "./lib/chat/runpodNpc";
+import { askNPC, askRunPodBartender } from "./lib/chat/runpodNpc";
 import type {
   ChatHistoryRequestPayload,
   ChatMessage,
@@ -64,6 +64,12 @@ app.prepare().then(async () => {
       sentAt: string;
     }>
   >();
+
+  const CHAT_NPCS = [
+    { id: "barkeeper_benny", name: "Barkeeper Benny" },
+    { id: "mayor_hopkins", name: "Mayor Hopkins" },
+    { id: "bugs_malone", name: "Bugs Malone" }
+  ];
 
   const canAccessChatChannel = (
     username: string | undefined,
@@ -508,20 +514,33 @@ app.prepare().then(async () => {
           sentAt: message.sentAt,
         });
 
-        // Trigger AI NPC (Grumpy Bartender) asynchronously in the background
-        if (mockUser !== "grumpy_bartender") {
+        // Trigger AI NPC asynchronously in the background
+        const isNpc = CHAT_NPCS.some((npc) => npc.id === mockUser);
+        if (!isNpc) {
           (async () => {
             try {
+              // Pick a random NPC
+              const randomNpc = CHAT_NPCS[Math.floor(Math.random() * CHAT_NPCS.length)];
+
               // Wait a tiny bit to make the response feel natural
               await new Promise((resolve) => setTimeout(resolve, 500));
 
-              const reply = await askRunPodBartender(body);
+              // Fetch player context snapshot
+              let contextPrefix = "";
+              if (mockUser && sessionToken) {
+                const profileSnapshot = await getSocketProfileSnapshot({ username: mockUser, sessionToken });
+                if (profileSnapshot) {
+                  contextPrefix = `[Context: SenderName="${mockUser}", WalletBalance=${profileSnapshot.wallet} BTC, Avatar="${profileSnapshot.avatar}", LoanStatus="${profileSnapshot.loanStatus}", Experience=${profileSnapshot.experience} XP] `;
+                }
+              }
+
+              const reply = await askNPC(randomNpc.id, contextPrefix + body);
 
               const npcMessage = {
                 messageId: `m_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`,
                 channel,
-                senderUserId: "grumpy_bartender",
-                senderName: "Grumpy Bartender",
+                senderUserId: randomNpc.id,
+                senderName: randomNpc.name,
                 body: reply,
                 mentions: [mockUser],
                 sentAt: new Date().toISOString(),
@@ -778,20 +797,33 @@ app.prepare().then(async () => {
         errorCode: null,
       });
 
-      // Trigger AI NPC (Grumpy Bartender) asynchronously in the background for global or town chat
-      if (mockUser !== "grumpy_bartender" && (roomId === "global" || roomId.startsWith("town:"))) {
+      // Trigger AI NPC asynchronously in the background for global or town chat
+      const isNpc = CHAT_NPCS.some((npc) => npc.id === mockUser);
+      if (!isNpc && (roomId === "global" || roomId.startsWith("town:"))) {
         (async () => {
           try {
+            // Choose a random NPC
+            const randomNpc = CHAT_NPCS[Math.floor(Math.random() * CHAT_NPCS.length)];
+
             // Wait a tiny bit to make the response feel natural
             await new Promise((resolve) => setTimeout(resolve, 1000));
 
-            const reply = await askRunPodBartender(body);
+            // Fetch player context snapshot
+            let contextPrefix = "";
+            if (mockUser && sessionToken) {
+              const profileSnapshot = await getSocketProfileSnapshot({ username: mockUser, sessionToken });
+              if (profileSnapshot) {
+                contextPrefix = `[Context: SenderName="${mockUser}", WalletBalance=${profileSnapshot.wallet} BTC, Avatar="${profileSnapshot.avatar}", LoanStatus="${profileSnapshot.loanStatus}", Experience=${profileSnapshot.experience} XP] `;
+              }
+            }
+
+            const reply = await askNPC(randomNpc.id, contextPrefix + body);
 
             const npcMessage: ChatMessage = {
               id: `msg_${Math.random().toString(36).slice(2, 11)}`,
               roomId,
-              senderId: "grumpy_bartender",
-              senderName: "Grumpy Bartender",
+              senderId: randomNpc.id,
+              senderName: randomNpc.name,
               body: reply,
               createdAtMs: Date.now(),
               clientNonce: `nonce_${Math.random().toString(36).slice(2, 11)}`,

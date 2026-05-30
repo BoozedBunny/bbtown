@@ -1,144 +1,90 @@
-const RUNPOD_ENDPOINT_URL = "https://api.runpod.ai/v2/3n3lyfjnhcbz2p";
+ const PROXY_URL = "https://agent.boozedbunnytown.com/api/chat";
+
+    /**
+     * Sendet eine Nachricht an einen beliebigen Hasen-NPC in BoozedBunnyTown.
+     * @param characterId Die ID des Hasen (z.B. "barkeeper_benny", "mayor_hopkins", "bugs_malone")
+     * @param userMessage Die Nachricht des Spielers
+     */
+    export async function askNPC(characterId: string, userMessage: string): Promise<string> {
+      const apiKey = process.env.LOCAL_GEMMA_KEY;
+      if (!apiKey) {
+        console.error("[Ollama NPC Bridge] Missing LOCAL_GEMMA_KEY environment variable.");
+        return "I'm too grumpy to talk right now. (Missing Local API Key)";
+      }
+
+      try {
+        console.log(`[Ollama NPC Bridge] Sending request to proxy for character: ${characterId}`);
+
+        // Wir senden die Anfrage an die charakter-spezifische URL
+        const instructionSuffix = " (CRITICAL: Limit your response to exactly 1 or 2 short sentences. No paragraphs. Be extremely concise.)";
+        const response = await fetch(`${PROXY_URL}/${characterId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-API-Key": apiKey
+          },
+          body: JSON.stringify({
+            messages: [{ role: "user", content: userMessage + instructionSuffix }],
+            stream: false
+          })
+});
+
+if (!response.ok) {
+if (response.status === 503) {
+throw new Error("Connection to laptop failed. Is the laptop online and Ollama running?");
+}
+throw new Error(`Server Error: ${response.status} ${response.statusText}`);
+}
+
+const data = (await response.json()) as {
+message?: {
+content?: string;
+};
+};
+
+let replyText = data?.message?.content;
+if (!replyText) {
+  throw new Error("Received empty content from local Gemma proxy.");
+}
+
+return sanitizeNpcResponse(replyText);
+} catch (error: any) {
+console.error(`[Ollama NPC Bridge] Error communicating with NPC ${characterId}:`, error);
+return `*hoppelt unruhig hin und her* (Error: ${error?.message ?? "Connection failed"})`;
+}
+}
 
 /**
- * Sends a prompt to the RunPod serverless Gemma instance and polls until the job is completed.
+ * Bereinigt die Antwort des NPCs von LLM-Tokens, HTML-Tags und unnötigen Anführungszeichen.
  */
+export function sanitizeNpcResponse(text: string): string {
+  let cleaned = text.trim();
+
+  // 1. Gemma/Chat-Template-Tokens entfernen
+  cleaned = cleaned.replace(/<start_of_turn>(model|user)?\s*/gi, "");
+  cleaned = cleaned.replace(/<\/start_of_turn>\s*/gi, "");
+  cleaned = cleaned.replace(/<end_of_turn>\s*/gi, "");
+
+  // 2. HTML-Tags wie <p>, </p> entfernen
+  cleaned = cleaned.replace(/<\/?[^>]+(>|$)/g, "");
+
+  // 3. Präfixe wie "Bartender: " oder "Barkeeper Benny: " entfernen
+  cleaned = cleaned.replace(/^(bartender|barkeeper benny|mayor hopkins|bugs malone):\s*/gi, "");
+
+  cleaned = cleaned.trim();
+
+  // 4. Äußere Anführungszeichen entfernen, falls vorhanden
+  if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+    cleaned = cleaned.slice(1, -1).trim();
+  }
+
+  return cleaned;
+}
+
+/**
+* Kompatibilitäts-Wrapper für deinen alten Aufruf.
+* Mappt den alten Aufruf automatisch auf Benny den Barkeeper.
+*/
 export async function askRunPodBartender(userMessage: string): Promise<string> {
-  const apiKey = process.env.RUNPOD_API_KEY;
-  if (!apiKey) {
-    console.error("[RunPod NPC] Missing RUNPOD_API_KEY environment variable.");
-    return "I'm too grumpy to talk right now. (Missing API Key)";
-  }
-
-  try {
-    // 1. Trigger the RunPod Serverless Job
-    const runUrl = `${RUNPOD_ENDPOINT_URL}/run`;
-    const systemInstructions = "You are a grumpy, cynical bartender in a 3D browser game called BBTown. You are very easily annoyed. Keep your responses short, snappy, irritated, and always in English.";
-    const prompt = `<start_of_turn>user\n${systemInstructions}\n\nCustomer: "${userMessage}"<end_of_turn>\n<start_of_turn>model\n`;
-
-    const runResponse = await fetch(runUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        input: {
-          prompt,
-          max_new_tokens: 120,
-          temperature: 0.85,
-        },
-      }),
-    });
-
-    if (!runResponse.ok) {
-      throw new Error(`Failed to initialize RunPod job: ${runResponse.status} ${runResponse.statusText}`);
-    }
-
-    const jobData = (await runResponse.json()) as { id: string; status: string };
-    const jobId = jobData.id;
-
-    if (!jobId) {
-      throw new Error("Did not receive a job ID from RunPod.");
-    }
-
-    console.log(`[RunPod NPC] Job created successfully. Job ID: ${jobId}. Polling status...`);
-
-    // 2. Poll the status of the job
-    const statusUrl = `${RUNPOD_ENDPOINT_URL}/status/${jobId}`;
-    const maxRetries = 30; // 30 seconds max
-    let retries = 0;
-
-    while (retries < maxRetries) {
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1s
-      retries++;
-
-      const statusResponse = await fetch(statusUrl, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-        },
-      });
-
-      if (!statusResponse.ok) {
-        console.warn(`[RunPod NPC] Polling status failed (${statusResponse.status}). Retrying...`);
-        continue;
-      }
-
-      const statusData = (await statusResponse.json()) as {
-        id: string;
-        status: "IN_QUEUE" | "IN_PROGRESS" | "COMPLETED" | "FAILED" | "CANCELLED";
-        output?: any;
-        error?: string;
-      };
-
-      console.log(`[RunPod NPC] Polling (${retries}/${maxRetries}): status is "${statusData.status}"`);
-
-      if (statusData.status === "COMPLETED") {
-        const output = statusData.output;
-        if (!output) {
-          throw new Error("Job completed but returned no output.");
-        }
-
-        // Parse the vLLM output format robustly, including unwrapping arrays
-        const target = Array.isArray(output) ? output[0] : output;
-        
-        let replyText = "";
-        if (typeof target === "string") {
-          replyText = target.trim();
-        } else if (target?.choices?.[0]?.tokens?.[0]) {
-          replyText = target.choices[0].tokens[0].trim();
-        } else if (target?.choices?.[0]?.message?.content) {
-          replyText = target.choices[0].message.content.trim();
-        } else if (target?.choices?.[0]?.text) {
-          replyText = target.choices[0].text.trim();
-        } else if (target?.text) {
-          replyText = target.text.trim();
-        } else {
-          replyText = JSON.stringify(output);
-        }
-
-        // Clean up any turn markup or prompt echo
-        // 1. Strip all HTML/XML-like tags (e.g. <p>, </p>, </start_of_turn>, etc.)
-        replyText = replyText.replace(/<\/?[^>]+(>|$)/g, "").trim();
-
-        // 2. Clean up any leftover turn markup or prompt echo
-        if (replyText.toLowerCase().includes("start_of_turn") || replyText.toLowerCase().includes("end_of_turn")) {
-          const parts = replyText.split(/start_of_turn|end_of_turn|model|assistant|user|thought/i);
-          const cleanPart = parts.map(p => p.trim()).filter(p => p && !p.startsWith("0") && p.length > 2).pop();
-          if (cleanPart) {
-            replyText = cleanPart;
-          }
-        }
-        
-        // 3. Remove leading/trailing quotes (single or double) if they wrap the entire response
-        if ((replyText.startsWith('"') && replyText.endsWith('"')) || (replyText.startsWith("'") && replyText.endsWith("'"))) {
-          replyText = replyText.slice(1, -1).trim();
-        }
-
-        // 4. Remove trailing thought blocks or echo of "Bartender:"
-        replyText = replyText.replace(/^(Grumpy Bartender|Bartender|thought|model|assistant|system)\b[\s*:\n]*/i, "").trim();
-
-        // 5. Final check to strip wrapping quotes if they were inside extra spaces
-        if ((replyText.startsWith('"') && replyText.endsWith('"')) || (replyText.startsWith("'") && replyText.endsWith("'"))) {
-          replyText = replyText.slice(1, -1).trim();
-        }
-
-        return replyText || "Hmph. I've got nothing to say.";
-      }
-
-      if (statusData.status === "FAILED") {
-        throw new Error(`Job failed: ${statusData.error ?? "Unknown error"}`);
-      }
-
-      if (statusData.status === "CANCELLED") {
-        throw new Error("Job was cancelled on RunPod.");
-      }
-    }
-
-    throw new Error("Polling timed out. The bartender is ignoring you.");
-  } catch (error: any) {
-    console.error("[RunPod NPC] Error communicating with AI Bartender:", error);
-    return `*grumbles and cleans a glass* (Error: ${error?.message ?? "Connection failed"})`;
-  }
+return askNPC("barkeeper_benny", userMessage);
 }

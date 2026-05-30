@@ -163,7 +163,7 @@ export function TownChatPanel({
 • /help : Show this command list
 • /w <name> <msg> : Private whisper to a player
 • Channel Tabs: Switch between Town and Global chat rooms at the top of the panel
-• Bartender NPC: Send a message in Town or Global chat to talk to the Grumpy Bartender!`,
+• AI NPCs: Send a message in Town or Global chat to talk to Benny, Hopkins, or Bugs!`,
         createdAtMs: Date.now(),
         kind: "system"
       };
@@ -194,7 +194,7 @@ export function TownChatPanel({
 • /help : Show this command list
 • /w <name> <msg> : Private whisper to a player
 • Channel Tabs: Switch between Town and Global chat rooms at the top of the panel
-• Bartender NPC: Send a message in Town or Global chat to talk to the Grumpy Bartender!`,
+• AI NPCs: Send a message in Town or Global chat to talk to Benny, Hopkins, or Bugs!`,
         createdAtMs: Date.now(),
         kind: "system"
       };
