@@ -14,6 +14,12 @@ export const HARDCODED_BUILDINGS: BuildingData[] = [
     iconPosition: 0.54,
     name: "1001 Nights",
     image: "https://www.boozedbunnytown.com/media/buildings/1001_nights.webp",
+        spriteConfig: {
+  "fps": 24,
+  "rows": 5,
+  "columns": 4,
+  "totalFrames": 20
+    },
     type: "Commercial",
     color: "#BD00FF",
     scale: 4.3,
