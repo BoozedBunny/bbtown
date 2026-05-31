@@ -20,6 +20,7 @@
     "seed:stocks:strapi": "node_modules/.bin/tsx scripts/seed-stocks-to-strapi.ts",
     "seed:stock-history:strapi": "node_modules/.bin/tsx scripts/seed-stock-history-to-strapi.ts",
     "seed:portfolio:strapi": "node_modules/.bin/tsx scripts/seed-portfolio-to-strapi.ts",
+    "seed:town-news:strapi": "node_modules/.bin/tsx scripts/seed-town-news-to-strapi.ts",
     "check:market-sync": "node_modules/.bin/tsx scripts/check-market-sync.ts",
     "stack:up": "docker compose up -d",
     "stack:down": "docker compose down"

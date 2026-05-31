@@ -8,6 +8,11 @@ type StrapiTownNewsAttributes = {
   body?: string;
   townId?: string;
   isPinned?: boolean;
+  channel?: "town_wire" | "channel_bb";
+  authorLabel?: string;
+  ctaLabel?: string;
+  ctaActionType?: "route" | "external" | "none";
+  ctaHref?: string;
   publishedAtGameTime?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -22,6 +27,11 @@ type StrapiTownNewsEntity = {
   body?: string;
   townId?: string;
   isPinned?: boolean;
+  channel?: "town_wire" | "channel_bb";
+  authorLabel?: string;
+  ctaLabel?: string;
+  ctaActionType?: "route" | "external" | "none";
+  ctaHref?: string;
   publishedAtGameTime?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -37,16 +47,26 @@ function toNewsFeedItem(entry: StrapiTownNewsEntity): NewsFeedItem {
     source.createdAt ??
     new Date().toISOString();
 
+  let cta;
+  if (source.ctaActionType && source.ctaActionType !== "none" && source.ctaLabel) {
+    cta = {
+      label: source.ctaLabel,
+      actionType: source.ctaActionType,
+      href: source.ctaHref,
+    };
+  }
+
   return {
     id: entry.documentId ?? String(entry.id),
-    channel: "town_wire",
+    channel: source.channel ?? "town_wire",
     title: source.title ?? "Untitled",
     deck: source.excerpt ?? undefined,
     body: source.body ?? source.excerpt ?? "",
     priority: source.isPinned ? "high" : "normal",
     publishedAt,
     updatedAt: source.updatedAt,
-    authorLabel: "Town Wire",
+    authorLabel: source.authorLabel ?? (source.channel === "channel_bb" ? "Channel BB" : "Town Wire"),
+    cta,
   };
 }
 
@@ -59,8 +79,11 @@ export async function GET(request: Request) {
       ? `&filters[townId][$eq]=${encodeURIComponent(townId)}`
       : "";
 
+    const nowIso = new Date().toISOString();
+    const timeFilter = `&filters[publishedAtGameTime][$lte]=${encodeURIComponent(nowIso)}`;
+
     const payload = await strapiFetchList<StrapiTownNewsEntity>(
-      `/api/town-news-items?sort[0]=publishedAtGameTime:desc&pagination[limit]=50${townFilter}`,
+      `/api/town-news-items?sort[0]=publishedAtGameTime:desc&pagination[limit]=50${townFilter}${timeFilter}`,
     );
 
     const mapped = payload.data

@@ -36,63 +36,6 @@ export interface NewsFeedState {
 
 type UnknownRecord = Record<string, unknown>;
 
-const NEWS_FIXTURE: NewsFeedItem[] = [
-  {
-    id: "tw-001",
-    slug: "tram-line-3-night-maintenance",
-    channel: "town_wire",
-    title: "Scheduled maintenance set for Tram Line 3 tonight",
-    deck: "Expect brief service pauses between 23:00 and 00:30 near River Loop.",
-    body: "Notice: Tram Line 3 receives track checks from 23:00 to 00:30.\nUpdate: Riders can use Loop Shuttle C at no extra fare.\nEffective: Normal service resumes after clearance.",
-    priority: "normal",
-    publishedAt: "2026-05-06T17:10:00.000Z",
-    authorLabel: "Town Clerk Desk",
-    cta: { label: "Check schedule", actionType: "route", href: "/town/transit" },
-  },
-  {
-    id: "bb-001",
-    slug: "midnight-neon-rally-buzz",
-    channel: "channel_bb",
-    title: "Breaking: Neon scooters flood Old Port in a midnight rally",
-    deck: "Crowds packed the bridge and the vibes were loud.",
-    body: "Spotted: riders in matching chrome helmets lit up Old Port after dark.\nBuzz says two crews are setting up a rematch route tonight.\nHot take: this could be the weekend's wildest photo op.",
-    priority: "high",
-    publishedAt: "2026-05-06T17:30:00.000Z",
-    authorLabel: "BB Studio",
-    cta: { label: "See what happened", actionType: "route", href: "/town/events" },
-  },
-  {
-    id: "tw-002",
-    channel: "town_wire",
-    title: "Advisory: Market plaza fountain closed for water test",
-    deck: "Testing window ends before afternoon trading peak.",
-    body: "Advisory: The central fountain zone is temporarily fenced for quality checks.\nWho/where: Plaza ring near the north ticker board.\nImpact: Foot traffic is redirected through east and south corridors.",
-    priority: "low",
-    publishedAt: "2026-05-06T16:45:00.000Z",
-    authorLabel: "Utilities Office",
-  },
-  {
-    id: "bb-002",
-    channel: "channel_bb",
-    title: "Buzz Alert: Arena lobby karaoke duel goes overtime",
-    deck: "One mic, two captains, and zero chill.",
-    body: "Showdown energy exploded when both squads tied on crowd votes.\nSpotted: improvised backup dancers from the snack line.\nBreaking if true: judges may schedule a sudden-death encore.",
-    priority: "normal",
-    publishedAt: "2026-05-06T16:20:00.000Z",
-    authorLabel: "Channel BB Live",
-  },
-  {
-    id: "tw-003",
-    channel: "town_wire",
-    title: "Update: South District cargo gate now open",
-    deck: "Queued deliveries resumed after scanner reset.",
-    body: "Update: The gate scanner has been recalibrated and reopened.\nEffective immediately: cargo routing returns to standard lanes.\nAdvisory: keep permit badges visible for random checks.",
-    priority: "urgent",
-    publishedAt: "2026-05-06T15:55:00.000Z",
-    authorLabel: "Logistics Control",
-  },
-];
-
 const channelSet = new Set<NewsChannel>(["town_wire", "channel_bb"]);
 const prioritySet = new Set<NewsPriority>(["low", "normal", "high", "urgent"]);
 
@@ -142,11 +85,3 @@ export function validateNewsFeedItem(input: unknown): NewsFeedItem | null {
   };
 }
 
-export function getNewsFeedItems(): NewsFeedItem[] {
-  const validated = NEWS_FIXTURE.map(validateNewsFeedItem).filter((item): item is NewsFeedItem => item !== null);
-  return validated.sort((a, b) => {
-    const timeDiff = new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
-    if (timeDiff !== 0) return timeDiff;
-    return b.id.localeCompare(a.id);
-  });
-}

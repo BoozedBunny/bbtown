@@ -36,6 +36,26 @@
     "isPinned": {
       "type": "boolean",
       "default": false
+    },
+    "channel": {
+      "type": "enumeration",
+      "enum": ["town_wire", "channel_bb"],
+      "default": "town_wire",
+      "required": true
+    },
+    "authorLabel": {
+      "type": "string"
+    },
+    "ctaLabel": {
+      "type": "string"
+    },
+    "ctaActionType": {
+      "type": "enumeration",
+      "enum": ["route", "external", "none"],
+      "default": "none"
+    },
+    "ctaHref": {
+      "type": "string"
     }
   }
 }
