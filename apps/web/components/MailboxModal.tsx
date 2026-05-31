@@ -118,7 +118,7 @@ export function MailboxModal({ isOpen, onClose, onMailChanged }: MailboxModalPro
       // If unread, mark as read
       if (!msg.isRead) {
         try {
-          const res = await fetch(`/api/mail/${msg.id}/read`, { method: "PUT" });
+          const res = await fetch(`/api/mail/${msg.id}`, { method: "PUT" });
           if (res.ok) {
             // Optimistically update read state in UI
             setMessages((prev) =>

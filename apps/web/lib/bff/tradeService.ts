@@ -140,7 +140,7 @@ export async function createTradeProposal(
     );
 
     // I. Dispatch Trade Proposal mail notification to receiver
-    const mailSubject = `HANDELSAUSSCHREIBUNG: Trade Proposal from ${proposerUsername}`;
+    const mailSubject = `TRADE PROPOSAL: Trade Proposal from ${proposerUsername}`;
     const mailBody = `PROPOSAL_ID:${proposalDocId}\n\nPlayer ${proposerUsername} has proposed a secure P2P trade with you.\n\n` +
       `- OFFERED (By ${proposerUsername}):\n` +
       `  * Credits: +$${offeredCredits}\n` +
@@ -174,7 +174,8 @@ export async function resolveTradeProposal(
   try {
     // A. Fetch proposal details (populating proposer & receiver usernames and profiles)
     const proposalUrl = new URL(`${STRAPI_BASE_URL}/api/trade-proposals/${proposalId}`);
-    proposalUrl.searchParams.set("populate", "proposer,receiver");
+    proposalUrl.searchParams.set("populate[0]", "proposer");
+    proposalUrl.searchParams.set("populate[1]", "receiver");
     const proposalRes = await fetch(proposalUrl, { headers, cache: "no-store" });
     if (!proposalRes.ok) {
       return { success: false, error: "Trade proposal not found." };
@@ -195,8 +196,8 @@ export async function resolveTradeProposal(
       return { success: false, error: "Corrupted trade proposal profiles." };
     }
 
-    const proposerUsername = proposer.username;
-    const receiverUsername = receiver.username;
+    const proposerUsername = proposer.displayName;
+    const receiverUsername = receiver.displayName;
     const proposerDocId = proposer.documentId ?? String(proposer.id);
     const receiverDocId = receiver.documentId ?? String(receiver.id);
 
@@ -425,7 +426,8 @@ export async function getPlayerTradeProposals(username: string): Promise<{
   // C. Fetch Incoming trade proposals (where receiver is me)
   const incomingUrl = new URL(`${STRAPI_BASE_URL}/api/trade-proposals`);
   incomingUrl.searchParams.set("filters[receiver][documentId][$eq]", profileDocId);
-  incomingUrl.searchParams.set("populate", "proposer,receiver");
+  incomingUrl.searchParams.set("populate[0]", "proposer");
+  incomingUrl.searchParams.set("populate[1]", "receiver");
   incomingUrl.searchParams.set("sort", "createdAt:desc");
   incomingUrl.searchParams.set("pagination[limit]", "100");
 
@@ -436,7 +438,8 @@ export async function getPlayerTradeProposals(username: string): Promise<{
   // D. Fetch Outgoing trade proposals (where proposer is me)
   const outgoingUrl = new URL(`${STRAPI_BASE_URL}/api/trade-proposals`);
   outgoingUrl.searchParams.set("filters[proposer][documentId][$eq]", profileDocId);
-  outgoingUrl.searchParams.set("populate", "proposer,receiver");
+  outgoingUrl.searchParams.set("populate[0]", "proposer");
+  outgoingUrl.searchParams.set("populate[1]", "receiver");
   outgoingUrl.searchParams.set("sort", "createdAt:desc");
   outgoingUrl.searchParams.set("pagination[limit]", "100");
 
@@ -447,8 +450,8 @@ export async function getPlayerTradeProposals(username: string): Promise<{
   const mapProposal = (raw: any): TradeProposalDTO => ({
     documentId: raw.documentId ?? String(raw.id),
     id: raw.id,
-    proposerName: raw.proposer?.username || "Unknown",
-    receiverName: raw.receiver?.username || "Unknown",
+    proposerName: raw.proposer?.displayName || "Unknown",
+    receiverName: raw.receiver?.displayName || "Unknown",
     offeredCredits: Number(raw.offeredCredits ?? 0),
     requestedCredits: Number(raw.requestedCredits ?? 0),
     offeredItems: raw.offeredItems ?? [],
