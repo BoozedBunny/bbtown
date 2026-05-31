@@ -61,7 +61,6 @@ import {
   BANK_BUILDING_ID,
   CASINO_BUILDING_ID,
   STOCK_EXCHANGE_BUILDING_ID,
-  HARDCODED_BUILDINGS,
 } from "./town-config";
 import type {
   BuildingData,
@@ -477,7 +476,7 @@ export default function TownPage({
   const [rotationOverrides, setRotationOverrides] = useState<
     Record<string, number>
   >({});
-  const [dbBuildingStates, setDbBuildingStates] = useState<DbBuildingState[]>(
+  const [dbBuildingStates, setDbBuildingStates] = useState<BuildingData[]>(
     [],
   );
   const [townData, setTownData] = useState<TownStateData | null>(null);
@@ -1037,38 +1036,29 @@ export default function TownPage({
   }, [townId, router]);
 
   const mergedBuildings = useMemo(() => {
-    return HARDCODED_BUILDINGS.map((b) => {
+    return dbBuildingStates.map((b) => {
       const isFreeMoving = freeMoveBuildingId === b.id;
       const pos =
         isFreeMoving && freeMovePosition
-          ? ([freeMovePosition[0], b.position[1], freeMovePosition[2]] as [
+          ? ([freeMovePosition[0], b.position ? b.position[1] : 0, freeMovePosition[2]] as [
               number,
               number,
               number,
             ])
-          : positionOverrides[b.id] || b.position;
-      const rot = rotationOverrides[b.id] ?? b.rotationY;
+          : (b.id ? positionOverrides[b.id] : null) || b.position || [0, 0, 0];
+      const rot = (b.id ? rotationOverrides[b.id] : null) ?? b.rotationY ?? 0;
 
-      const dbState = dbBuildingStates.find(
-        (ds) => ds.id === b.id || ds.id === `${townId}_${b.id}`,
-      );
-      if (dbState) {
-        return {
-          position: pos,
-          rotationY: rot,
-          ...b,
-          owner: dbState.owner?.name || "Unowned",
-          ownerAvatar: dbState.owner?.avatar || "bunny",
-          ownerId: dbState.ownerId,
-          price: dbState.price,
-          title: dbState.title,
-          forSale: dbState.forSale,
-          employees: dbState.employees,
-          buildingLevel: dbState.buildingLevel,
-          upgradeEndsAt: dbState.upgradeEndsAt,
-        };
-      }
-      return { ...b, position: pos, rotationY: rot };
+      const ownerObj = (b as any).owner;
+      const ownerName = ownerObj?.name || "Unowned";
+      const ownerAvatar = ownerObj?.avatar || "bunny";
+
+      return {
+        ...b,
+        position: pos,
+        rotationY: rot,
+        owner: ownerName,
+        ownerAvatar: ownerAvatar,
+      };
     });
   }, [
     dbBuildingStates,
@@ -1587,7 +1577,7 @@ export default function TownPage({
                 if (freeMoveBuildingId && freeMovePosition) {
                   e.stopPropagation();
 
-                  const targetBuilding = HARDCODED_BUILDINGS.find(
+                  const targetBuilding = dbBuildingStates.find(
                     (b) => b.id === freeMoveBuildingId,
                   );
                   if (targetBuilding) {
@@ -1813,7 +1803,7 @@ export default function TownPage({
                             position: pos,
                             rotationY:
                               rotationOverrides[id] ??
-                              HARDCODED_BUILDINGS.find((b) => b.id === id)
+                              dbBuildingStates.find((b) => b.id === id)
                                 ?.rotationY ??
                               0,
                           }),

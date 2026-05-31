@@ -30,6 +30,25 @@ type StrapiOwnerProfile = {
   avatar?: string;
 };
 
+type StrapiBuilding = {
+  id?: number;
+  documentId?: string;
+  buildingId?: string;
+  name?: string;
+  type?: string;
+  image?: string | null;
+  color?: string;
+  positionX?: number | string;
+  positionY?: number | string;
+  positionZ?: number | string;
+  rotationX?: number | string;
+  rotationY?: number | string;
+  rotationZ?: number | string;
+  scale?: number | string;
+  iconPosition?: number | string;
+  spriteConfig?: any;
+};
+
 type StrapiBuildingState = {
   id?: number;
   documentId?: string;
@@ -42,6 +61,7 @@ type StrapiBuildingState = {
   upgradeEndsAt?: string | null;
   owner?: StrapiRelation<StrapiOwnerProfile> | StrapiOwnerProfile | null;
   town?: StrapiRelation<StrapiTown> | StrapiTown | null;
+  building?: StrapiRelation<StrapiBuilding> | StrapiBuilding | null;
 };
 
 function unwrapRelation<T>(value: StrapiRelation<T> | T | null | undefined): T | null {
@@ -99,10 +119,15 @@ function mapStrapiBuildingState(row: StrapiBuildingState, townIdFromContext: str
     }
   }
 
+  const building = unwrapRelation(row.building);
+  const pos: [number, number, number] = building
+    ? [Number(building.positionX ?? 0), Number(building.positionY ?? 0), Number(building.positionZ ?? 0)]
+    : [0, 0, 0];
+
   return {
-    id: buildingId || stateId,
+    id: buildingId || building?.buildingId || stateId,
     townId: townIdFromContext,
-    title: row.title ?? "",
+    title: row.title ?? building?.name ?? "",
     forSale: isForSale,
     price: Number(row.price ?? 0),
     employees: Number(row.employees ?? 0),
@@ -115,6 +140,19 @@ function mapStrapiBuildingState(row: StrapiBuildingState, townIdFromContext: str
           avatar: owner.avatar ?? null,
         }
       : null,
+    
+    // Static fields merged from Strapi-first blueprint
+    name: building?.name ?? row.title ?? "",
+    type: building?.type ?? "Commercial",
+    image: building?.image ?? null,
+    color: building?.color ?? "#BD00FF",
+    position: pos,
+    rotationX: Number(building?.rotationX ?? -70),
+    rotationY: Number(building?.rotationY ?? 0),
+    rotationZ: Number(building?.rotationZ ?? 0),
+    scale: Number(building?.scale ?? 1.0),
+    iconPosition: Number(building?.iconPosition ?? 0.5),
+    spriteConfig: building?.spriteConfig ?? null,
   };
 }
 
@@ -125,7 +163,7 @@ async function getTownStateFromStrapi(townId: string) {
       { cache: "no-store" },
     ),
     strapiFetchList<StrapiBuildingState>(
-      `/api/building-states?filters[town][townId][$eq]=${encodeURIComponent(townId)}&populate[owner][fields][0]=displayName&populate[owner][fields][1]=avatar&populate[owner][fields][2]=documentId&populate[owner][fields][3]=authUserId&pagination[limit]=500`,
+      `/api/building-states?filters[town][townId][$eq]=${encodeURIComponent(townId)}&populate[owner][fields][0]=displayName&populate[owner][fields][1]=avatar&populate[owner][fields][2]=documentId&populate[owner][fields][3]=authUserId&populate[building]=*&pagination[limit]=500`,
       { cache: "no-store" },
     ),
   ]);
