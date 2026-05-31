@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Bell, ExternalLink, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getNewsFeedItems, NewsChannel, NewsFeedItem, NewsPriority, NewsTab } from "@/lib/news/newsFeed";
+import { NewsChannel, NewsFeedItem, NewsPriority, NewsTab } from "@/lib/news/newsFeed";
 
 type FeedMode = "modal" | "page";
 
@@ -41,10 +41,10 @@ function relativeTimeLabel(dateIso: string): string {
 
 export function NewsFeedSurface({ mode, townId, initialTab = "all" }: { mode: FeedMode; townId: string; initialTab?: NewsTab }) {
   const [selectedTab, setSelectedTab] = useState<NewsTab>(initialTab);
-  const [allItems, setAllItems] = useState<NewsFeedItem[]>(() => getNewsFeedItems());
+  const [allItems, setAllItems] = useState<NewsFeedItem[]>([]);
   const [readItemIds, setReadItemIds] = useState<string[]>([]);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
-  const [lastFetchedAt, setLastFetchedAt] = useState<string | null>(new Date().toISOString());
+  const [lastFetchedAt, setLastFetchedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const visibleItems = useMemo(
@@ -71,13 +71,13 @@ export function NewsFeedSurface({ mode, townId, initialTab = "all" }: { mode: Fe
       const response = await fetch(`/api/cms/town-news?townId=${encodeURIComponent(townId)}`, { cache: "no-store" });
       if (!response.ok) throw new Error("Failed to fetch town news");
       const payload = (await response.json()) as { items?: NewsFeedItem[] };
-      const refreshed = Array.isArray(payload.items) && payload.items.length > 0 ? payload.items : getNewsFeedItems();
+      const refreshed = Array.isArray(payload.items) ? payload.items : [];
       setAllItems(refreshed);
       setLastFetchedAt(new Date().toISOString());
       setError(null);
     } catch (_error) {
-      setAllItems(getNewsFeedItems());
-      setError("Refresh failed. Showing fallback stories.");
+      setAllItems([]);
+      setError("Refresh failed. Cannot load news feed.");
     }
   };
 
@@ -188,7 +188,10 @@ export function NewsFeedSurface({ mode, townId, initialTab = "all" }: { mode: Fe
                       [ {activeItem.cta.label} ] <ExternalLink className="w-3 h-3 ml-2 group-hover:translate-x-1 transition-transform" />
                     </a>
                   ) : (
-                    <Link href={activeItem.cta.href} className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary hover:text-brand-secondary transition-colors">
+                    // We link to the specific town page with the building query param.
+                    // E.g. href="?buildingId=24" -> /town/1?buildingId=24
+                    // The exact modal logic will be implemented in another session.
+                    <Link href={`/town/${townId}${activeItem.cta.href}`} className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-primary hover:text-brand-secondary transition-colors">
                       [ {activeItem.cta.label} ]
                     </Link>
                   )}
