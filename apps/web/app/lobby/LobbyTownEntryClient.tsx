@@ -87,16 +87,18 @@ export function LobbyTownEntryClient({ glbAssets, staticAssets }: LobbyTownEntry
           ENTER TOWN
         </Button>
 
-        <Button
-          disabled={!canEnterTown}
-          onClick={() => {
-            if (!canEnterTown) return;
-            router.push(`${townHref}/retro`);
-          }}
-          className="w-full py-6 text-lg font-bold bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(147,51,234,0.3)] disabled:opacity-50 disabled:cursor-not-allowed border border-purple-400/50"
-        >
-          RETRO TOWN
-        </Button>
+        {process.env.NODE_ENV !== "production" && (
+          <Button
+            disabled={!canEnterTown}
+            onClick={() => {
+              if (!canEnterTown) return;
+              router.push(`${townHref}/retro`);
+            }}
+            className="w-full py-6 text-lg font-bold bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(147,51,234,0.3)] disabled:opacity-50 disabled:cursor-not-allowed border border-purple-400/50"
+          >
+            RETRO TOWN
+          </Button>
+        )}
       </div>
 
       <div className="mt-4 h-14">
