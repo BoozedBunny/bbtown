@@ -163,7 +163,7 @@ async function getTownStateFromStrapi(townId: string) {
       { cache: "no-store" },
     ),
     strapiFetchList<StrapiBuildingState>(
-      `/api/building-states?filters[town][townId][$eq]=${encodeURIComponent(townId)}&populate[owner][fields][0]=displayName&populate[owner][fields][1]=avatar&populate[owner][fields][2]=documentId&populate[owner][fields][3]=authUserId&populate[building]=*&pagination[limit]=500`,
+      `/api/building-states?filters[town][townId][$eq]=${encodeURIComponent(townId)}&populate[owner][fields][0]=displayName&populate[owner][fields][1]=avatar&populate[owner][fields][2]=documentId&populate[owner][fields][3]=authUserId&populate[building]=true&pagination[limit]=500`,
       { cache: "no-store" },
     ),
   ]);
