@@ -140,7 +140,7 @@ export async function createTradeProposal(
     );
 
     // I. Dispatch Trade Proposal mail notification to receiver
-    const mailSubject = `HANDELSAUSSCHREIBUNG: Trade Proposal from ${proposerUsername}`;
+    const mailSubject = `TRADE PROPOSAL: Trade Proposal from ${proposerUsername}`;
     const mailBody = `PROPOSAL_ID:${proposalDocId}\n\nPlayer ${proposerUsername} has proposed a secure P2P trade with you.\n\n` +
       `- OFFERED (By ${proposerUsername}):\n` +
       `  * Credits: +$${offeredCredits}\n` +
