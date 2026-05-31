@@ -1,5 +1,5 @@
 const baseUrl = process.env.STRAPI_URL ?? "http://127.0.0.1:1339";
-const token = process.env.STRAPI_API_TOKEN;
+const token = "f4e272c34f9a243aaa2fdb8327daf17efe6ac4cd662ff9f7b5e5eef9b99e3bac71778ea0df6c048eee5faa9da6ffcb76c5b3b961ae527a9d19070778b847b35336a2121b0154523d95c31318222f089796d62abc21f1fe0e2e0fbc1ce7ab53ca43a15a85f06bda76864ca820558356ee9984f6dc117d0c6206359c7b50a3d1d9";
 
 if (!token) {
   console.error("Missing STRAPI_API_TOKEN env var.");
@@ -118,6 +118,18 @@ for (let i = 0; i < daysToSeed; i++) {
 }
 
 
+function slugify(text: string): string {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")           // Replace spaces with -
+    .replace(/[^\w\-]+/g, "")       // Remove all non-word chars
+    .replace(/\-\-+/g, "-")         // Replace multiple - with single -
+    .replace(/^-+/, "")             // Trim - from start of text
+    .replace(/-+$/, "");            // Trim - from end of text
+}
+
 async function fetchAllNews(): Promise<any[]> {
   const url = new URL(`${baseUrl}/api/town-news-items`);
   url.searchParams.set("pagination[limit]", "100");
@@ -129,10 +141,11 @@ async function fetchAllNews(): Promise<any[]> {
 }
 
 async function createNewsItem(item: NewsItemSeed) {
+  const slug = slugify(item.title);
   const res = await fetch(`${baseUrl}/api/town-news-items`, {
     method: "POST",
     headers,
-    body: JSON.stringify({ data: item }),
+    body: JSON.stringify({ data: { ...item, slug } }),
   });
   if (!res.ok) {
     const text = await res.text();
@@ -141,10 +154,11 @@ async function createNewsItem(item: NewsItemSeed) {
 }
 
 async function updateNewsItem(identifier: string, item: NewsItemSeed) {
+  const slug = slugify(item.title);
   const res = await fetch(`${baseUrl}/api/town-news-items/${identifier}`, {
     method: "PUT",
     headers,
-    body: JSON.stringify({ data: item }),
+    body: JSON.stringify({ data: { ...item, slug } }),
   });
   if (!res.ok) {
     const text = await res.text();

@@ -1015,10 +1015,18 @@ export interface ApiTownNewsTownNews extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
+    authorLabel: Schema.Attribute.String;
     body: Schema.Attribute.RichText;
+    channel: Schema.Attribute.Enumeration<['town_wire', 'channel_bb']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'town_wire'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    ctaActionType: Schema.Attribute.Enumeration<['route', 'external', 'none']> &
+      Schema.Attribute.DefaultTo<'none'>;
+    ctaHref: Schema.Attribute.String;
+    ctaLabel: Schema.Attribute.String;
     excerpt: Schema.Attribute.Text;
     isPinned: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
