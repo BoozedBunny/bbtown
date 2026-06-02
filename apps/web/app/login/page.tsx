@@ -96,7 +96,18 @@ export default function LoginPage() {
       };
 
       if (payload.requiresConfirmation) {
-        setSuccessMessage("Registration successful! A confirmation link has been sent to your email. Please click it to verify your account before logging in.");
+        setSuccessMessage("Registration successful! A confirmation link has been sent to your email. Please click it to verify your account.");
+        
+        // Save credentials temporarily in session storage to enable auto-login upon confirmation
+        try {
+          sessionStorage.setItem("bbtown_pending_login", JSON.stringify({
+            identifier: trimmedEmail,
+            password: password
+          }));
+        } catch {
+          // ignore storage block
+        }
+
         setUsername("");
         setEmail("");
         setPassword("");
@@ -110,6 +121,53 @@ export default function LoginPage() {
       setIsSubmitting(false);
     }
   };
+
+  // Auto-login or verify toast detection when redirected back with ?verified=true
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("verified") === "true") {
+        // Remove the parameter from URL to prevent infinite loops / triggering on reload
+        router.replace("/login");
+
+        const pending = sessionStorage.getItem("bbtown_pending_login");
+        if (pending) {
+          try {
+            const { identifier, password } = JSON.parse(pending);
+            sessionStorage.removeItem("bbtown_pending_login");
+
+            setSuccessMessage("Email verified successfully! Logging you in automatically...");
+            setIsSubmitting(true);
+
+            void fetch("/api/auth/login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ identifier, password }),
+            }).then(async (res) => {
+              if (res.ok) {
+                router.push("/lobby");
+                router.refresh();
+              } else {
+                const payload = (await res.json()) as { error?: string };
+                setError(payload.error ?? "Auto-login failed. Please sign in manually.");
+                setSuccessMessage(null);
+                setIsSubmitting(false);
+              }
+            }).catch(() => {
+              setError("Auto-login failed. Please sign in manually.");
+              setSuccessMessage(null);
+              setIsSubmitting(false);
+            });
+          } catch {
+            sessionStorage.removeItem("bbtown_pending_login");
+            setSuccessMessage("Account successfully verified! Please log in.");
+          }
+        } else {
+          setSuccessMessage("Account successfully verified! Please log in.");
+        }
+      }
+    }
+  }, [router]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen text-white overflow-hidden relative brand-bg-overlay font-sans">
