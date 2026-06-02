@@ -4,6 +4,7 @@ import {
   ensurePlayerProfile,
   strapiRegister,
 } from "@/lib/strapiAuth";
+import { isEmailWhitelisted } from "@/lib/emailWhitelist";
 
 export async function POST(request: Request) {
   try {
@@ -19,10 +20,29 @@ export async function POST(request: Request) {
     const password = body.password?.trim();
 
     if (!username || !email || !password) {
-      return NextResponse.json({ error: "username, email and password are required" }, { status: 400 });
+      return NextResponse.json({ error: "Username, email and password are required" }, { status: 400 });
+    }
+
+    // Server-side email whitelist check
+    if (!isEmailWhitelisted(email)) {
+      return NextResponse.json(
+        { error: "Only registrations from well-known email providers (e.g. Gmail, Yahoo, Hotmail, Outlook, GMX, Web.de) are allowed." },
+        { status: 400 }
+      );
     }
 
     const auth = await strapiRegister({ username, email, password });
+
+    // Handle email confirmation flow where JWT might not be returned initially, or user is unconfirmed
+    const confirmed = (auth.user as any).confirmed !== false;
+    if (!auth.jwt || !confirmed) {
+      return NextResponse.json({
+        ok: true,
+        requiresConfirmation: true,
+        user: { id: auth.user.id, username: auth.user.username }
+      });
+    }
+
     await ensurePlayerProfile(auth.jwt, auth.user.id, auth.user.username);
 
     const response = NextResponse.json({ ok: true, user: { id: auth.user.id, username: auth.user.username } });

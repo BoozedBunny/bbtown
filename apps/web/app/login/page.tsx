@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { isEmailWhitelisted } from "@/lib/emailWhitelist";
 
 type Mode = "login" | "register";
 
@@ -17,6 +18,7 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -66,12 +68,20 @@ export default function LoginPage() {
   const submitRegister = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
+    setSuccessMessage(null);
+
+    const trimmedEmail = email.trim();
+    if (!isEmailWhitelisted(trimmedEmail)) {
+      setError("Registration is only allowed with well-known email providers (e.g. Gmail, Yahoo, Hotmail, Outlook, GMX, Web.de).");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, password }),
+        body: JSON.stringify({ username, email: trimmedEmail, password }),
       });
 
       if (!response.ok) {
@@ -79,8 +89,21 @@ export default function LoginPage() {
         throw new Error(payload.error ?? "Registration failed");
       }
 
-      router.push("/lobby");
-      router.refresh();
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        requiresConfirmation?: boolean;
+        user?: { id: number; username: string };
+      };
+
+      if (payload.requiresConfirmation) {
+        setSuccessMessage("Registration successful! A confirmation link has been sent to your email. Please click it to verify your account before logging in.");
+        setUsername("");
+        setEmail("");
+        setPassword("");
+      } else {
+        router.push("/lobby");
+        router.refresh();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
@@ -107,27 +130,51 @@ export default function LoginPage() {
           <p className="text-gray-500 font-mono text-[10px] uppercase tracking-[0.3em]">{loginHeadline}</p>
         </div>
 
-        <div className="mb-6 flex gap-2">
-          <button className={`flex-1 py-2 text-xs uppercase tracking-[0.2em] ${mode === "login" ? "bg-brand-primary text-white" : "bg-black/40 border border-white/20"}`} onClick={() => setMode("login")}>Login</button>
-          <button className={`flex-1 py-2 text-xs uppercase tracking-[0.2em] ${mode === "register" ? "bg-brand-primary text-white" : "bg-black/40 border border-white/20"}`} onClick={() => setMode("register")}>Register</button>
-        </div>
-
-        {mode === "login" ? (
-          <form className="space-y-4" onSubmit={submitLogin}>
-            <input className="w-full bg-black/40 border border-white/20 p-3 text-sm" placeholder="Username or Email" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required />
-            <input className="w-full bg-black/40 border border-white/20 p-3 text-sm" placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-            <button className="w-full bg-brand-primary p-3 text-sm font-black uppercase tracking-[0.2em]" disabled={isSubmitting}>{isSubmitting ? "Please wait..." : "Sign in"}</button>
-          </form>
+        {successMessage ? (
+          <div className="space-y-6 text-center">
+            <div className="border border-green-500/30 bg-green-500/5 p-4 rounded text-sm text-green-400 font-mono leading-relaxed shadow-[0_0_15px_rgba(34,197,94,0.1)]">
+              {successMessage}
+            </div>
+            <button
+              className="w-full bg-brand-primary hover:bg-brand-secondary transition-colors p-3 text-sm font-black uppercase tracking-[0.2em] shadow-[0_0_10px_rgba(189,0,255,0.3)]"
+              onClick={() => {
+                setSuccessMessage(null);
+                setMode("login");
+              }}
+            >
+              Back to Login
+            </button>
+          </div>
         ) : (
-          <form className="space-y-4" onSubmit={submitRegister}>
-            <input className="w-full bg-black/40 border border-white/20 p-3 text-sm" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} required />
-            <input className="w-full bg-black/40 border border-white/20 p-3 text-sm" placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <input className="w-full bg-black/40 border border-white/20 p-3 text-sm" placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-            <button className="w-full bg-brand-primary p-3 text-sm font-black uppercase tracking-[0.2em]" disabled={isSubmitting}>{isSubmitting ? "Please wait..." : "Create account"}</button>
-          </form>
-        )}
+          <>
+            <div className="mb-6 flex gap-2">
+              <button className={`flex-1 py-2 text-xs uppercase tracking-[0.2em] ${mode === "login" ? "bg-brand-primary text-white" : "bg-black/40 border border-white/20"}`} onClick={() => { setMode("login"); setError(null); }}>Login</button>
+              <button className={`flex-1 py-2 text-xs uppercase tracking-[0.2em] ${mode === "register" ? "bg-brand-primary text-white" : "bg-black/40 border border-white/20"}`} onClick={() => { setMode("register"); setError(null); }}>Register</button>
+            </div>
 
-        {error ? <p className="mt-4 text-xs text-red-400">{error}</p> : null}
+            {mode === "login" ? (
+              <form className="space-y-4" onSubmit={submitLogin}>
+                <input className="w-full bg-black/40 border border-white/20 p-3 text-sm" placeholder="Username or Email" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required />
+                <input className="w-full bg-black/40 border border-white/20 p-3 text-sm" placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <button className="w-full bg-brand-primary p-3 text-sm font-black uppercase tracking-[0.2em]" disabled={isSubmitting}>{isSubmitting ? "Please wait..." : "Sign in"}</button>
+              </form>
+            ) : (
+              <form className="space-y-4" onSubmit={submitRegister}>
+                <input className="w-full bg-black/40 border border-white/20 p-3 text-sm" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} required />
+                <div>
+                  <input className="w-full bg-black/40 border border-white/20 p-3 text-sm" placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  <p className="text-[10px] text-gray-500 font-mono mt-1 px-1">
+                    * Please use a well-known provider (Gmail, Yahoo, Hotmail, GMX, Web.de, etc.)
+                  </p>
+                </div>
+                <input className="w-full bg-black/40 border border-white/20 p-3 text-sm" placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <button className="w-full bg-brand-primary p-3 text-sm font-black uppercase tracking-[0.2em]" disabled={isSubmitting}>{isSubmitting ? "Please wait..." : "Create account"}</button>
+              </form>
+            )}
+
+            {error ? <p className="mt-4 text-xs text-red-400 font-mono border border-red-500/20 bg-red-500/5 p-3 rounded">{error}</p> : null}
+          </>
+        )}
 
         <div className="mt-8 pt-6 border-t border-white/5 text-center flex flex-col items-center gap-4">
           <Link href="/about" className="text-brand-primary hover:text-brand-secondary transition-colors text-sm font-bold underline decoration-brand-primary/50 underline-offset-4">
