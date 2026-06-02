@@ -45,8 +45,9 @@ export function ImageBuilding({
 }: BuildingData & { 
   spriteConfig?: { columns: number; rows: number; totalFrames: number; fps: number; phaseOffset?: number } 
 }) {
-// Lade das webp-Bild (oder das riesige Sprite-Sheet)
-  const baseTexture = useTexture(url);
+  // Use a fallback placeholder image if url is missing to prevent Three.js crash
+  const textureUrl = url || "https://www.boozedbunnytown.com/media/buildings/feet_house.webp";
+  const baseTexture = useTexture(textureUrl);
 
   // NEU: Wir klonen die Textur. 
   // Das Bild bleibt nur 1x im RAM, aber jedes Haus hat eigene UV-Koordinaten zum Animieren.
