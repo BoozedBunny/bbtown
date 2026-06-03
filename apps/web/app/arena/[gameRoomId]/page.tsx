@@ -13,7 +13,7 @@ import {
   RoundedBox,
   Sparkles,
   Box,
-  Html,
+  Html as DreiHtml,
 } from "@react-three/drei";
 import { io, Socket } from "socket.io-client";
 import { Loader2, Swords, Trophy, Users } from "lucide-react";
@@ -52,6 +52,7 @@ interface PlayerState {
   spawnReason?: SpawnReason;
   spawnSequence?: number;
   avatar?: string;
+  bottlesCount: number;
 }
 
 interface Obstacle {
@@ -81,34 +82,42 @@ function LocalPlayer({
   onFall,
   initialSpawn,
   avatar = "bunny",
+  socket,
+  roomId,
+  bottlesCount,
+  barrel,
 }: {
   onMove: (pos: [number, number, number], rot: number, anim: string) => void;
   onFall: () => void;
   initialSpawn?: Pick<PlayerState, "position" | "rotation" | "spawnSequence">;
   avatar?: string;
+  socket: Socket | null;
+  roomId: string;
+  bottlesCount: number;
+  barrel: { id: string; position: [number, number, number] } | null;
 }) {
   const rigidBodyRef = useRef<any>(null);
   const modelRef = useRef<THREE.Group>(null);
   const [, getKeys] = useKeyboardControls();
   const { camera, gl } = useThree();
 
-  // --- NEU: RAPIER & SPRUNG-LOGIK ---
   const { rapier, world } = useRapier();
-  const jumpPressed = useRef(false); // Verhindert das Gedrückthalten der Taste
-  const jumpCount = useRef(0); // Zählt die Sprünge für den Doppelsprung
-  const MAX_JUMPS = 2; // 2 = Doppelsprung, 1 = Normaler Sprung
-
-  // Start-Animation ist jetzt unser sauberes Idle_1
+  const jumpPressed = useRef(false);
   const [currentAnim, setCurrentAnim] = useState("Idle_1");
 
   const SPEED = 6;
   const JUMP_FORCE = 6;
 
-  // --- KAMERA STATE ---
   const yaw = useRef(0);
   const pitch = useRef(0.3);
   const radius = useRef(8);
   const lastAppliedSpawnSequence = useRef<number>(-1);
+
+  // --- COOLDOWNS & DEBUFFS STATE ---
+  const knockbackTime = useRef(0);
+  const castTime = useRef(0);
+  const drunkUntil = useRef(0);
+  const lastClaimedBarrelId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!rigidBodyRef.current || !modelRef.current || !initialSpawn) return;
@@ -128,7 +137,6 @@ function LocalPlayer({
     lastAppliedSpawnSequence.current = incomingSequence;
   }, [initialSpawn]);
 
-  // --- DAS WOW-IDLE SYSTEM ---
   useEffect(() => {
     let timeout: NodeJS.Timeout;
 
@@ -136,7 +144,6 @@ function LocalPlayer({
       const waitTime = Math.random() * 6000 + 4000;
 
       timeout = setTimeout(() => {
-        // Unsere echten, neuen Idles!
         const idles = ["Idle_1", "Idle_2", "Idle_3"];
         const otherIdles = idles.filter((anim) => anim !== currentAnim);
         const randomIdle =
@@ -149,7 +156,6 @@ function LocalPlayer({
     return () => clearTimeout(timeout);
   }, [currentAnim]);
 
-  // --- MAUS & KAMERA EVENT LISTENERS (Unverändert) ---
   useEffect(() => {
     const handleCanvasClick = () => {
       if (!document.pointerLockElement) {
@@ -185,6 +191,102 @@ function LocalPlayer({
     };
   }, [gl.domElement]);
 
+  // --- THROW BOTTLE ON CLICK ---
+  useEffect(() => {
+    const handleMouseDown = (e: MouseEvent) => {
+      if (document.pointerLockElement !== gl.domElement) return;
+ 
+      if (e.button === 0) { // Left click
+        const now = Date.now();
+        const isLockedByKnockback = now < knockbackTime.current;
+        const isLockedByCast = now < castTime.current;
+ 
+        if (bottlesCount > 0 && !isLockedByKnockback && !isLockedByCast) {
+          castTime.current = now + 1000; // 1s cast lock time
+ 
+          if (rigidBodyRef.current) {
+            const translation = rigidBodyRef.current.translation();
+            // Clone positions to prevent references updating during delay
+            const startX = translation.x;
+            const startY = translation.y;
+            const startZ = translation.z;
+            
+            // Calculate direction based on camera horizontal orientation (yaw)
+            const camForward = new THREE.Vector3(
+              -Math.sin(yaw.current),
+              0,
+              -Math.cos(yaw.current),
+            ).normalize();
+ 
+            // Project point on the ground 8 units in front of player
+            const targetX = startX + camForward.x * 8;
+            const targetZ = startZ + camForward.z * 8;
+            const targetY = -0.6; // Floor level
+ 
+            // Delay socket emission by 800ms to match the character's forward throwing animation motion
+            setTimeout(() => {
+              socket?.emit("throw_bottle", {
+                roomId,
+                targetPosition: [targetX, targetY, targetZ],
+                startPosition: [startX, startY, startZ],
+              });
+            }, 800);
+          }
+        }
+      }
+    };
+ 
+    window.addEventListener("mousedown", handleMouseDown);
+ 
+    return () => {
+      window.removeEventListener("mousedown", handleMouseDown);
+    };
+  }, [gl.domElement, bottlesCount, socket, roomId]);
+
+  // --- EXPLOSION IMPACT (KNOCKBACK & DEBUFF) ---
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleExplosionImpact = ({ targetPosition, radius, force }: { targetPosition: [number, number, number], radius: number, force: number }) => {
+      if (!rigidBodyRef.current) return;
+      const pos = rigidBodyRef.current.translation();
+      const dx = pos.x - targetPosition[0];
+      const dy = pos.y - targetPosition[1];
+      const dz = pos.z - targetPosition[2];
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+      if (dist < radius) {
+        let dirX = dx;
+        let dirZ = dz;
+        const len = Math.sqrt(dirX * dirX + dirZ * dirZ);
+        if (len > 0) {
+          dirX /= len;
+          dirZ /= len;
+        } else {
+          dirX = Math.random() - 0.5;
+          dirZ = Math.random() - 0.5;
+        }
+
+        const falloff = 1 - dist / radius;
+        const finalForce = force * falloff;
+
+        rigidBodyRef.current.setLinvel({
+          x: dirX * finalForce,
+          y: JUMP_FORCE * 1.5 * falloff,
+          z: dirZ * finalForce
+        }, true);
+
+        knockbackTime.current = Date.now() + 1500;
+        drunkUntil.current = Date.now() + 8000;
+      }
+    };
+
+    socket.on("explosion_impact", handleExplosionImpact);
+    return () => {
+      socket.off("explosion_impact", handleExplosionImpact);
+    };
+  }, [socket]);
+
   useFrame(() => {
     if (!rigidBodyRef.current || !modelRef.current) return;
 
@@ -192,20 +294,37 @@ function LocalPlayer({
     const velocity = rigidBodyRef.current.linvel();
     const pos = rigidBodyRef.current.translation();
 
-    // --- 1. BEWEGUNG BERECHNEN ---
+    const now = Date.now();
+    const isLockedByKnockback = now < knockbackTime.current;
+    const isLockedByCast = now < castTime.current;
+    const isDrunk = now < drunkUntil.current;
+
+    // --- BARREL COLLISION CHECK ---
+    if (barrel && !roomId.startsWith("solo-") && lastClaimedBarrelId.current !== barrel.id) {
+      const dx = pos.x - barrel.position[0];
+      const dy = pos.y - barrel.position[1];
+      const dz = pos.z - barrel.position[2];
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (dist < 1.8) {
+        lastClaimedBarrelId.current = barrel.id;
+        socket?.emit("claim_barrel", { roomId, barrelId: barrel.id });
+      }
+    }
+
     let inputX = 0;
     let inputZ = 0;
 
-    if (keys.forward) inputZ -= 1;
-    if (keys.backward) inputZ += 1;
-    if (keys.leftward) inputX -= 1;
-    if (keys.rightward) inputX += 1;
+    if (!isLockedByKnockback && !isLockedByCast) {
+      if (keys.forward) inputZ -= 1;
+      if (keys.backward) inputZ += 1;
+      if (keys.leftward) inputX -= 1;
+      if (keys.rightward) inputX += 1;
+    }
 
     const inputVec = new THREE.Vector2(inputX, inputZ);
     const isMoving = inputVec.lengthSq() > 0;
     const moveDir = new THREE.Vector3();
 
-    // Logik: Geht er GERADEAUS rückwärts? (S gedrückt, aber nicht W)
     const isWalkingBackward = keys.backward && !keys.forward;
 
     if (isMoving) {
@@ -225,10 +344,10 @@ function LocalPlayer({
       moveDir.add(camForward.multiplyScalar(-inputVec.y));
       moveDir.add(camRight.multiplyScalar(inputVec.x));
 
-      // NEU: Wenn er rückwärts geht, darf er nicht rennen (Standard in den meisten Spielen)
-      // Außerdem machen wir das Rückwärtslaufen minimal langsamer (0.8x)
       let currentSpeed = SPEED;
-      if (isWalkingBackward) {
+      if (isDrunk) {
+        currentSpeed = SPEED * 0.5;
+      } else if (isWalkingBackward) {
         currentSpeed = SPEED * 0.8;
       } else if (keys.run) {
         currentSpeed = SPEED * 1.5;
@@ -236,12 +355,9 @@ function LocalPlayer({
 
       moveDir.normalize().multiplyScalar(currentSpeed);
 
-      // --- WICHTIG: DIE RÜCKWÄRTS-BLICKRICHTUNG ---
       let lookX = moveDir.x;
       let lookZ = moveDir.z;
 
-      // Wenn er rückwärts läuft, invertieren wir den Blick-Vektor!
-      // Er läuft auf die Kamera zu, guckt aber von ihr weg.
       if (isWalkingBackward) {
         lookX = -moveDir.x;
         lookZ = -moveDir.z;
@@ -256,57 +372,59 @@ function LocalPlayer({
       modelRef.current.rotation.y += diff * 0.15;
     }
 
-    rigidBodyRef.current.setLinvel(
-      { x: moveDir.x, y: velocity.y, z: moveDir.z },
-      true,
-    );
+    if (isLockedByKnockback) {
+    } else if (isLockedByCast) {
+      rigidBodyRef.current.setLinvel(
+        { x: 0, y: velocity.y, z: 0 },
+        true,
+      );
+    } else {
+      rigidBodyRef.current.setLinvel(
+        { x: moveDir.x, y: velocity.y, z: moveDir.z },
+        true,
+      );
+    }
 
-    // --- 2. SPRINGEN (Der saubere, einzelne Sprung) ---
-
-    // 1. Raycast-Startpunkt: Exakt UNTER dem Charakter (pos.y - 0.95),
-    // damit der Laser nicht versehentlich den eigenen Körper trifft!
     const rayOrigin = { x: pos.x, y: pos.y - 0.95, z: pos.z };
     const rayDir = { x: 0, y: -1, z: 0 };
     const ray = new rapier.Ray(rayOrigin, rayDir);
 
-    // Laser schießt 0.2 Meter (20cm) nach unten
     const hit = world.castRay(ray, 0.5, true);
-
-    // Wir sind NUR "Grounded", wenn der Laser den Boden trifft
-    // UND wir nicht gerade durch den Sprung steil nach oben/unten fliegen
     const isGrounded = hit !== null && Math.abs(velocity.y) < 0.2;
 
-    // 2. Die Sprung-Logik mit "Anti-Flappy-Bird" Schutz
-    if (keys.jump && isGrounded && !jumpPressed.current) {
-      jumpPressed.current = true; // Taste als "gedrückt" sperren
+    const currentJumpForce = isDrunk ? JUMP_FORCE * 0.6 : JUMP_FORCE;
+
+    if (keys.jump && isGrounded && !jumpPressed.current && !isLockedByKnockback && !isLockedByCast) {
+      jumpPressed.current = true;
       rigidBodyRef.current.setLinvel(
-        { x: velocity.x, y: JUMP_FORCE, z: velocity.z },
+        { x: velocity.x, y: currentJumpForce, z: velocity.z },
         true,
       );
     } else if (!keys.jump) {
-      // Erst wenn die Leertaste losgelassen wird, geben wir den nächsten Sprung frei
       jumpPressed.current = false;
     }
 
-    // --- 3. ANIMATIONEN (Jetzt mit klaren Namen!) ---
     let nextAnim = currentAnim;
 
-    if (!isGrounded) {
-      // Wenn die Fallgeschwindigkeit stark negativ ist, fällt er tief!
+    if (isLockedByKnockback) {
+      nextAnim = "FreeFalling";
+    } else if (isLockedByCast) {
+      nextAnim = "throw_1";
+    } else if (!isGrounded) {
       if (velocity.y < -4) {
         nextAnim = "FreeFalling";
       } else {
         nextAnim = "Jump";
       }
     } else if (isMoving) {
-      // Wenn S gedrückt ist, Walk_Backwards. Sonst prüfen ob Shift (Run) oder normal (Walk)
       if (isWalkingBackward) {
         nextAnim = "Walk_Backwards";
+      } else if (isDrunk) {
+        nextAnim = keys.run ? "drunk_1" : "drunk_2";
       } else {
         nextAnim = keys.run ? "Run" : "Walk";
       }
     } else {
-      // Er steht still.
       const REAL_IDLES = ["Idle_1", "Idle_2", "Idle_3"];
       if (!REAL_IDLES.includes(currentAnim)) {
         nextAnim = "Idle_1";
@@ -315,7 +433,6 @@ function LocalPlayer({
 
     if (nextAnim !== currentAnim) setCurrentAnim(nextAnim);
 
-    // --- 4. THIRD-PERSON KAMERA ORBIT ---
     const heightOffset = 1.2;
 
     const camX =
@@ -330,7 +447,6 @@ function LocalPlayer({
     camera.position.lerp(targetCameraPos, 0.2);
     camera.lookAt(pos.x, pos.y + heightOffset, pos.z);
 
-    // --- 5. NETZWERK SYNC ---
     if (pos.y < -5) {
       onFall();
     } else {
@@ -613,6 +729,239 @@ function MovingObstacle({
   );
 }
 
+function PuffMesh() {
+  const meshRef = useRef<THREE.Mesh>(null);
+  useFrame((_, delta) => {
+    if (meshRef.current) {
+      meshRef.current.scale.addScalar(delta * 4);
+      if (meshRef.current.material) {
+        (meshRef.current.material as THREE.Material).opacity = Math.max(
+          0,
+          (meshRef.current.material as THREE.Material).opacity - delta * 2,
+        );
+      }
+    }
+  });
+
+  return (
+    <mesh ref={meshRef}>
+      <sphereGeometry args={[0.2, 16, 16]} />
+      <meshBasicMaterial color="#ffffff" transparent opacity={0.8} />
+    </mesh>
+  );
+}
+
+function FlyingBottle({
+  start,
+  target,
+}: {
+  start: [number, number, number];
+  target: [number, number, number];
+}) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const startTime = useMemo(() => Date.now(), []);
+  const DURATION = 1200; // ms
+  const PEAK_HEIGHT = 6; // units
+
+  useFrame(() => {
+    if (!meshRef.current) return;
+    const elapsed = Date.now() - startTime;
+    const t = Math.min(1.0, elapsed / DURATION);
+
+    const x = start[0] + (target[0] - start[0]) * t;
+    const z = start[2] + (target[2] - start[2]) * t;
+    const linearY = start[1] + (target[1] - start[1]) * t;
+
+    const parabola = 4 * PEAK_HEIGHT * t * (1 - t);
+    const y = linearY + parabola;
+
+    meshRef.current.position.set(x, y, z);
+    meshRef.current.rotation.x = t * Math.PI * 6;
+    meshRef.current.rotation.y = t * Math.PI * 4;
+  });
+
+  return (
+    <mesh ref={meshRef} castShadow>
+      <cylinderGeometry args={[0.1, 0.12, 0.5, 8]} />
+      <meshStandardMaterial
+        color="#00ff88"
+        emissive="#00ff88"
+        emissiveIntensity={1.5}
+      />
+    </mesh>
+  );
+}
+
+function ExplosionEffect({ position }: { position: [number, number, number] }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const startTime = useMemo(() => Date.now(), []);
+  const DURATION = 1000; // ms
+
+  useFrame(() => {
+    if (!meshRef.current) return;
+    const elapsed = Date.now() - startTime;
+    const t = Math.min(1.0, elapsed / DURATION);
+
+    const size = 1 + t * 4;
+    meshRef.current.scale.set(size, size, size);
+
+    if (meshRef.current.material) {
+      (meshRef.current.material as THREE.Material).opacity = Math.max(
+        0,
+        1 - t,
+      );
+    }
+  });
+
+  return (
+    <group position={position}>
+      <mesh ref={meshRef}>
+        <sphereGeometry args={[1, 16, 16]} />
+        <meshBasicMaterial
+          color="#ff7700"
+          transparent
+          opacity={0.8}
+          depthWrite={false}
+        />
+      </mesh>
+      <Sparkles
+        count={40}
+        scale={4}
+        size={5}
+        speed={3}
+        color="#ffaa00"
+      />
+    </group>
+  );
+}
+
+function DummyPlayer({
+  position: initialPosition,
+  avatar,
+  username,
+  socket,
+}: {
+  position: [number, number, number];
+  avatar: string;
+  username: string;
+  socket: Socket | null;
+}) {
+  const rigidBodyRef = useRef<any>(null);
+  const modelRef = useRef<THREE.Group>(null);
+  const [currentAnim, setCurrentAnim] = useState("Idle_1");
+  const knockbackTime = useRef(0);
+  const drunkUntil = useRef(0);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleExplosionImpact = ({
+      targetPosition,
+      radius,
+      force,
+    }: {
+      targetPosition: [number, number, number];
+      radius: number;
+      force: number;
+    }) => {
+      if (!rigidBodyRef.current) return;
+      const pos = rigidBodyRef.current.translation();
+      const dx = pos.x - targetPosition[0];
+      const dy = pos.y - targetPosition[1];
+      const dz = pos.z - targetPosition[2];
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+      if (dist < radius) {
+        let dirX = dx;
+        let dirZ = dz;
+        const len = Math.sqrt(dirX * dirX + dirZ * dirZ);
+        if (len > 0) {
+          dirX /= len;
+          dirZ /= len;
+        } else {
+          dirX = Math.random() - 0.5;
+          dirZ = Math.random() - 0.5;
+        }
+
+        const falloff = 1 - dist / radius;
+        const finalForce = force * falloff;
+
+        rigidBodyRef.current.setLinvel(
+          {
+            x: dirX * finalForce,
+            y: 9 * 1.5 * falloff,
+            z: dirZ * finalForce,
+          },
+          true,
+        );
+
+        knockbackTime.current = Date.now() + 1500;
+        drunkUntil.current = Date.now() + 8000;
+      }
+    };
+
+    socket.on("explosion_impact", handleExplosionImpact);
+    return () => {
+      socket.off("explosion_impact", handleExplosionImpact);
+    };
+  }, [socket]);
+
+  useFrame(() => {
+    if (!rigidBodyRef.current || !modelRef.current) return;
+    const now = Date.now();
+    const isLockedByKnockback = now < knockbackTime.current;
+    const isDrunk = now < drunkUntil.current;
+    const velocity = rigidBodyRef.current.linvel();
+    const pos = rigidBodyRef.current.translation();
+
+    let nextAnim = "Idle_1";
+    if (isLockedByKnockback) {
+      nextAnim = "FreeFalling";
+    } else if (isDrunk) {
+      nextAnim = "drunk_2";
+    } else if (velocity.y < -4) {
+      nextAnim = "FreeFalling";
+    }
+
+    if (nextAnim !== currentAnim) {
+      setCurrentAnim(nextAnim);
+    }
+
+    if (pos.y < -5) {
+      rigidBodyRef.current.setTranslation(
+        { x: initialPosition[0], y: initialPosition[1] + 5, z: initialPosition[2] },
+        true,
+      );
+      rigidBodyRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      drunkUntil.current = 0;
+      knockbackTime.current = 0;
+    }
+  });
+
+  return (
+    <RigidBody
+      ref={rigidBodyRef}
+      position={initialPosition}
+      mass={1}
+      type="dynamic"
+      enabledRotations={[false, false, false]}
+      friction={1}
+    >
+      <group ref={modelRef}>
+        <Player
+          currentAction={currentAnim}
+          position={[0, -0.92, 0]}
+          avatar={avatar}
+        />
+        <DreiHtml distanceFactor={12} position={[0, 1.2, 0]} center>
+          <div className="bg-black/90 text-white font-mono text-[9px] font-bold px-2 py-0.5 rounded border border-gray-600 whitespace-nowrap uppercase shadow-lg">
+            🤖 {username} (Dummy)
+          </div>
+        </DreiHtml>
+      </group>
+    </RigidBody>
+  );
+}
+
 function ArenaScene({
   players,
   onMove,
@@ -623,6 +972,14 @@ function ArenaScene({
   isSuddenDeath,
   obstaclesEnabled,
   isDevMode,
+  socket,
+  roomId,
+  bottlesCount,
+  barrel,
+  puffs,
+  flyingBottles,
+  explosions,
+  fightDevMode,
 }: {
   players: PlayerState[];
   onMove: (pos: [number, number, number], rot: number, anim: string) => void;
@@ -633,6 +990,14 @@ function ArenaScene({
   isSuddenDeath: boolean;
   obstaclesEnabled: boolean;
   isDevMode?: boolean;
+  socket: Socket | null;
+  roomId: string;
+  bottlesCount: number;
+  barrel: { id: string; position: [number, number, number] } | null;
+  puffs: Array<{ id: string; position: [number, number, number] }>;
+  flyingBottles: Array<{ id: string; start: [number, number, number]; target: [number, number, number] }>;
+  explosions: Array<{ id: string; position: [number, number, number] }>;
+  fightDevMode?: boolean;
 }) {
   // Lade die Textur (R3F sucht automatisch im /public Ordner)
   const floorTexture = useTexture(
@@ -766,38 +1131,38 @@ function ArenaScene({
             {/* Display all four player avatars side-by-side to compare sizes */}
             <group position={[-4, 1.4, 0]}>
               <Player currentAction="Idle_1" avatar="bunny" />
-              <Html distanceFactor={12} position={[0, 1.8, 0]} center>
+              <DreiHtml distanceFactor={12} position={[0, 1.8, 0]} center>
                 <div className="bg-black/90 text-white font-mono text-[10px] font-bold px-2.5 py-1 rounded border border-brand-primary whitespace-nowrap uppercase tracking-wider shadow-lg">
                   🐰 Bunny
                 </div>
-              </Html>
+              </DreiHtml>
             </group>
 
             <group position={[-1.3, 1.4, 0]}>
               <Player currentAction="Idle_1" avatar="cowie" />
-              <Html distanceFactor={12} position={[0, 1.8, 0]} center>
+              <DreiHtml distanceFactor={12} position={[0, 1.8, 0]} center>
                 <div className="bg-black/90 text-white font-mono text-[10px] font-bold px-2.5 py-1 rounded border border-brand-primary whitespace-nowrap uppercase tracking-wider shadow-lg">
                   🐮 Cowie
                 </div>
-              </Html>
+              </DreiHtml>
             </group>
 
             <group position={[1.3, 1.4, 0]}>
               <Player currentAction="Idle_1" avatar="nutty" />
-              <Html distanceFactor={12} position={[0, 1.8, 0]} center>
+              <DreiHtml distanceFactor={12} position={[0, 1.8, 0]} center>
                 <div className="bg-black/90 text-white font-mono text-[10px] font-bold px-2.5 py-1 rounded border border-brand-primary whitespace-nowrap uppercase tracking-wider shadow-lg">
                   🐿️ Nutty
                 </div>
-              </Html>
+              </DreiHtml>
             </group>
 
             <group position={[4, 1.4, 0]}>
               <Player currentAction="Idle_1" avatar="skunky" />
-              <Html distanceFactor={12} position={[0, 1.8, 0]} center>
+              <DreiHtml distanceFactor={12} position={[0, 1.8, 0]} center>
                 <div className="bg-black/90 text-white font-mono text-[10px] font-bold px-2.5 py-1 rounded border border-brand-primary whitespace-nowrap uppercase tracking-wider shadow-lg">
                   🦨 Skunky
                 </div>
-              </Html>
+              </DreiHtml>
             </group>
           </>
         )}
@@ -815,6 +1180,10 @@ function ArenaScene({
                 : undefined
             }
             avatar={localPlayerState?.avatar || "bunny"}
+            socket={socket}
+            roomId={roomId}
+            bottlesCount={bottlesCount}
+            barrel={barrel}
           />
         )}
         {players
@@ -829,7 +1198,78 @@ function ArenaScene({
               avatar={p.avatar}
             />
           ))}
+
+        {/* Fight DevMode Dummies */}
+        {fightDevMode && (
+          <>
+            <DummyPlayer
+              position={[-4, -0.6, 5]}
+              avatar="cowie"
+              username="Cowie"
+              socket={socket}
+            />
+            <DummyPlayer
+              position={[4, -0.6, 5]}
+              avatar="nutty"
+              username="Nutty"
+              socket={socket}
+            />
+            <DummyPlayer
+              position={[0, -0.6, -10]}
+              avatar="skunky"
+              username="Skunky"
+              socket={socket}
+            />
+          </>
+        )}
       </Physics>
+
+      {/* Active Barrel (Multiplayer only) */}
+      {status === "playing" && !isDevMode && !roomId.startsWith("solo-") && barrel && (
+        <group position={barrel.position}>
+          <mesh castShadow receiveShadow>
+            <cylinderGeometry args={[0.5, 0.55, 1.3, 16]} />
+            <meshStandardMaterial
+              color="#b5651d"
+              roughness={0.7}
+              metalness={0.1}
+            />
+          </mesh>
+          <mesh position={[0, 0.4, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.56, 0.04, 8, 24]} />
+            <meshBasicMaterial color="#00ffff" />
+          </mesh>
+          <mesh position={[0, -0.4, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.56, 0.04, 8, 24]} />
+            <meshBasicMaterial color="#00ffff" />
+          </mesh>
+          <Sparkles count={15} scale={1.5} size={2} color="#00ffff" speed={0.5} />
+        </group>
+      )}
+
+      {/* Barrel Claim Puffs */}
+      {puffs.map((puff) => (
+        <group key={puff.id} position={puff.position}>
+          <Sparkles
+            count={30}
+            scale={2.0}
+            size={6}
+            speed={2.5}
+            color="#00ffff"
+          />
+          <PuffMesh />
+        </group>
+      ))}
+
+      {/* Flying Bottles */}
+      {flyingBottles.map((fb) => (
+        <FlyingBottle key={fb.id} start={fb.start} target={fb.target} />
+      ))}
+
+      {/* Explosions */}
+      {explosions.map((exp) => (
+        <ExplosionEffect key={exp.id} position={exp.position} />
+      ))}
     </>
   );
 }
@@ -857,7 +1297,36 @@ export default function ArenaPage({
     obstaclesEnabled?: boolean;
     nextActiveStartTimeMs?: number;
     gameOver?: GameOverPayload;
+    barrel?: { id: string; position: [number, number, number] } | null;
   }>({ players: [], obstacles: [], status: "waiting" });
+
+  const [puffs, setPuffs] = useState<Array<{ id: string; position: [number, number, number] }>>([]);
+  const [flyingBottles, setFlyingBottles] = useState<Array<{ id: string; start: [number, number, number]; target: [number, number, number] }>>([]);
+  const [explosions, setExplosions] = useState<Array<{ id: string; position: [number, number, number] }>>([]);
+
+  const addPuff = (position: [number, number, number]) => {
+    const id = `puff-${Math.random().toString(36).substring(2, 7)}`;
+    setPuffs((prev) => [...prev, { id, position }]);
+    setTimeout(() => {
+      setPuffs((prev) => prev.filter((p) => p.id !== id));
+    }, 800);
+  };
+
+  const addFlyingBottle = (start: [number, number, number], target: [number, number, number]) => {
+    const id = `bottle-${Math.random().toString(36).substring(2, 7)}`;
+    setFlyingBottles((prev) => [...prev, { id, start, target }]);
+    setTimeout(() => {
+      setFlyingBottles((prev) => prev.filter((b) => b.id !== id));
+    }, 1200);
+  };
+
+  const addExplosion = (position: [number, number, number]) => {
+    const id = `explosion-${Math.random().toString(36).substring(2, 7)}`;
+    setExplosions((prev) => [...prev, { id, position }]);
+    setTimeout(() => {
+      setExplosions((prev) => prev.filter((e) => e.id !== id));
+    }, 1000);
+  };
   const [connected, setConnected] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [entryPhase, setEntryPhase] = useState<ArenaEntryPhase>("boot");
@@ -955,17 +1424,37 @@ export default function ArenaPage({
     };
   }, [gameRoomId]);
 
+  const fightDevMode =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("fightDevMode") === "true";
+
   useEffect(() => {
     const s = io();
     setSocket(s);
 
     s.on("connect", () => {
       setConnected(true);
-      s.emit("join_arena_room", { roomId: gameRoomId, cameraYaw: 0 });
+      s.emit("join_arena_room", {
+        roomId: gameRoomId,
+        cameraYaw: 0,
+        fightDevMode: fightDevMode,
+      });
     });
 
     s.on("game_state", (state) => {
       setGameState((prev) => ({ ...prev, ...state }));
+    });
+
+    s.on("barrel_claimed", ({ winnerSocketId, puffPosition }: { winnerSocketId: string; puffPosition: [number, number, number] }) => {
+      addPuff(puffPosition);
+    });
+
+    s.on("bottle_thrown", ({ throwerId, startPosition, targetPosition }: { throwerId: string; startPosition: [number, number, number]; targetPosition: [number, number, number] }) => {
+      addFlyingBottle(startPosition, targetPosition);
+    });
+
+    s.on("explosion_impact", ({ targetPosition }: { targetPosition: [number, number, number] }) => {
+      addExplosion(targetPosition);
     });
 
     s.on("game_start", ({ players, startedAtMs }) => {
@@ -1075,6 +1564,9 @@ export default function ArenaPage({
   };
 
   const showEntryOverlay = entryPhase !== "playing" && !isDevMode;
+  const localPlayerState = socket
+    ? gameState.players.find((player) => player.id === socket.id)
+    : undefined;
 
   return (
     <main className="flex min-h-screen flex-col bg-[#05010a] text-white font-sans overflow-hidden relative">
@@ -1228,7 +1720,8 @@ export default function ArenaPage({
 
       {gameState.status === "waiting" &&
         !gameRoomId.startsWith("solo-") &&
-        !isDevMode && (
+        !isDevMode &&
+        !fightDevMode && (
           <div
             id="waiting-overlay"
             className={`absolute inset-0 z-20 flex flex-col items-center justify-center backdrop-blur-md transition-colors duration-200 ${entryPhase === "playing" ? "bg-[#05010a]/90" : "bg-[#05010a]"}`}
@@ -1413,6 +1906,14 @@ export default function ArenaPage({
                 isSuddenDeath={isSuddenDeath}
                 obstaclesEnabled={authoritativePhase.obstaclesEnabled}
                 isDevMode={isDevMode}
+                socket={socket}
+                roomId={gameRoomId}
+                bottlesCount={localPlayerState?.bottlesCount ?? 0}
+                barrel={gameState.barrel || null}
+                puffs={puffs}
+                flyingBottles={flyingBottles}
+                explosions={explosions}
+                fightDevMode={fightDevMode}
               />
             </Canvas>
           </KeyboardControls>
@@ -1484,6 +1985,46 @@ export default function ArenaPage({
           </div>
         )}
       </div>
+
+      {/* Throwable Ammo HUD */}
+      {gameState.status === "playing" && !isDevMode && !gameRoomId.startsWith("solo-") && (
+        <div className="absolute bottom-8 left-8 z-10 pointer-events-none flex flex-col gap-2">
+          <div className="bg-black/80 backdrop-blur-xl border border-white/10 px-6 py-4 rounded-sm shadow-2xl relative overflow-hidden group">
+            {/* Glowing accent line */}
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-brand-secondary to-transparent" />
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-brand-secondary/15 flex items-center justify-center border border-brand-secondary/30 relative">
+                <span className="text-2xl animate-pulse">🧪</span>
+              </div>
+              <div>
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-secondary/80">
+                  Alcoholic Ammo
+                </h3>
+                <div className="flex items-center gap-3">
+                  <p className="font-mono text-white font-black text-3xl leading-none">
+                    {localPlayerState?.bottlesCount ?? 0}
+                  </p>
+                  <div className="flex gap-1.5">
+                    {[1, 2].map((i) => {
+                      const active = (localPlayerState?.bottlesCount ?? 0) >= i;
+                      return (
+                        <div
+                          key={i}
+                          className={`w-3 h-6 border transition-all duration-300 ${
+                            active
+                              ? "bg-brand-secondary border-brand-secondary shadow-[0_0_10px_rgba(0,255,136,0.6)]"
+                              : "bg-white/5 border-white/10"
+                          }`}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {!isDevMode && (
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-4 pointer-events-none">

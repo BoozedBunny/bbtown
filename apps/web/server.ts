@@ -109,6 +109,7 @@ app.prepare().then(async () => {
     spawnReason: "initial_join" | "respawn" | "landing_reset" | "zone_transfer";
     spawnSequence: number;
     avatar: string;
+    bottlesCount: number;
   }
 
   type SpawnFinalizeReason = PlayerState["spawnReason"];
@@ -116,6 +117,7 @@ app.prepare().then(async () => {
   interface JoinArenaRoomPayload {
     roomId: string;
     cameraYaw?: number;
+    fightDevMode?: boolean;
   }
 
   interface Obstacle {
@@ -141,6 +143,9 @@ app.prepare().then(async () => {
     nextActiveStartTimeMs?: number;
     intervalId?: NodeJS.Timeout;
     nextSpawnSequence: number;
+    barrel?: { id: string; position: [number, number, number] } | null;
+    nextBarrelSpawnTimeMs?: number;
+    fightDevMode?: boolean;
   }
 
   const games: Record<string, GameSession> = {};
@@ -249,6 +254,7 @@ app.prepare().then(async () => {
       spawnReason: reason,
       spawnSequence: sequence,
       avatar,
+      bottlesCount: 0,
     };
   };
 
@@ -283,6 +289,35 @@ app.prepare().then(async () => {
       game.obstaclesEnabled = phaseState.obstaclesEnabled;
       game.nextActiveStartTimeMs = phaseState.nextActiveStartTimeMs;
 
+      if (game.fightDevMode) {
+        game.obstaclesEnabled = false;
+        game.obstacles = [];
+      }
+
+      // Spawning barrel (Multiplayer or Fight Dev Mode)
+      const isMultiplayer = Object.keys(game.players).length > 1;
+      const shouldSpawnBarrel = isMultiplayer || game.fightDevMode;
+      if (shouldSpawnBarrel) {
+        if (game.nextBarrelSpawnTimeMs === undefined && !game.barrel) {
+          game.nextBarrelSpawnTimeMs = Date.now() + 10000; // spawn first barrel after 10s
+        }
+        if (
+          game.nextBarrelSpawnTimeMs !== undefined &&
+          Date.now() >= game.nextBarrelSpawnTimeMs &&
+          !game.barrel
+        ) {
+          game.barrel = {
+            id: `barrel-${Math.random().toString(36).substring(2, 7)}`,
+            position: [
+              (Math.random() - 0.5) * 16, // random X between -8 and 8
+              -0.6,
+              (Math.random() - 0.5) * 40, // random Z between -20 and 20
+            ],
+          };
+          game.nextBarrelSpawnTimeMs = undefined;
+        }
+      }
+
       if (phaseState.obstaclesEnabled) {
         game.obstacles = game.obstacles.filter((obs) => {
           obs.position[2] += obs.speed;
@@ -305,6 +340,7 @@ app.prepare().then(async () => {
         phaseDurationMs: game.phaseDurationMs,
         obstaclesEnabled: game.obstaclesEnabled,
         nextActiveStartTimeMs: game.nextActiveStartTimeMs,
+        barrel: game.barrel || null,
       });
     }
   };
@@ -948,8 +984,8 @@ app.prepare().then(async () => {
       const roomId = payload?.roomId;
       if (typeof roomId !== "string" || roomId.length === 0) return;
 
-      // Auto-create room if it's a test room
-      if (!games[roomId] && roomId.includes("test")) {
+      // Auto-create room if it's a test room or contains dev/fightdev
+      if (!games[roomId] && (roomId.includes("test") || roomId.includes("dev"))) {
         games[roomId] = {
           roomId,
           players: {},
@@ -964,9 +1000,13 @@ app.prepare().then(async () => {
 
       socket.join(roomId);
       const game = games[roomId];
+      if (payload?.fightDevMode || roomId.includes("fightdev")) {
+        game.fightDevMode = true;
+      }
+
       const playerCount = Object.keys(game.players).length;
       const sequence = game.nextSpawnSequence++;
-      const isSolo = roomId.startsWith("solo-");
+      const isSolo = roomId.startsWith("solo-") || game.fightDevMode;
 
       const profileSnapshot = await getSocketProfileSnapshot({
         username: mockUser,
@@ -1016,6 +1056,54 @@ app.prepare().then(async () => {
           obstaclesEnabled: games[roomId].obstaclesEnabled,
           nextActiveStartTimeMs: games[roomId].nextActiveStartTimeMs,
         });
+      }
+    });
+
+    socket.on("claim_barrel", ({ roomId, barrelId }) => {
+      const game = games[roomId];
+      if (game && game.barrel && game.barrel.id === barrelId) {
+        const barrelPos = game.barrel.position;
+        game.barrel = null;
+        game.nextBarrelSpawnTimeMs = Date.now() + 15000 + Math.random() * 10000; // spawn next in 15-25s
+        
+        const player = game.players[socket.id];
+        if (player) {
+          player.bottlesCount = (player.bottlesCount || 0) + 2;
+        }
+        
+        io.to(roomId).emit("barrel_claimed", {
+          winnerSocketId: socket.id,
+          puffPosition: barrelPos
+        });
+      }
+    });
+
+    socket.on("throw_bottle", ({ roomId, targetPosition, startPosition }) => {
+      const game = games[roomId];
+      if (game) {
+        const player = game.players[socket.id];
+        if (player && (player.bottlesCount || 0) > 0) {
+          player.bottlesCount = player.bottlesCount - 1;
+          
+          // Broadcast the throw to all clients in the room
+          io.to(roomId).emit("bottle_thrown", {
+            throwerId: socket.id,
+            startPosition,
+            targetPosition
+          });
+
+          // Schedule impact in 1200ms
+          setTimeout(() => {
+            const activeGame = games[roomId];
+            if (activeGame && activeGame.status === "playing") {
+              io.to(roomId).emit("explosion_impact", {
+                targetPosition,
+                radius: 5,
+                force: 15
+              });
+            }
+          }, 1200);
+        }
       }
     });
 

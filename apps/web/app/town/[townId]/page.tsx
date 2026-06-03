@@ -2738,19 +2738,35 @@ export default function TownPage({
                   </button>
 
                   {process.env.NODE_ENV !== "production" && (
-                    <button
-                      onClick={() => {
-                        router.push("/arena/dev-room?devMode=true");
-                      }}
-                      className="group relative w-full block"
-                    >
-                      <div className="absolute inset-0 bg-yellow-500/20 blur group-hover:bg-yellow-500/40 transition-all" />
-                      <div className=" bg-yellow-500/10 border border-yellow-500/30 px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
-                        <span className="text-xs font-black uppercase tracking-[0.2em] text-yellow-500 transition-colors">
-                          Arena DevMode
-                        </span>
-                      </div>
-                    </button>
+                    <>
+                      <button
+                        onClick={() => {
+                          router.push("/arena/dev-room?devMode=true");
+                        }}
+                        className="group relative w-full block"
+                      >
+                        <div className="absolute inset-0 bg-yellow-500/20 blur group-hover:bg-yellow-500/40 transition-all" />
+                        <div className=" bg-yellow-500/10 border border-yellow-500/30 px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
+                          <span className="text-xs font-black uppercase tracking-[0.2em] text-yellow-500 transition-colors">
+                            Arena DevMode
+                          </span>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          router.push("/arena/fightdev-room?fightDevMode=true");
+                        }}
+                        className="group relative w-full block mt-2"
+                      >
+                        <div className="absolute inset-0 bg-orange-500/20 blur group-hover:bg-orange-500/40 transition-all" />
+                        <div className=" bg-orange-500/10 border border-orange-500/30 px-6 py-4 relative transition-all group-hover:translate-x-1 group-hover:-translate-y-1 text-center">
+                          <span className="text-xs font-black uppercase tracking-[0.2em] text-orange-500 transition-colors">
+                            Fight DevMode
+                          </span>
+                        </div>
+                      </button>
+                    </>
                   )}
 
                   <button

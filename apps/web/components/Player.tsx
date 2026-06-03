@@ -31,7 +31,10 @@ type ActionName =
   | "Trippin"
   | "Walk"
   | "Walk_Backwards"
-  | "Walking";
+  | "Walking"
+  | "throw_1"
+  | "drunk_1"
+  | "drunk_2";
 
 interface GLTFAction extends THREE.AnimationClip {
   name: ActionName;
