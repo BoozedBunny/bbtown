@@ -1454,14 +1454,20 @@ export default function ArenaPage({
     const s = io();
     setSocket(s);
 
-    s.on("connect", () => {
+    const handleConnect = () => {
       setConnected(true);
       s.emit("join_arena_room", {
         roomId: gameRoomId,
         cameraYaw: 0,
         fightDevMode: fightDevMode,
       });
-    });
+    };
+
+    if (s.connected) {
+      handleConnect();
+    } else {
+      s.on("connect", handleConnect);
+    }
 
     s.on("game_state", (state) => {
       setGameState((prev) => ({ ...prev, ...state }));

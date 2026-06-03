@@ -984,8 +984,8 @@ app.prepare().then(async () => {
       const roomId = payload?.roomId;
       if (typeof roomId !== "string" || roomId.length === 0) return;
 
-      // Auto-create room if it's a test room or contains dev/fightdev
-      if (!games[roomId] && (roomId.includes("test") || roomId.includes("dev"))) {
+      // Auto-create room if it's a test room, contains dev/fightdev, or is a solo room
+      if (!games[roomId] && (roomId.includes("test") || roomId.includes("dev") || roomId.startsWith("solo-"))) {
         games[roomId] = {
           roomId,
           players: {},
@@ -1028,7 +1028,7 @@ app.prepare().then(async () => {
         `User ${mockUser} joined arena room ${roomId}. Players: ${Object.keys(game.players).length}`,
       );
 
-      if (isSolo || Object.keys(games[roomId].players).length === 2) {
+      if (games[roomId].status !== "playing" && (isSolo || Object.keys(games[roomId].players).length === 2)) {
         games[roomId].status = "playing";
         games[roomId].startedAtMs = Date.now();
         const phaseState = getRoundPhaseStateAt(
@@ -1047,6 +1047,18 @@ app.prepare().then(async () => {
         games[roomId].intervalId = intervalId;
 
         io.to(roomId).emit("game_start", {
+          players: Object.values(games[roomId].players),
+          startedAtMs: games[roomId].startedAtMs,
+          roundIndex: games[roomId].roundIndex,
+          roundPhase: games[roomId].roundPhase,
+          phaseStartTimeMs: games[roomId].phaseStartTimeMs,
+          phaseDurationMs: games[roomId].phaseDurationMs,
+          obstaclesEnabled: games[roomId].obstaclesEnabled,
+          nextActiveStartTimeMs: games[roomId].nextActiveStartTimeMs,
+        });
+      } else if (games[roomId].status === "playing") {
+        // If the game has already started, just emit game_start to the newly connected socket/player
+        socket.emit("game_start", {
           players: Object.values(games[roomId].players),
           startedAtMs: games[roomId].startedAtMs,
           roundIndex: games[roomId].roundIndex,
