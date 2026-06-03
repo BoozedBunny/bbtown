@@ -652,6 +652,25 @@ function MovingObstacle({
   const scaledSpeed = speed * speedMultiplier;
   const scaledPhaseOffsetMs = phaseOffsetMs * phaseScale;
 
+  // Dynamischer HSL-Farbeffekt basierend auf Geschwindigkeit
+  const obstacleColor = useMemo(() => {
+    const minSpeed = 5;
+    const maxSpeed = 55; // clamp max to 55 for nice color transition
+    const progress = Math.max(0, Math.min(1, (scaledSpeed - minSpeed) / (maxSpeed - minSpeed)));
+    
+    // Interpolate hue from 200 (light blue/cyan) to 345 (pink/red)
+    const hue = 200 + progress * 145; // 200 to 345
+    
+    const color = new THREE.Color().setHSL(hue / 360, 1.0, 0.5);
+    
+    return {
+      r: color.r,
+      g: color.g,
+      b: color.b,
+      hex: "#" + color.getHexString(),
+    };
+  }, [scaledSpeed]);
+
   useFrame((_, delta) => {
     if (!rbRef.current) return;
 
@@ -699,7 +718,10 @@ function MovingObstacle({
           <boxGeometry args={[width, height * 0.4, OBSTACLE_DEPTH * 0.4]} />
           {/* toneMapped={false} verhindert, dass ThreeJS die Farbe abdunkelt. 
               Werte über 1 bringen es (besonders mit Bloom) zum Leuchten! */}
-          <meshBasicMaterial color={[2, 4, 10]} toneMapped={false} />
+          <meshBasicMaterial 
+            color={[obstacleColor.r * 5, obstacleColor.g * 5, obstacleColor.b * 5]} 
+            toneMapped={false} 
+          />
         </mesh>
 
         {/* Die äußere, leicht transparente Hülle */}
@@ -708,7 +730,7 @@ function MovingObstacle({
             args={[width + 0.2, height * 0.6, OBSTACLE_DEPTH * 0.6]}
           />
           <meshBasicMaterial
-            color={[0.2, 0.5, 2]}
+            color={[obstacleColor.r, obstacleColor.g, obstacleColor.b]}
             transparent
             opacity={0.4}
             toneMapped={false}
@@ -722,7 +744,7 @@ function MovingObstacle({
           scale={[width + 1, height + 1, OBSTACLE_DEPTH + 2]}
           size={4}
           speed={0.4}
-          color="#44aaff"
+          color={obstacleColor.hex}
         />
       </group>
     </RigidBody>
