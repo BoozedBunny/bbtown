@@ -62,53 +62,116 @@ export default function AboutPage() {
             <section className="bg-black/40 border border-white/10 p-6 md:p-8 relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-brand-secondary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <h2 className="text-3xl font-heading font-bold text-white mb-6 border-b border-brand-secondary/30 pb-2">
-                Features (If You Can Call Them That)
+                Loaded Features (To Blow Your Mind)
               </h2>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <li className="flex gap-4">
                   <span className="text-brand-primary text-2xl">🍸</span>
                   <div>
                     <strong className="text-white block mb-1">
-                      Party Houses
+                      Party Houses & Establishments
                     </strong>
                     <span className="text-sm">
-                      Host absolutely unhinged ragers. If the cops don't show
-                      up, you didn't do it right.
+                      Buy, own, and operate your own venues. Host completely unhinged ragers, supply questionable beverages, and make sure the cops get a reason to show up.
+                    </span>
+                  </div>
+                </li>
+                <li className="flex gap-4">
+                  <span className="text-brand-secondary text-2xl">📈</span>
+                  <div>
+                    <strong className="text-white block mb-1">
+                      Real-Time In-Game Stock Market
+                    </strong>
+                    <span className="text-sm">
+                      Trade shares in real-time, exploit market fluctuations, and—best of all—launch your own custom stock on the exchange to scam other bunnies.
+                    </span>
+                  </div>
+                </li>
+                <li className="flex gap-4">
+                  <span className="text-brand-primary text-2xl">📦</span>
+                  <div>
+                    <strong className="text-white block mb-1">
+                      Dynamic Cargo & Trading Goods
+                    </strong>
+                    <span className="text-sm">
+                      Buy low, sell high. Trade a variety of products across cities to build your financial empire. Arbitrage is your best friend.
+                    </span>
+                  </div>
+                </li>
+                <li className="flex gap-4">
+                  <span className="text-brand-secondary text-2xl">⚔️</span>
+                  <div>
+                    <strong className="text-white block mb-1">
+                      Knockout Arena (Multiplayer Mayhem)
+                    </strong>
+                    <span className="text-sm">
+                      Step into the ring in real-time. Punch, kick, and push other bunnies off the platforms in chaotic, physics-based multiplayer battles.
+                    </span>
+                  </div>
+                </li>
+                <li className="flex gap-4">
+                  <span className="text-brand-primary text-2xl">🤖</span>
+                  <div>
+                    <strong className="text-white block mb-1">
+                      Local Gemma AI Integration
+                    </strong>
+                    <span className="text-sm">
+                      Engage in contextual, real-time chat with the local population. NPCs actually remember who you are, know your wallet balance, and judge your financial crimes.
+                    </span>
+                  </div>
+                </li>
+                <li className="flex gap-4">
+                  <span className="text-brand-secondary text-2xl">🎭</span>
+                  <div>
+                    <strong className="text-white block mb-1">
+                      Strapi-Powered Infinite Personalities
+                    </strong>
+                    <span className="text-sm">
+                      Build infinite custom characters in the Strapi CMS. Customize their system prompts, personalities, temperatures, and model parameters on the fly.
+                    </span>
+                  </div>
+                </li>
+                <li className="flex gap-4">
+                  <span className="text-brand-primary text-2xl">🏛️</span>
+                  <div>
+                    <strong className="text-white block mb-1">
+                      Infinite Cities & Local Treasuries
+                    </strong>
+                    <span className="text-sm">
+                      Explore multiple municipalities (expandable to infinity). Each town features its own bank and central treasury that issues predatory loans and handles zoning.
+                    </span>
+                  </div>
+                </li>
+                <li className="flex gap-4">
+                  <span className="text-brand-secondary text-2xl">💳</span>
+                  <div>
+                    <strong className="text-white block mb-1">
+                      Real-Time Ledger Wallet
+                    </strong>
+                    <span className="text-sm">
+                      Track every single coin in real-time. A clean, modern ledger breaks down your earnings and expenses into transaction categories automatically.
+                    </span>
+                  </div>
+                </li>
+                <li className="flex gap-4">
+                  <span className="text-brand-primary text-2xl">📰</span>
+                  <div>
+                    <strong className="text-white block mb-1">
+                      Automated Live Newspaper
+                    </strong>
+                    <span className="text-sm">
+                      Read breaking news generated live based on market movements, player bankruptcies, arena fights, and political changes in the towns.
                     </span>
                   </div>
                 </li>
                 <li className="flex gap-4">
                   <span className="text-brand-secondary text-2xl">🎰</span>
                   <div>
-                    <strong className="text-white block mb-1">Casinos</strong>
-                    <span className="text-sm">
-                      Gamble away your hard-earned carrot-coins. The house
-                      always wins, but maybe today is your day? (It isn't.)
-                    </span>
-                  </div>
-                </li>
-                <li className="flex gap-4">
-                  <span className="text-brand-primary text-2xl">🏗️</span>
-                  <div>
                     <strong className="text-white block mb-1">
-                      Isometric Building
+                      High-Stakes Casinos
                     </strong>
                     <span className="text-sm">
-                      Stack blocks, decorate your squalor, and create
-                      architectural monstrosities in glorious 3D.
-                    </span>
-                  </div>
-                </li>
-                <li className="flex gap-4">
-                  <span className="text-brand-secondary text-2xl">👥</span>
-                  <div>
-                    <strong className="text-white block mb-1">
-                      Multiplayer Mayhem
-                    </strong>
-                    <span className="text-sm">
-                      Interact with other questionable individuals in real-time.
-                      Make friends, make enemies, make questionable life
-                      choices.
+                      Gamble away your hard-earned savings on roulette. The house always wins, but maybe you can break the streak. (Spoiler: You won't.)
                     </span>
                   </div>
                 </li>
