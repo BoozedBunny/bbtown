@@ -1,0 +1,37 @@
+{
+  "kind": "collectionType",
+  "collectionName": "characters",
+  "info": {
+    "singularName": "character",
+    "pluralName": "characters",
+    "displayName": "Character",
+    "description": "NPC characters configuration for AI chat"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "characterId": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "text"
+    },
+    "system_prompt": {
+      "type": "text"
+    },
+    "temperature": {
+      "type": "decimal",
+      "default": 0.7
+    },
+    "model": {
+      "type": "string"
+    }
+  }
+}

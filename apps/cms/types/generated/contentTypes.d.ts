@@ -539,6 +539,42 @@ export interface ApiBuildingBuilding extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiCharacterCharacter extends Struct.CollectionTypeSchema {
+  collectionName: 'characters';
+  info: {
+    description: 'NPC characters configuration for AI chat';
+    displayName: 'Character';
+    pluralName: 'characters';
+    singularName: 'character';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    characterId: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.Text;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::character.character'
+    > &
+      Schema.Attribute.Private;
+    model: Schema.Attribute.String;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    system_prompt: Schema.Attribute.Text;
+    temperature: Schema.Attribute.Decimal & Schema.Attribute.DefaultTo<0.7>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiGlobalSettingGlobalSetting extends Struct.SingleTypeSchema {
   collectionName: 'global_settings';
   info: {
@@ -1778,6 +1814,7 @@ declare module '@strapi/strapi' {
       'admin::user': AdminUser;
       'api::building-state.building-state': ApiBuildingStateBuildingState;
       'api::building.building': ApiBuildingBuilding;
+      'api::character.character': ApiCharacterCharacter;
       'api::global-setting.global-setting': ApiGlobalSettingGlobalSetting;
       'api::inventory-item.inventory-item': ApiInventoryItemInventoryItem;
       'api::item.item': ApiItemItem;

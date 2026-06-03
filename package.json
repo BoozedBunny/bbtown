@@ -15,6 +15,7 @@
     "cms:up": "docker compose up -d cms",
     "cms:logs": "docker compose logs -f cms",
     "seed:towns:strapi": "node_modules/.bin/tsx scripts/seed-towns-to-strapi.ts",
+    "seed:characters:strapi": "node_modules/.bin/tsx scripts/seed-characters-to-strapi.ts",
     "seed:buildings:strapi": "node_modules/.bin/tsx scripts/seed-buildings-to-strapi.ts",
     "seed:building-states:strapi": "node_modules/.bin/tsx scripts/seed-building-states-to-strapi.ts",
     "seed:stocks:strapi": "node_modules/.bin/tsx scripts/seed-stocks-to-strapi.ts",

@@ -51,13 +51,17 @@ test("askRunPodBartender - successfully triggers local Gemma proxy", async () =>
     assert.equal(result, "Get lost.", "Should parse the local Gemma output content correctly");
     assert.equal(fetchCalls.length, 1, "Should have made exactly 1 HTTP call to the proxy");
     assert.equal(fetchCalls[0].method, "POST", "Call should be POST");
-    assert.equal(fetchCalls[0].url, "https://agent.boozedbunnytown.com/api/chat/barkeeper_benny", "Should call local gemma proxy URL");
+    assert.equal(fetchCalls[0].url, "https://agent.boozedbunnytown.com/api/chat", "Should call local gemma proxy URL");
     
     // Check headers
     assert.equal(fetchCalls[0].headers?.["X-API-Key"], "mocked-gemma-key", "Should set X-API-Key header correctly");
     
     // Check body
     const bodyObj = JSON.parse(fetchCalls[0].body || "{}");
+    assert.equal(bodyObj.character.id, "barkeeper_benny", "Character ID should match");
+    assert.equal(bodyObj.character.name, "Barkeeper Benny", "Character Name should match");
+    assert.equal(bodyObj.model, "gemma2:latest", "Model should match global default");
+    assert.equal(bodyObj.player_name, "Player", "Player name should default to Player");
     assert.equal(bodyObj.messages[0].role, "user", "Should wrap prompt in user role");
     assert.ok(bodyObj.messages[0].content.includes("Give me a milkshake"), "Body should contain user message");
   } finally {

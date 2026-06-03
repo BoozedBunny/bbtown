@@ -414,7 +414,7 @@ app.prepare().then(async () => {
     }
 
     if (mockUser) {
-      socket.join(`user:${mockUser}`);
+      await socket.join(`user:${mockUser}`);
       console.log(`Socket ${socket.id} joined room user:${mockUser}`);
       const socketsForUser =
         chatSocketsByUser.get(mockUser) ?? new Set<string>();
@@ -570,7 +570,35 @@ app.prepare().then(async () => {
                 }
               }
 
-              const reply = await askNPC(randomNpc.id, contextPrefix + body);
+              // Extract chat history for this channel
+              const rows = chatMessageHistory.get(channel) ?? [];
+              const history = rows.slice(-10).map((msg) => {
+                const isNpcN = CHAT_NPCS.some((npc) => npc.id === msg.senderUserId);
+                return {
+                  role: isNpcN ? ("assistant" as const) : ("user" as const),
+                  content: msg.body,
+                };
+              });
+
+              // Translate channel to game_context
+              let gameContext = "Global Chat";
+              if (channel.startsWith("town:")) {
+                const [, townId] = channel.split(":");
+                const townNames: Record<string, string> = {
+                  "1": "HangoverHollow",
+                  "2": "TipsyToadstool",
+                  "3": "RumTumbleWeed"
+                };
+                const townName = townNames[townId] ?? townId;
+                gameContext = `Town Chat: ${townName}`;
+              }
+
+              const reply = await askNPC(randomNpc.id, contextPrefix + body, {
+                playerName: mockUser,
+                gameContext,
+                context: contextPrefix,
+                history
+              });
 
               const npcMessage = {
                 messageId: `m_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`,
@@ -694,12 +722,12 @@ app.prepare().then(async () => {
       io.emit("building_updated", data);
     });
 
-    socket.on("chat:history:request", (payload: ChatHistoryRequestPayload) => {
+    socket.on("chat:history:request", async (payload: ChatHistoryRequestPayload) => {
       if (!mockUser) return;
       const roomId = payload?.roomId;
       if (typeof roomId !== "string" || roomId.trim().length === 0) return;
 
-      socket.join(roomId);
+      await socket.join(roomId);
       const room = getChatRoom(roomId);
       const requestedLimit = Number.isFinite(payload?.limit)
         ? Number(payload.limit)
@@ -724,7 +752,7 @@ app.prepare().then(async () => {
       });
     });
 
-    socket.on("chat:send", (payload: ChatSendPayload) => {
+    socket.on("chat:send", async (payload: ChatSendPayload) => {
       if (!mockUser) {
         emitChatAck(socket, {
           clientNonce: payload?.clientNonce ?? "unknown",
@@ -772,7 +800,7 @@ app.prepare().then(async () => {
         return;
       }
 
-      socket.join(roomId);
+      await socket.join(roomId);
       const room = getChatRoom(roomId);
       const now = Date.now();
       const prior = room.sendTimestampsByUser.get(mockUser) ?? [];
@@ -853,7 +881,34 @@ app.prepare().then(async () => {
               }
             }
 
-            const reply = await askNPC(randomNpc.id, contextPrefix + body);
+            // Extract chat history for this room
+            const history = room.messages.slice(-10).map((msg) => {
+              const isNpcN = CHAT_NPCS.some((npc) => npc.id === msg.senderId);
+              return {
+                role: isNpcN ? ("assistant" as const) : ("user" as const),
+                content: msg.body,
+              };
+            });
+
+            // Translate roomId to game_context
+            let gameContext = "Global Chat";
+            if (roomId.startsWith("town:")) {
+              const [, townId] = roomId.split(":");
+              const townNames: Record<string, string> = {
+                "1": "HangoverHollow",
+                "2": "TipsyToadstool",
+                "3": "RumTumbleWeed"
+              };
+              const townName = townNames[townId] ?? townId;
+              gameContext = `Town Chat: ${townName}`;
+            }
+
+            const reply = await askNPC(randomNpc.id, contextPrefix + body, {
+              playerName: mockUser,
+              gameContext,
+              context: contextPrefix,
+              history
+            });
 
             const npcMessage: ChatMessage = {
               id: `msg_${Math.random().toString(36).slice(2, 11)}`,
@@ -979,10 +1034,17 @@ app.prepare().then(async () => {
     });
 
     socket.on("join_arena_room", async (payload: JoinArenaRoomPayload) => {
-      if (!mockUser) return;
+      console.log("[DEBUG] join_arena_room received! payload:", payload, "mockUser:", mockUser);
+      if (!mockUser) {
+        console.log("[DEBUG] join_arena_room early return: mockUser is falsy");
+        return;
+      }
 
       const roomId = payload?.roomId;
-      if (typeof roomId !== "string" || roomId.length === 0) return;
+      if (typeof roomId !== "string" || roomId.length === 0) {
+        console.log("[DEBUG] join_arena_room early return: roomId is not a valid string");
+        return;
+      }
 
       // Auto-create room if it's a test room, contains dev/fightdev, or is a solo room
       if (!games[roomId] && (roomId.includes("test") || roomId.includes("dev") || roomId.startsWith("solo-"))) {
@@ -998,7 +1060,7 @@ app.prepare().then(async () => {
 
       if (!games[roomId]) return;
 
-      socket.join(roomId);
+      await socket.join(roomId);
       const game = games[roomId];
       if (payload?.fightDevMode || roomId.includes("fightdev")) {
         game.fightDevMode = true;
